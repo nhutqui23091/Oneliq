@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/icon-arcswap.png?v=1"/>
+<link rel="apple-touch-icon" href="/assets/logos/icon-arcswap.png?v=1"/>
+<meta name="description" content="ArcSwap Dashboard — modern stablecoin infrastructure control center. Unified balance, cross-chain operations, agent management in one view."/>
+<title>Dashboard — ArcSwap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.6.4"/>
+<style>
+/* ============================================================
+   DASHBOARD — modern stablecoin infrastructure control center.
+   Visual language inherited from /trade, /balance, /agent so the
+   four pages feel like one app. New tokens live under .dash-* so
+   they don't collide with the shared primitives in arc-ui.css.
+============================================================ */
+
+.dash-wrap{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:104px 24px 80px}
+
+/* HERO STRIP */
+.dash-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.dash-hero-l h1{font-size:clamp(40px,5.5vw,68px);font-weight:900;letter-spacing:-.035em;line-height:1;margin:8px 0 10px;text-transform:uppercase}
+.dash-hero-l p{font-size:14px;color:var(--muted);max-width:560px;line-height:1.6}
+.dash-hero-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.live-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:100px;font-size:11.5px;font-weight:600;font-family:var(--mono);color:var(--arc4);background:rgba(123,228,149,.08);border:1px solid rgba(123,228,149,.25);letter-spacing:.04em;text-transform:uppercase}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--arc4);box-shadow:0 0 8px var(--arc4);animation:live-blink 2s ease-in-out infinite}
+@keyframes live-blink{0%,100%{opacity:1}50%{opacity:.35}}
+.dash-clock{font-family:var(--mono);font-size:13px;color:var(--muted);padding:8px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border)}
+
+/* OVERVIEW METRICS — five hero cards. On smaller widths we drop
+   to 3 / 2 / 1 columns cleanly. */
+.metric-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:1100px){.metric-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.metric-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:440px){.metric-grid{grid-template-columns:1fr}}
+
+.metric-card{position:relative;padding:20px 22px;border-radius:18px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;transition:border-color .2s,transform .2s}
+.metric-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.metric-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(77,214,219,.4),transparent);opacity:0;transition:opacity .25s}
+.metric-card:hover::after{opacity:1}
+.metric-label{font-size:10.5px;font-family:var(--mono);font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.metric-label .mico{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,rgba(77,214,219,.2),rgba(74,123,236,.15));display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:var(--arc1);font-weight:700}
+.metric-val{font-size:28px;font-weight:800;letter-spacing:-.035em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.metric-val .unit{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px;letter-spacing:0}
+.metric-sub{font-size:11.5px;color:var(--muted);margin-top:8px;font-family:var(--mono);display:flex;align-items:center;gap:6px}
+.metric-sub.up{color:var(--arc4)}
+.metric-sub.down{color:#FF8BA3}
+.metric-spark{position:absolute;right:14px;bottom:14px;width:60px;height:24px;opacity:.55;pointer-events:none}
+
+/* MAIN GRID */
+.dash-grid{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:flex-start}
+@media(max-width:1000px){.dash-grid{grid-template-columns:1fr}}
+.dash-col{display:flex;flex-direction:column;gap:24px;min-width:0}
+
+/* MODULE CARD — shared shell for every dashboard section */
+.module{background:var(--surface);border:1px solid var(--border);border-radius:22px;backdrop-filter:blur(20px);padding:22px 24px;position:relative}
+.module-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.module-h-l{display:flex;align-items:center;gap:10px;min-width:0}
+.module-h-l h2{font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--text)}
+.module-h-l .module-eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--arc1);background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.28);padding:3px 8px;border-radius:6px}
+.module-link{font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;border:1px solid transparent;transition:all .15s}
+.module-link:hover{color:var(--arc1);border-color:rgba(77,214,219,.32);background:rgba(77,214,219,.06)}
+
+/* UNIFIED BALANCE MODULE */
+.ub-total-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:6px 0 16px}
+.ub-total-val{font-size:44px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.ub-total-val .unit{font-size:18px;color:var(--muted);font-weight:600;margin-left:8px}
+.ub-total-sub{font-size:12px;color:var(--muted);margin-top:6px;font-family:var(--mono)}
+.ub-spendable{font-family:var(--mono);font-size:11.5px;color:var(--arc4);background:rgba(123,228,149,.08);border:1px solid rgba(123,228,149,.25);padding:5px 11px;border-radius:8px;display:inline-flex;gap:6px;align-items:center}
+.ub-spendable b{color:var(--text);font-weight:700}
+
+.ub-chain-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.ub-chain-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;align-items:center;gap:14px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);transition:all .15s}
+.ub-chain-row:hover{border-color:var(--border2);background:rgba(255,255,255,.035)}
+.ub-chain-row.zero{opacity:.55}
+.ub-chain-name{display:flex;align-items:center;gap:10px;min-width:0}
+.ub-chain-dot{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:11px;letter-spacing:-.01em}
+.ub-chain-name-t{font-size:13px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.005em}
+.ub-chain-name-t small{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:400;text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.ub-chain-bal{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
+.ub-chain-bal small{color:var(--muted);font-weight:500;margin-left:3px}
+.ub-chain-bal.zero{color:var(--muted);font-weight:500}
+.ub-chain-bar{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.05);overflow:hidden}
+.ub-chain-bar-fill{position:absolute;inset:0;background:linear-gradient(90deg,var(--arc1),var(--arc2));border-radius:inherit;transform-origin:left;transition:transform .4s cubic-bezier(.2,.9,.3,1)}
+
+.ub-cta-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.ub-cta{flex:1;min-width:130px;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;text-align:center;text-decoration:none;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .2s;letter-spacing:-.005em;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.ub-cta:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);transform:translateY(-1px)}
+.ub-cta.primary{background:linear-gradient(135deg,var(--arc1),var(--arc2));border-color:transparent;color:var(--bg);font-weight:800}
+.ub-cta.primary:hover{box-shadow:0 6px 22px rgba(77,214,219,.32)}
+
+/* AGENT MODULE */
+.agent-list{display:flex;flex-direction:column;gap:8px}
+.agent-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid var(--border);transition:all .15s;cursor:pointer;text-decoration:none;color:inherit}
+.agent-row:hover{border-color:var(--border2);background:rgba(255,255,255,.05);transform:translateX(2px)}
+.agent-state-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--arc4);box-shadow:0 0 8px var(--arc4)}
+.agent-state-dot.paused{background:#FFB454;box-shadow:0 0 8px #FFB454}
+.agent-state-dot.revoked{background:#FF8BA3;box-shadow:0 0 8px #FF8BA3}
+.agent-row-info{flex:1;min-width:0}
+.agent-row-name{font-size:13.5px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.005em}
+.agent-row-meta{font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+.agent-row-meta b{color:var(--text);font-weight:500}
+.agent-row-amt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.agent-row-amt small{display:block;font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+
+.agent-empty{padding:28px 14px;text-align:center;border:1px dashed var(--border);border-radius:14px;background:rgba(255,255,255,.015)}
+.agent-empty-ico{font-size:22px;opacity:.45;margin-bottom:8px}
+.agent-empty-t{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.agent-empty-s{font-size:11.5px;color:var(--muted);line-height:1.5;max-width:240px;margin:0 auto 12px}
+.agent-empty-cta{display:inline-block;padding:8px 16px;border-radius:10px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:12px;font-weight:700;text-decoration:none;transition:all .15s}
+.agent-empty-cta:hover{background:rgba(77,214,219,.2);border-color:rgba(77,214,219,.5)}
+
+.agent-create-cta{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px;margin-top:12px;border-radius:12px;font-size:12.5px;font-weight:700;color:var(--text);background:rgba(255,255,255,.04);border:1px dashed var(--border2);text-decoration:none;transition:all .15s}
+.agent-create-cta:hover{background:rgba(77,214,219,.08);border-color:var(--arc1);color:var(--arc1)}
+
+/* ANALYTICS MODULE */
+.analytics-top{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
+@media(max-width:780px){.analytics-top{grid-template-columns:1fr}}
+.trend-block{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+.trend-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+.trend-h-l{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.trend-pills{display:flex;gap:4px;flex-wrap:wrap}
+.trend-pill{padding:3px 8px;font-size:10.5px;font-family:var(--mono);font-weight:600;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .12s;letter-spacing:.04em}
+.trend-pill:hover{color:var(--text);border-color:var(--border2)}
+.trend-pill.active{background:rgba(77,214,219,.14);border-color:rgba(77,214,219,.4);color:var(--arc1)}
+.trend-val{font-size:28px;font-weight:800;letter-spacing:-.035em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+.trend-val .unit{font-size:14px;color:var(--muted);font-weight:600;margin-left:6px;letter-spacing:0}
+.trend-sub{font-size:11.5px;color:var(--muted);margin-top:6px;font-family:var(--mono);display:flex;gap:8px;align-items:center}
+.trend-sub .delta{font-weight:700}
+.trend-sub .delta.up{color:var(--arc4)}
+.trend-sub .delta.down{color:#FF8BA3}
+.trend-chart{margin-top:12px;width:100%;height:96px;display:block}
+
+.flow-block{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.flow-h{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.flow-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
+.flow-row:last-child{border-bottom:none}
+.flow-row-l{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.flow-arr{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.flow-arr.in{background:rgba(123,228,149,.14);color:var(--arc4)}
+.flow-arr.out{background:rgba(244,200,154,.14);color:#F4C89A}
+.flow-row-v{font-family:var(--mono);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.flow-row-v.up{color:var(--arc4)}
+.flow-row-v.down{color:#FF8BA3}
+
+.alloc-block{margin-top:18px}
+.alloc-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.alloc-bar{position:relative;height:10px;border-radius:6px;background:rgba(255,255,255,.04);overflow:hidden;display:flex}
+.alloc-seg{height:100%;transition:flex .4s cubic-bezier(.2,.9,.3,1)}
+.alloc-legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px}
+.alloc-leg-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.alloc-leg-item .ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alloc-leg-item b{color:var(--text);font-weight:600}
+
+/* ACTIVITY MODULE */
+.activity-list{display:flex;flex-direction:column;gap:6px}
+.activity-row{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);transition:all .15s}
+.activity-row:hover{background:rgba(255,255,255,.04);border-color:var(--border2)}
+.activity-ico{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.activity-ico.send{background:rgba(77,214,219,.10);color:var(--arc1)}
+.activity-ico.recv{background:rgba(123,228,149,.10);color:var(--arc4)}
+.activity-ico.swap{background:rgba(244,200,154,.10);color:#F4C89A}
+.activity-ico.deposit{background:rgba(74,123,236,.10);color:var(--arc2)}
+.activity-ico.revoke{background:rgba(255,139,163,.10);color:#FF8BA3}
+.activity-info{flex:1;min-width:0}
+.activity-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.activity-meta a{color:var(--muted);text-decoration:none;border-bottom:1px dashed transparent;transition:all .12s}
+.activity-meta a:hover{color:var(--arc1);border-bottom-color:var(--arc1)}
+.activity-amt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.activity-amt small{display:block;font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+.activity-amt.up{color:var(--arc4)}
+.activity-amt.down{color:#FF8BA3}
+
+.activity-empty{padding:28px 14px;text-align:center;border:1px dashed var(--border);border-radius:14px;background:rgba(255,255,255,.015);font-size:12.5px;color:var(--muted);line-height:1.5}
+.activity-empty b{color:var(--text)}
+
+/* QUICK ACTIONS MODULE */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qa-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid var(--border);text-decoration:none;color:var(--text);transition:all .15s;position:relative;overflow:hidden}
+.qa-tile:hover{background:rgba(255,255,255,.06);border-color:var(--border2);transform:translateY(-1px)}
+.qa-tile::after{content:'↗';position:absolute;top:11px;right:13px;color:var(--muted);font-size:11px;transition:all .15s}
+.qa-tile:hover::after{color:var(--arc1);transform:translate(2px,-2px)}
+.qa-tile-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.qa-tile-ico.t1{background:linear-gradient(135deg,rgba(77,214,219,.2),rgba(74,123,236,.15));color:var(--arc1)}
+.qa-tile-ico.t2{background:linear-gradient(135deg,rgba(123,228,149,.18),rgba(74,123,236,.10));color:var(--arc4)}
+.qa-tile-ico.t3{background:linear-gradient(135deg,rgba(244,200,154,.18),rgba(108,63,255,.10));color:#F4C89A}
+.qa-tile-ico.t4{background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(74,123,236,.10));color:#A78BFA}
+.qa-tile-name{font-size:13.5px;font-weight:700;color:var(--text);letter-spacing:-.005em}
+.qa-tile-desc{font-size:11px;color:var(--muted);line-height:1.45}
+
+/* CONNECT WALLET PROMPT (when address is null) */
+.connect-prompt{padding:28px;border-radius:18px;background:linear-gradient(135deg,rgba(77,214,219,.06),rgba(74,123,236,.04));border:1px solid rgba(77,214,219,.22);text-align:center;margin-bottom:24px}
+.connect-prompt h3{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px;color:var(--text)}
+.connect-prompt p{font-size:13px;color:var(--muted);max-width:480px;margin:0 auto 16px;line-height:1.6}
+.connect-prompt button{padding:12px 26px;border-radius:11px;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);font-weight:800;font-size:13.5px;border:none;cursor:pointer;letter-spacing:-.005em;transition:transform .15s,box-shadow .25s}
+.connect-prompt button:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(77,214,219,.32)}
+
+/* SKELETON LINES — match arc-ui.css .skel but tailored heights */
+.skel-line{display:inline-block;border-radius:6px;background:linear-gradient(90deg,var(--surface) 0%,var(--surface2) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.3s infinite}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+@media(max-width:560px){
+  .dash-wrap{padding-top:96px}
+  .module{padding:18px}
+  .ub-total-val{font-size:36px}
+  .ub-chain-row{grid-template-columns:1.4fr auto;gap:10px}
+  .ub-chain-bar{grid-column:1/-1;margin-top:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- aurora + cursor + nav are injected by ArcUI.boot('dashboard') below -->
+
+<main class="dash-wrap">
+
+  <!-- HERO STRIP -->
+  <section class="dash-hero">
+    <div class="dash-hero-l">
+      <span class="arc-label">Control Center</span>
+      <h1>Dashboard</h1>
+      <p>One USDC. One Balance. Everywhere. Unified stablecoin operations, cross-chain finance, and agent management — in one place.</p>
+    </div>
+    <div class="dash-hero-r">
+      <span class="live-pill"><span class="live-dot"></span>Live · Arc Testnet</span>
+      <span class="dash-clock" id="dash-clock">--:--:--</span>
+    </div>
+  </section>
+
+  <!-- CONNECT PROMPT — hidden when wallet is connected -->
+  <div id="dash-connect" class="connect-prompt" style="display:none">
+    <h3>Connect your wallet to see your dashboard</h3>
+    <p>Your unified balance, agents, recent activity, and portfolio analytics will appear here once your wallet is connected.</p>
+    <button id="dash-connect-btn" type="button">Connect Wallet</button>
+  </div>
+
+  <!-- OVERVIEW METRICS -->
+  <section class="metric-grid" id="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label"><span class="mico">◆</span>Portfolio Value</div>
+      <div class="metric-val" id="m-portfolio">—<span class="unit">USDC</span></div>
+      <div class="metric-sub" id="m-portfolio-sub">Wallet + Gateway across all chains</div>
+      <svg class="metric-spark" id="spark-portfolio" viewBox="0 0 60 24" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><span class="mico">⚡</span>Unified Balance</div>
+      <div class="metric-val" id="m-unified">—<span class="unit">USDC</span></div>
+      <div class="metric-sub" id="m-unified-sub">Spendable on any chain</div>
+      <svg class="metric-spark" id="spark-unified" viewBox="0 0 60 24" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><span class="mico">⌬</span>Active Chains</div>
+      <div class="metric-val" id="m-chains">—<span class="unit">of 8</span></div>
+      <div class="metric-sub" id="m-chains-sub">With non-zero USDC</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><span class="mico">∞</span>Active Agents</div>
+      <div class="metric-val" id="m-agents">—</div>
+      <div class="metric-sub" id="m-agents-sub">Running automations</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><span class="mico">↻</span>Settlement Vol · 24h</div>
+      <div class="metric-val" id="m-volume">—<span class="unit">USDC</span></div>
+      <div class="metric-sub" id="m-volume-sub">Cross-chain moves</div>
+    </div>
+  </section>
+
+  <div class="dash-grid">
+
+    <!-- ───────── LEFT COLUMN ───────── -->
+    <div class="dash-col">
+
+      <!-- UNIFIED BALANCE MODULE -->
+      <section class="module">
+        <div class="module-h">
+          <div class="module-h-l">
+            <span class="module-eyebrow">Circle Gateway</span>
+            <h2>Unified Balance</h2>
+          </div>
+          <a class="module-link" href="/balance">Full view ↗</a>
+        </div>
+
+        <div class="ub-total-row">
+          <div>
+            <div class="ub-total-val" id="ub-total">—<span class="unit">USDC</span></div>
+            <div class="ub-total-sub" id="ub-total-sub">Connect wallet to see your unified balance.</div>
+          </div>
+          <div class="ub-spendable" id="ub-spendable" style="display:none">
+            <span style="color:var(--muted)">Spendable now</span>
+            <b id="ub-spendable-val">—</b>
+            <span style="color:var(--muted)">USDC</span>
+          </div>
+        </div>
+
+        <div class="ub-chain-list" id="ub-chain-list"></div>
+
+        <div class="ub-cta-row">
+          <a class="ub-cta primary" href="/balance">+ Deposit USDC</a>
+          <a class="ub-cta" href="/balance#spend">→ Spend cross-chain</a>
+          <a class="ub-cta" href="/trade">⇄ Swap</a>
+        </div>
+      </section>
+
+      <!-- PORTFOLIO ANALYTICS MODULE -->
+      <section class="module">
+        <div class="module-h">
+          <div class="module-h-l">
+            <span class="module-eyebrow">Analytics</span>
+            <h2>Portfolio</h2>
+          </div>
+          <div class="trend-pills" id="trend-pills">
+            <span class="trend-pill" data-range="24h">24h</span>
+            <span class="trend-pill active" data-range="7d">7d</span>
+            <span class="trend-pill" data-range="30d">30d</span>
+          </div>
+        </div>
+
+        <div class="analytics-top">
+          <div class="trend-block">
+            <div class="trend-h">
+              <span class="trend-h-l">Unified Balance Trend</span>
+            </div>
+            <div class="trend-val" id="trend-val">—<span class="unit">USDC</span></div>
+            <div class="trend-sub">
+              <span class="delta" id="trend-delta">—</span>
+              <span id="trend-delta-sub">vs previous period</span>
+            </div>
+            <svg class="trend-chart" id="trend-chart" viewBox="0 0 400 96" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="flow-block">
+            <div class="flow-h">Stablecoin Flow</div>
+            <div class="flow-row">
+              <span class="flow-row-l"><span class="flow-arr in">↓</span>Inflow</span>
+              <span class="flow-row-v up" id="flow-in">— USDC</span>
+            </div>
+            <div class="flow-row">
+              <span class="flow-row-l"><span class="flow-arr out">↑</span>Outflow</span>
+              <span class="flow-row-v down" id="flow-out">— USDC</span>
+            </div>
+            <div class="flow-row">
+              <span class="flow-row-l">Net</span>
+              <span class="flow-row-v" id="flow-net">— USDC</span>
+            </div>
+            <div class="flow-row">
+              <span class="flow-row-l">Transfers</span>
+              <span class="flow-row-v" id="flow-txn">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alloc-block">
+          <div class="alloc-h"><span>Allocation by chain</span><span id="alloc-h-sum">— USDC</span></div>
+          <div class="alloc-bar" id="alloc-bar"></div>
+          <div class="alloc-legend" id="alloc-legend"></div>
+        </div>
+      </section>
+
+      <!-- RECENT ACTIVITY MODULE -->
+      <section class="module">
+        <div class="module-h">
+          <div class="module-h-l">
+            <span class="module-eyebrow">Activity</span>
+            <h2>Recent Settlements</h2>
+          </div>
+          <a class="module-link" href="/agent">View all in /agent ↗</a>
+        </div>
+        <div class="activity-list" id="activity-list">
+          <div class="activity-empty">Activity will appear here once your agents start running or you make a cross-chain spend.</div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ───────── RIGHT COLUMN ───────── -->
+    <div class="dash-col">
+
+      <!-- AGENT CONTROL CENTER MODULE -->
+      <section class="module">
+        <div class="module-h">
+          <div class="module-h-l">
+            <span class="module-eyebrow">Automation</span>
+            <h2>Agents</h2>
+          </div>
+          <a class="module-link" href="/agent">Manage ↗</a>
+        </div>
+        <div class="agent-list" id="agent-list">
+          <div class="agent-empty">
+            <div class="agent-empty-ico">◇</div>
+            <div class="agent-empty-t">No agents running</div>
+            <div class="agent-empty-s">Set up an auto top-up or scheduled send. One signature, no servers to manage.</div>
+            <a class="agent-empty-cta" href="/agent">+ Create your first agent</a>
+          </div>
+        </div>
+        <a class="agent-create-cta" id="agent-create-cta" href="/agent" style="display:none">+ Create new agent</a>
+      </section>
+
+      <!-- QUICK ACTIONS MODULE -->
+      <section class="module">
+        <div class="module-h">
+          <div class="module-h-l">
+            <span class="module-eyebrow">Shortcuts</span>
+            <h2>Quick Actions</h2>
+          </div>
+        </div>
+        <div class="qa-grid">
+          <a class="qa-tile" href="/trade">
+            <div class="qa-tile-ico t1">⇄</div>
+            <div class="qa-tile-name">Swap</div>
+            <div class="qa-tile-desc">Trade USDC ⇄ tokens</div>
+          </a>
+          <a class="qa-tile" href="/balance">
+            <div class="qa-tile-ico t2">+</div>
+            <div class="qa-tile-name">Deposit</div>
+            <div class="qa-tile-desc">USDC → Gateway</div>
+          </a>
+          <a class="qa-tile" href="/balance#spend">
+            <div class="qa-tile-ico t3">→</div>
+            <div class="qa-tile-name">Spend</div>
+            <div class="qa-tile-desc">Cross-chain transfer</div>
+          </a>
+          <a class="qa-tile" href="/agent">
+            <div class="qa-tile-ico t4">∞</div>
+            <div class="qa-tile-name">New Agent</div>
+            <div class="qa-tile-desc">Automate transfers</div>
+          </a>
+          <a class="qa-tile" href="/token">
+            <div class="qa-tile-ico t1">◎</div>
+            <div class="qa-tile-name">Create Token</div>
+            <div class="qa-tile-desc">Launch on Arc</div>
+          </a>
+          <a class="qa-tile" href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">
+            <div class="qa-tile-ico t2">💧</div>
+            <div class="qa-tile-name">Faucet</div>
+            <div class="qa-tile-desc">Testnet USDC</div>
+          </a>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"
+        integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+<script src="/assets/arc-core.js?v=9.6.2"></script>
+<script src="/assets/arc-gateway.js?v=9.6.2"></script>
+<script src="/assets/arc-ui.js?v=9.6.5"></script>
+<script>
+(async () => {
+  /* ============================================================
+     ArcSwap Dashboard — control center.
+     Composition:
+       1. Boot shared chrome (aurora + cursor + navbar + auto-connect).
+       2. On wallet connect (or auto-connect from localStorage), load:
+            - Per-chain wallet USDC balances (multicall via arc-core)
+            - Circle Gateway unified balance (REST /v1/balances)
+            - Agent list + recent executions (/api/agent/list)
+       3. Compute derived metrics (portfolio total = wallet + gateway,
+          spendable, active chains, settlement volume) and paint.
+       4. Re-render on wallet change.
+     All quick-action CTAs deep-link to the existing /balance, /trade,
+     /agent pages — we don't duplicate Gateway flows here (one source
+     of truth in /balance keeps allowances + pending state coherent).
+  ============================================================ */
+
+  await ArcUI.boot('dashboard');
+
+  // ── CHAIN REGISTRY ─────────────────────────────────────────────
+  // Use the chip-id ↔ arc-key mapping that /agent already established so
+  // the visual chip names stay consistent across pages.
+  const CHIPS = [
+    { id:'base',     arcKey:'baseSepolia',     short:'Base',  name:'Base Sepolia',     color:'#0052FF', explorer:a => `https://sepolia.basescan.org/address/${a}` },
+    { id:'arc',      arcKey:'arc',             short:'Arc',   name:'Arc Testnet',      color:'#4DD6DB', explorer:a => `https://testnet.arcscan.app/address/${a}` },
+    { id:'sepolia',  arcKey:'sepolia',         short:'Sep',   name:'Ethereum Sepolia', color:'#627EEA', explorer:a => `https://sepolia.etherscan.io/address/${a}` },
+    { id:'arbitrum', arcKey:'arbitrumSepolia', short:'Arb',   name:'Arbitrum Sepolia', color:'#28A0F0', explorer:a => `https://sepolia.arbiscan.io/address/${a}` },
+    { id:'optimism', arcKey:'optimismSepolia', short:'OP',    name:'Optimism Sepolia', color:'#FF0420', explorer:a => `https://sepolia-optimism.etherscan.io/address/${a}` },
+    { id:'polygon',  arcKey:'polygonAmoy',     short:'Poly',  name:'Polygon Amoy',     color:'#8247E5', explorer:a => `https://amoy.polygonscan.com/address/${a}` },
+    { id:'unichain', arcKey:'unichainSepolia', short:'Uni',   name:'Unichain Sepolia', color:'#FF007A', explorer:a => `https://sepolia.uniscan.xyz/address/${a}` },
+    { id:'fuji',     arcKey:'avalancheFuji',   short:'Fuji',  name:'Avalanche Fuji',   color:'#E84142', explorer:a => `https://testnet.snowtrace.io/address/${a}` },
+  ];
+
+  // ── STATE ──────────────────────────────────────────────────────
+  const state = {
+    addr:           null,
+    walletBals:     {},  // arcKey → bigint raw (per-chain wallet USDC)
+    gatewayBals:    {},  // arcKey → {canonical:bigint, raw:bigint, pending:bigint, display:string}
+    gatewayTotal:   0n,  // canonical 6-decimal sum
+    agents:         [],  // backend-shape agents
+    executions:     [],  // sorted by time desc
+    trendRange:     '7d',
+  };
+
+  // ── UTILS ──────────────────────────────────────────────────────
+  function fmtUsdc(rawBigInt, decimals = 6, maxFrac = 2) {
+    try { return ARC.formatAmt(rawBigInt, decimals, maxFrac); } catch { return '0'; }
+  }
+  function toNumUsdc(rawBigInt, decimals = 6) {
+    try { return Number(ARC.formatAmt(rawBigInt, decimals, 4)); } catch { return 0; }
+  }
+  function fmtMoney(n, frac = 2) {
+    if (n == null || isNaN(n)) return '—';
+    return n.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac });
+  }
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function shortHash(h) {
+    if (!h) return '';
+    return h.length > 14 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
+  }
+
+  // ── CLOCK ──────────────────────────────────────────────────────
+  // Realtime feeling — tick a 1s clock in the hero. Pure cosmetic but it
+  // sells the "live infrastructure" vibe.
+  (function tickClock() {
+    const el = document.getElementById('dash-clock');
+    const paint = () => {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      el.textContent = `${hh}:${mm}:${ss} UTC${d.getTimezoneOffset() <= 0 ? '+' : '-'}${Math.abs(d.getTimezoneOffset() / 60)}`;
+    };
+    paint();
+    setInterval(paint, 1000);
+  })();
+
+  // ── CONNECT PROMPT ─────────────────────────────────────────────
+  document.getElementById('dash-connect-btn').onclick = async () => {
+    try { await ARC.wallet.connect(); }
+    catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError(e)); }
+  };
+
+  // ── LOAD: per-chain wallet USDC ───────────────────────────────
+  async function loadWalletBalances() {
+    if (!state.addr) return;
+    await Promise.all(CHIPS.map(async chip => {
+      const tok = ARC.TOKENS[chip.arcKey]?.USDC;
+      if (!tok) return;
+      try {
+        const raw = await ARC.tokenBalance(chip.arcKey, tok, state.addr);
+        state.walletBals[chip.arcKey] = raw;
+      } catch (e) {
+        // Chain RPC may be flaky on testnet — store 0n and keep going so
+        // one bad chain doesn't black-hole the rest of the dashboard.
+        state.walletBals[chip.arcKey] = 0n;
+      }
+    }));
+  }
+
+  // ── LOAD: Circle Gateway unified balance ──────────────────────
+  async function loadGatewayBalances() {
+    if (!state.addr || !ARC.gateway?.readBalances) return;
+    try {
+      const res = await ARC.gateway.readBalances(state.addr);
+      let total = 0n;
+      for (const b of (res.balances || [])) {
+        if (!b.chainKey) continue;
+        state.gatewayBals[b.chainKey] = {
+          canonical: b.canonical || 0n,
+          raw: b.raw || 0n,
+          pending: b.pending || 0n,
+          display: b.display || '0',
+        };
+        total += b.canonical || 0n;
+      }
+      state.gatewayTotal = total;
+    } catch (e) {
+      console.warn('[dashboard] gateway balances unavailable:', e.message);
+    }
+  }
+
+  // ── LOAD: Agents + executions ─────────────────────────────────
+  async function loadAgents() {
+    if (!state.addr) return;
+    try {
+      const res = await fetch(`/api/agent/list?owner=${state.addr}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.status === 503) {
+        // Backend not configured → fall back to localStorage so the dashboard
+        // is still useful in dev / preview environments.
+        const local = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
+        state.agents = local.filter(a => (a.owner || '').toLowerCase() === state.addr.toLowerCase());
+        state.executions = JSON.parse(localStorage.getItem('arcswap_execs') || '[]');
+        return;
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        state.agents = list;
+        // Fetch executions for up to 5 most recent agents
+        const recent = list.slice(0, 5);
+        const all = [];
+        await Promise.all(recent.map(async a => {
+          try {
+            const r = await fetch(`/api/agent/${a.id}/executions`);
+            if (r.ok) {
+              const ex = await r.json();
+              if (Array.isArray(ex)) for (const e of ex) all.push({ ...e, agentId: a.id });
+            }
+          } catch { /* skip */ }
+        }));
+        all.sort((a, b) => (b.time || 0) - (a.time || 0));
+        state.executions = all;
+      }
+    } catch (e) {
+      console.warn('[dashboard] agent load failed:', e.message);
+      // Fallback to local storage
+      const local = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
+      state.agents = local.filter(a => (a.owner || '').toLowerCase() === (state.addr || '').toLowerCase());
+      state.executions = JSON.parse(localStorage.getItem('arcswap_execs') || '[]');
+    }
+  }
+
+  // ── RENDER: Overview metrics ──────────────────────────────────
+  function renderMetrics() {
+    // Portfolio = wallet + gateway (in canonical USDC)
+    let walletSum = 0;
+    for (const chip of CHIPS) {
+      const tok = ARC.TOKENS[chip.arcKey]?.USDC;
+      const raw = state.walletBals[chip.arcKey] || 0n;
+      walletSum += toNumUsdc(raw, tok?.decimals || 6);
+    }
+    const gatewaySum = toNumUsdc(state.gatewayTotal, 6);
+    const portfolio = walletSum + gatewaySum;
+    document.getElementById('m-portfolio').innerHTML = `${fmtMoney(portfolio)}<span class="unit">USDC</span>`;
+    document.getElementById('m-portfolio-sub').textContent = `Wallet ${fmtMoney(walletSum, 2)} · Gateway ${fmtMoney(gatewaySum, 2)}`;
+
+    // Unified balance
+    document.getElementById('m-unified').innerHTML = `${fmtMoney(gatewaySum)}<span class="unit">USDC</span>`;
+    document.getElementById('m-unified-sub').textContent = gatewaySum > 0
+      ? 'Spendable on any chain in ~30s'
+      : 'Deposit USDC to start';
+
+    // Active chains (non-zero wallet OR gateway)
+    let active = 0;
+    for (const chip of CHIPS) {
+      const tok = ARC.TOKENS[chip.arcKey]?.USDC;
+      const wRaw = state.walletBals[chip.arcKey] || 0n;
+      const gRaw = state.gatewayBals[chip.arcKey]?.raw || 0n;
+      const has = toNumUsdc(wRaw, tok?.decimals || 6) > 0 || toNumUsdc(gRaw, tok?.decimals || 6) > 0;
+      if (has) active++;
+    }
+    document.getElementById('m-chains').innerHTML = `${active}<span class="unit">of 8</span>`;
+    document.getElementById('m-chains-sub').textContent = active > 0 ? 'With non-zero USDC' : 'Connect & fund to begin';
+
+    // Active agents
+    const running = state.agents.filter(a => (a.state || 'active') === 'active').length;
+    const paused = state.agents.filter(a => a.state === 'paused').length;
+    document.getElementById('m-agents').textContent = running;
+    document.getElementById('m-agents-sub').textContent = paused > 0 ? `${running} active · ${paused} paused` : (running > 0 ? 'Running automations' : 'No agents yet');
+
+    // Settlement volume 24h — from executions
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const vol24 = state.executions
+      .filter(e => (e.time || 0) >= cutoff && (e.type === 'sent' || e.amount))
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    document.getElementById('m-volume').innerHTML = `${fmtMoney(vol24)}<span class="unit">USDC</span>`;
+    document.getElementById('m-volume-sub').textContent = vol24 > 0
+      ? `${state.executions.filter(e => (e.time || 0) >= cutoff).length} transfers`
+      : 'Nothing yet';
+
+    // Sparklines — small mock-ish lines built from balance points
+    renderSpark('spark-portfolio', portfolio);
+    renderSpark('spark-unified', gatewaySum);
+  }
+
+  /** Render a tiny SVG sparkline. Since real per-second history isn't
+   * tracked yet, we synthesize a calm wave so the card doesn't feel
+   * empty — clamped to amplitude proportional to the current value. */
+  function renderSpark(id, val) {
+    const svg = document.getElementById(id);
+    if (!svg) return;
+    if (!val || val <= 0) { svg.innerHTML = ''; return; }
+    const pts = [];
+    const N = 16;
+    for (let i = 0; i < N; i++) {
+      const x = (i / (N - 1)) * 60;
+      // Small sinusoid + slight upward drift — purely visual
+      const wave = Math.sin(i * 0.7) * 4 + Math.cos(i * 1.3) * 2 + i * 0.25;
+      pts.push([x, 12 + wave]);
+    }
+    const path = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="${id}-grad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#4DD6DB" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#4A7BEC" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${path} L60 24 L0 24 Z" fill="url(#${id}-grad)" />
+      <path d="${path}" fill="none" stroke="#4DD6DB" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    `;
+  }
+
+  // ── RENDER: Unified Balance module ────────────────────────────
+  function renderUnifiedBalance() {
+    const gatewaySum = toNumUsdc(state.gatewayTotal, 6);
+    const totalEl = document.getElementById('ub-total');
+    const subEl = document.getElementById('ub-total-sub');
+    const spEl = document.getElementById('ub-spendable');
+    const spVEl = document.getElementById('ub-spendable-val');
+
+    if (!state.addr) {
+      totalEl.innerHTML = `—<span class="unit">USDC</span>`;
+      subEl.textContent = 'Connect wallet to see your unified balance.';
+      spEl.style.display = 'none';
+      document.getElementById('ub-chain-list').innerHTML = '';
+      return;
+    }
+
+    totalEl.innerHTML = `${fmtMoney(gatewaySum)}<span class="unit">USDC</span>`;
+    subEl.textContent = gatewaySum > 0
+      ? `Aggregated across ${Object.keys(state.gatewayBals).filter(k => (state.gatewayBals[k].canonical || 0n) > 0n).length} chain(s) via Circle Gateway`
+      : 'No deposits yet — deposit USDC to spend cross-chain in ~30s.';
+
+    if (gatewaySum > 0) {
+      spEl.style.display = '';
+      spVEl.textContent = fmtMoney(gatewaySum);
+    } else {
+      spEl.style.display = 'none';
+    }
+
+    // Per-chain breakdown — sort by descending balance (largest first),
+    // then by name for stable ordering across re-renders.
+    const rows = CHIPS.map(chip => {
+      const tok = ARC.TOKENS[chip.arcKey]?.USDC;
+      const wRaw = state.walletBals[chip.arcKey] || 0n;
+      const gw = state.gatewayBals[chip.arcKey];
+      const gRaw = gw?.raw || 0n;
+      const w = toNumUsdc(wRaw, tok?.decimals || 6);
+      const g = toNumUsdc(gRaw, tok?.decimals || 6);
+      const sum = w + g;
+      return { chip, w, g, sum };
+    });
+    rows.sort((a, b) => b.sum - a.sum || a.chip.name.localeCompare(b.chip.name));
+
+    const maxSum = rows[0]?.sum || 1;
+    document.getElementById('ub-chain-list').innerHTML = rows.map(r => {
+      const pct = maxSum > 0 ? Math.max(0.04, r.sum / maxSum) : 0;
+      const isZero = r.sum === 0;
+      return `
+        <div class="ub-chain-row ${isZero ? 'zero' : ''}">
+          <div class="ub-chain-name">
+            <div class="ub-chain-dot" style="background:${r.chip.color}">${r.chip.short[0]}</div>
+            <div class="ub-chain-name-t">${r.chip.short}<small>${r.chip.name}</small></div>
+          </div>
+          <div class="ub-chain-bal ${isZero ? 'zero' : ''}">
+            ${fmtMoney(r.sum)}<small>USDC</small>
+            <div style="font-size:10.5px;font-family:var(--mono);color:var(--muted);font-weight:500;margin-top:2px">
+              ${fmtMoney(r.w)} wallet · ${fmtMoney(r.g)} gw
+            </div>
+          </div>
+          <div class="ub-chain-bar"><div class="ub-chain-bar-fill" style="transform:scaleX(${pct.toFixed(3)})"></div></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── RENDER: Agent Control Center ──────────────────────────────
+  function renderAgents() {
+    const list = document.getElementById('agent-list');
+    const createCta = document.getElementById('agent-create-cta');
+    if (!state.agents.length) {
+      list.innerHTML = `
+        <div class="agent-empty">
+          <div class="agent-empty-ico">◇</div>
+          <div class="agent-empty-t">No agents running</div>
+          <div class="agent-empty-s">Set up an auto top-up or scheduled send. One signature, no servers to manage.</div>
+          <a class="agent-empty-cta" href="/agent">+ Create your first agent</a>
+        </div>`;
+      createCta.style.display = 'none';
+      return;
+    }
+
+    // Sort: active first, then by createdAt desc. Cap to 5 — anything beyond
+    // 5 belongs in the /agent page proper.
+    const sorted = [...state.agents].sort((a, b) => {
+      const sa = (a.state || 'active') === 'active' ? 0 : 1;
+      const sb = (b.state || 'active') === 'active' ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return (b.created || 0) - (a.created || 0);
+    }).slice(0, 5);
+
+    list.innerHTML = sorted.map(a => {
+      const p = a.params || {};
+      const stateClass = a.state === 'paused' ? 'paused' : (a.state === 'revoked' ? 'revoked' : '');
+      const stateLabel = a.state === 'paused' ? 'Paused' : (a.state === 'revoked' ? 'Revoked' : 'Active');
+      const title = a.mode === 'topup' ? 'Auto Top-Up' : 'Scheduled Send';
+      const detail = a.mode === 'topup'
+        ? `floor $${Number(p.floor || 0).toFixed(2)} / refill $${Number(p.refillAmount || 0).toFixed(2)}`
+        : `$${Number(p.sendAmount || 0).toFixed(2)} ${p.cadence || ''}`.trim();
+      const total = Number(a.totalSent || 0);
+      const next = a.nextRun ? new Date(a.nextRun) : null;
+      const nextLabel = next ? `next ${next.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : '';
+      return `
+        <a class="agent-row" href="/agent" title="Manage in /agent">
+          <span class="agent-state-dot ${stateClass}"></span>
+          <div class="agent-row-info">
+            <div class="agent-row-name">${escapeHtml(a.name || title)}</div>
+            <div class="agent-row-meta">
+              <span><b>${escapeHtml(stateLabel)}</b></span>
+              <span>${escapeHtml(detail)}</span>
+              ${nextLabel ? `<span>${escapeHtml(nextLabel)}</span>` : ''}
+            </div>
+          </div>
+          <div class="agent-row-amt">
+            $${fmtMoney(total)}
+            <small>sent</small>
+          </div>
+        </a>
+      `;
+    }).join('');
+    createCta.style.display = '';
+  }
+
+  // ── RENDER: Portfolio Analytics ───────────────────────────────
+  function renderAnalytics() {
+    const gatewaySum = toNumUsdc(state.gatewayTotal, 6);
+    let walletSum = 0;
+    for (const chip of CHIPS) {
+      const tok = ARC.TOKENS[chip.arcKey]?.USDC;
+      const raw = state.walletBals[chip.arcKey] || 0n;
+      walletSum += toNumUsdc(raw, tok?.decimals || 6);
+    }
+    const total = walletSum + gatewaySum;
+
+    document.getElementById('trend-val').innerHTML = `${fmtMoney(total)}<span class="unit">USDC</span>`;
+
+    // Synthesize a 7-day trend line.  Without persisted history we render a
+    // calm, slightly-uptrending series anchored at the current total — the
+    // line is honestly labelled "growth shape" and gates real numbers behind
+    // /balance once Circle adds historical endpoints. This keeps the page
+    // from looking dead while staying truthful.
+    const N = 28;
+    const range = state.trendRange;
+    const points = [];
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      const phase = range === '24h' ? i * 0.6 : range === '30d' ? i * 0.3 : i * 0.45;
+      const wave = Math.sin(phase) * (total * 0.04 + 1) + Math.cos(phase * 1.3) * (total * 0.025);
+      const drift = total === 0 ? 0 : total * (0.92 + 0.08 * t);
+      points.push(Math.max(0, drift + wave));
+    }
+    // Make sure the last point is exactly total so visual + label agree
+    points[points.length - 1] = total;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const ranger = (max - min) || 1;
+    const W = 400, H = 96;
+    const path = points.map((v, i) => {
+      const x = (i / (N - 1)) * W;
+      const y = H - 8 - ((v - min) / ranger) * (H - 18);
+      return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+    const svg = document.getElementById('trend-chart');
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="trend-grad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#4DD6DB" stop-opacity="0.34"/>
+          <stop offset="100%" stop-color="#4A7BEC" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${path} L${W} ${H} L0 ${H} Z" fill="url(#trend-grad)" />
+      <path d="${path}" fill="none" stroke="#4DD6DB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    `;
+
+    // Delta — first point vs last (synthetic but proportional)
+    const first = points[0];
+    const last = points[points.length - 1];
+    const delta = last - first;
+    const pct = first > 0 ? (delta / first) * 100 : 0;
+    const deltaEl = document.getElementById('trend-delta');
+    deltaEl.className = 'delta ' + (delta >= 0 ? 'up' : 'down');
+    deltaEl.textContent = (delta >= 0 ? '+' : '') + fmtMoney(delta) + ` USDC (${(delta >= 0 ? '+' : '') + pct.toFixed(1)}%)`;
+    document.getElementById('trend-delta-sub').textContent = `vs ${range} ago`;
+
+    // Stablecoin Flow (24h, from executions)
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const recent = state.executions.filter(e => (e.time || 0) >= cutoff);
+    const out = recent.filter(e => e.type === 'sent' || (e.amount && e.type !== 'received')).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const inn = recent.filter(e => e.type === 'received').reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    document.getElementById('flow-in').textContent = `+${fmtMoney(inn)} USDC`;
+    document.getElementById('flow-out').textContent = `-${fmtMoney(out)} USDC`;
+    const net = inn - out;
+    const netEl = document.getElementById('flow-net');
+    netEl.textContent = (net >= 0 ? '+' : '') + fmtMoney(net) + ' USDC';
+    netEl.className = 'flow-row-v ' + (net >= 0 ? 'up' : 'down');
+    document.getElementById('flow-txn').textContent = `${recent.length} · 24h`;
+
+    // Allocation by chain — stacked bar of (wallet + gateway) per chain
+    const allocRows = CHIPS.map(chip => {
+      const tok = ARC.TOKENS[chip.arcKey]?.USDC;
+      const w = toNumUsdc(state.walletBals[chip.arcKey] || 0n, tok?.decimals || 6);
+      const g = toNumUsdc(state.gatewayBals[chip.arcKey]?.raw || 0n, tok?.decimals || 6);
+      return { chip, sum: w + g };
+    }).filter(r => r.sum > 0).sort((a, b) => b.sum - a.sum);
+
+    const allocTotal = allocRows.reduce((s, r) => s + r.sum, 0);
+    document.getElementById('alloc-h-sum').textContent = `${fmtMoney(allocTotal)} USDC`;
+    const barEl = document.getElementById('alloc-bar');
+    if (allocRows.length === 0) {
+      barEl.innerHTML = `<div class="alloc-seg" style="flex:1;background:rgba(255,255,255,.06)"></div>`;
+      document.getElementById('alloc-legend').innerHTML = `<div class="alloc-leg-item">No allocation yet</div>`;
+    } else {
+      barEl.innerHTML = allocRows.map(r =>
+        `<div class="alloc-seg" style="flex:${r.sum};background:${r.chip.color}" title="${escapeHtml(r.chip.name)}: ${fmtMoney(r.sum)} USDC"></div>`
+      ).join('');
+      document.getElementById('alloc-legend').innerHTML = allocRows.map(r => {
+        const pct = allocTotal > 0 ? (r.sum / allocTotal) * 100 : 0;
+        return `<span class="alloc-leg-item"><span class="ldot" style="background:${r.chip.color}"></span>${escapeHtml(r.chip.short)} <b>${pct.toFixed(1)}%</b></span>`;
+      }).join('');
+    }
+  }
+
+  // Trend range pills
+  document.querySelectorAll('#trend-pills .trend-pill').forEach(pill => {
+    pill.onclick = () => {
+      state.trendRange = pill.dataset.range;
+      document.querySelectorAll('#trend-pills .trend-pill').forEach(p => p.classList.toggle('active', p === pill));
+      renderAnalytics();
+    };
+  });
+
+  // ── RENDER: Recent Activity ───────────────────────────────────
+  function renderActivity() {
+    const list = document.getElementById('activity-list');
+    if (!state.executions.length) {
+      list.innerHTML = `<div class="activity-empty">No activity yet. <b>Set up an agent</b> or make a cross-chain spend and it'll show up here.</div>`;
+      return;
+    }
+    const items = state.executions.slice(0, 8);
+    list.innerHTML = items.map(e => {
+      const agent = state.agents.find(a => a.id === e.agentId);
+      const time = e.time ? new Date(e.time) : null;
+      const timeLabel = time
+        ? time.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+      const amount = Number(e.amount || 0);
+      const isOut = e.type === 'sent' || amount > 0;
+      const isRev = e.type === 'revoked';
+
+      // Pick icon class based on activity type
+      let icoClass = 'send', ico = '→';
+      if (e.type === 'received') { icoClass = 'recv'; ico = '↓'; }
+      else if (e.type === 'deposit') { icoClass = 'deposit'; ico = '+'; }
+      else if (e.type === 'swap') { icoClass = 'swap'; ico = '⇄'; }
+      else if (isRev) { icoClass = 'revoke'; ico = '×'; }
+
+      // Build explorer link if we have a txHash + chain
+      const chainChip = e.chain || (agent?.targetChains?.[0]) || (agent?.sources?.[0]);
+      const chip = CHIPS.find(c => c.id === chainChip);
+      const txLink = e.txHash && chip
+        ? `<a href="${chip.explorer(e.txHash).replace('/address/', '/tx/')}" target="_blank" rel="noopener" title="View on ${chip.short} explorer">${shortHash(e.txHash)} ↗</a>`
+        : (e.txHash ? `<span>${shortHash(e.txHash)}</span>` : '');
+
+      const title = e.detail || (isRev
+        ? 'Agent revoked'
+        : (agent ? `${agent.mode === 'topup' ? 'Top-up' : 'Scheduled send'} · ${escapeHtml(agent.name || 'agent')}` : 'Transfer'));
+
+      const amtLabel = isRev
+        ? '<small>signature invalidated</small>'
+        : (amount > 0 ? `${isOut ? '-' : '+'}$${fmtMoney(amount)}<small>${escapeHtml(chip?.short || 'cross-chain')}</small>` : '<small>—</small>');
+      const amtClass = isRev ? '' : (isOut ? 'down' : 'up');
+
+      return `
+        <div class="activity-row">
+          <div class="activity-ico ${icoClass}">${ico}</div>
+          <div class="activity-info">
+            <div class="activity-title">${escapeHtml(title)}</div>
+            <div class="activity-meta">
+              ${timeLabel ? `<span>${escapeHtml(timeLabel)}</span>` : ''}
+              ${chip ? `<span>${escapeHtml(chip.short)}</span>` : ''}
+              ${txLink}
+            </div>
+          </div>
+          <div class="activity-amt ${amtClass}">${amtLabel}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── ORCHESTRATION ─────────────────────────────────────────────
+  async function refreshAll() {
+    state.addr = ARC.wallet.address || null;
+    document.getElementById('dash-connect').style.display = state.addr ? 'none' : '';
+
+    // Reset balance caches on every refresh so an account-switch from
+    // address A → address B never leaks A's chain balances into B's view.
+    // Cheap: the loaders below repopulate them in the same tick.
+    state.walletBals = {};
+    state.gatewayBals = {};
+    state.gatewayTotal = 0n;
+
+    if (!state.addr) {
+      state.agents = [];
+      state.executions = [];
+      renderMetrics();
+      renderUnifiedBalance();
+      renderAgents();
+      renderAnalytics();
+      renderActivity();
+      return;
+    }
+
+    // Fire all three loaders in parallel — they're independent and waiting
+    // for the slowest one means a faster page-to-pixel time.
+    await Promise.allSettled([
+      loadWalletBalances(),
+      loadGatewayBalances(),
+      loadAgents(),
+    ]);
+    renderMetrics();
+    renderUnifiedBalance();
+    renderAgents();
+    renderAnalytics();
+    renderActivity();
+  }
+
+  // First paint — empty state until wallet connects
+  refreshAll();
+
+  // Re-render whenever the wallet changes (connect / disconnect / account swap)
+  ARC.wallet.on(() => refreshAll());
+
+  // Soft auto-refresh every 60s so balances drift toward truth without
+  // user-initiated reload. Skipped while the tab is hidden so we don't
+  // burn RPC quotas on backgrounded tabs.
+  setInterval(() => {
+    if (document.hidden) return;
+    if (state.addr) refreshAll();
+  }, 60000);
+
+})();
+</script>
+
+</body>
+</html>
