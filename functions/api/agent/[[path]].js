@@ -1058,6 +1058,125 @@ async function topupTargetBelowFloor(env, agent) {
  *
  * Returns a summary so the cron worker can log progress.
  */
+/**
+ * Admin diagnostic: dump every agent's recent error executions so operators
+ * can see why /api/metrics shows `failure` events. Returns up to N errors
+ * per agent from the last 24h, plus the agent's current state (mode, last
+ * trigger, expiresAt, pendingCctp count).
+ *
+ * Auth: header `X-Debug-Key: <CRON_SECRET>` (reused secret — same trust level).
+ * Header > query param because query params end up in CDN cache keys + logs.
+ *
+ * Response shape:
+ *   {
+ *     scannedAt: ISO,
+ *     agentCount: N,
+ *     agents: [
+ *       { id, owner, mode, state, lastTrigger, nextRun, expiresAt,
+ *         targetChains, sources, errors: [{ time, detail }],
+ *         pendingCctpCount }
+ *     ],
+ *     summary: { totalErrorAgents, topErrorPatterns: { pattern: count } }
+ *   }
+ */
+async function handleDebugFailures(req, kv, env) {
+  const provided = req.headers.get('X-Debug-Key') || '';
+  if (!env.CRON_SECRET) return json(503, { error: 'cron_not_configured' });
+  if (provided !== env.CRON_SECRET) return json(401, { error: 'unauthorized' });
+
+  const url = new URL(req.url);
+  const lookbackHours = Math.min(168, Math.max(1, parseInt(url.searchParams.get('hours') || '24', 10)));
+  const cutoff = Date.now() - lookbackHours * 3600_000;
+  const maxErrorsPerAgent = Math.min(50, Math.max(1, parseInt(url.searchParams.get('per') || '20', 10)));
+
+  // Load all agent IDs (uses agents:index, no kv.list)
+  const ids = await getAllAgentIds(kv);
+
+  const agentsOut = [];
+  const patternCount = {};
+  let totalErrorAgents = 0;
+
+  // Fetch in small parallel batches to keep subrequest cap happy
+  const BATCH = 10;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const batch = ids.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(async id => {
+      const [agent, execs] = await Promise.all([
+        getJSON(kv, `agent:${id}`, null),
+        getJSON(kv, `agent:${id}:executions`, []),
+      ]);
+      if (!agent) return null;
+      const errors = (execs || [])
+        .filter(e => e.type === 'error' && (e.time || 0) >= cutoff)
+        .slice(0, maxErrorsPerAgent)
+        .map(e => ({ time: e.time, detail: String(e.detail || '').slice(0, 240) }));
+      // Tally error patterns (first 60 chars of detail, post-prefix)
+      for (const er of errors) {
+        // Strip the [cron] prefix + arrow part to group same root cause
+        const root = er.detail
+          .replace(/^\[cron\]\s*/, '')
+          .replace(/^[a-z]+→0x[a-f0-9]{4,}\.{3}?:\s*/i, '')
+          .replace(/^[a-z]+→\?:\s*/, '')
+          .slice(0, 80);
+        patternCount[root] = (patternCount[root] || 0) + 1;
+      }
+      if (errors.length > 0) totalErrorAgents++;
+      return {
+        id: agent.id,
+        owner: agent.owner ? (agent.owner.slice(0, 6) + '…' + agent.owner.slice(-4)) : null,
+        mode: agent.mode,
+        state: agent.state,
+        lastTrigger: agent.lastTrigger || null,
+        lastTriggerAgoMin: agent.lastTrigger ? Math.round((Date.now() - agent.lastTrigger) / 60_000) : null,
+        nextRun: agent.nextRun || null,
+        nextRunInMin: agent.nextRun ? Math.round((agent.nextRun - Date.now()) / 60_000) : null,
+        expiresAt: agent.expiresAt || null,
+        sources: agent.sources || [],
+        targetChains: agent.targetChains || [],
+        targetCount: (agent.targets || []).length,
+        circleWalletCount: (agent.circleWallets || []).length,
+        circleWalletSources: (agent.circleWallets || []).map(w => w.source),
+        permitStates: (agent.permits || []).map(p => ({ source: p.sourceChain, state: p.state })),
+        pendingCctpCount: (agent.pendingCctp || []).length,
+        pendingCctpStates: (agent.pendingCctp || []).reduce((acc, p) => {
+          acc[p.state] = (acc[p.state] || 0) + 1; return acc;
+        }, {}),
+        totalSent: agent.totalSent || 0,
+        errorCount: errors.length,
+        errors,
+      };
+    }));
+    for (const r of results) if (r) agentsOut.push(r);
+  }
+
+  // Sort: agents with errors first, then by recency of last error
+  agentsOut.sort((a, b) => {
+    if (a.errorCount !== b.errorCount) return b.errorCount - a.errorCount;
+    const ta = a.errors[0]?.time || 0;
+    const tb = b.errors[0]?.time || 0;
+    return tb - ta;
+  });
+
+  // Top patterns sorted by frequency
+  const topErrorPatterns = Object.entries(patternCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .reduce((acc, [k, v]) => { acc[k] = v; return acc; }, {});
+
+  return json(200, {
+    scannedAt: new Date().toISOString(),
+    lookbackHours,
+    agentCount: ids.length,
+    summary: {
+      totalErrorAgents,
+      uniqueErrorPatterns: Object.keys(patternCount).length,
+      totalErrorEvents: Object.values(patternCount).reduce((s, n) => s + n, 0),
+      topErrorPatterns,
+    },
+    agents: agentsOut,
+  });
+}
+
 async function handleCronTick(req, kv, env) {
   // Auth check — bearer secret must match env.CRON_SECRET
   const auth = req.headers.get('Authorization') || '';
@@ -1327,6 +1446,12 @@ export async function onRequest(context) {
     // Auth: Authorization: Bearer ${env.CRON_SECRET}
     if (parts[0] === 'cron-tick' && parts.length === 1 && request.method === 'POST') {
       return await handleCronTick(request, kv, env);
+    }
+    // GET /api/agent/_debug/failures — admin diagnostic. Returns every agent's
+    // recent execution errors so operators can see why /metrics shows failures.
+    // Auth: X-Debug-Key header matching env.CRON_SECRET (reused — same trust level).
+    if (parts[0] === '_debug' && parts[1] === 'failures' && parts.length === 2 && request.method === 'GET') {
+      return await handleDebugFailures(request, kv, env);
     }
     // /api/agent/:id and subroutes
     if (parts.length >= 1 && parts[0] !== 'create' && parts[0] !== 'list') {
