@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/status.css?v=3"/>
+<link rel="stylesheet" href="/assets/status.css?v=4"/>
 </head>
 <body>
 
@@ -39,7 +39,7 @@
   <div id="footer-mount"></div>
 </div>
 
-<script src="/assets/status-shared.js?v=3"></script>
+<script src="/assets/status-shared.js?v=4"></script>
 <script>
 'use strict';
 const A = window.ArcStatus;
@@ -136,9 +136,11 @@ async function renderChains() {
 }
 
 renderChains();
-// Probe chains every 5 minutes — 8 RPCs + 1 summary = 9 reqs per pass.
+A.onRefresh(renderChains);
+A.mountRefreshButton();
+// smartInterval pauses when tab hidden + auto-pauses 5min on 403/429.
 // Block heights don't change fast enough to need tighter polling.
-setInterval(renderChains, 300_000);
+A.smartInterval(renderChains, 300_000);
 </script>
 
 </body>

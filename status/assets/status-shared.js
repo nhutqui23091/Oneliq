@@ -64,6 +64,10 @@
     try {
       const resp = await fetch(url, { ...opts, signal: ctrl.signal, redirect: 'follow' });
       const dt = Math.round(performance.now() - t0);
+      // 403 / 429 from Cloudflare = WAF challenge or rate limit. Trip the
+      // circuit breaker so we stop polling for 5 minutes and don't make
+      // the situation worse by piling on more requests.
+      if (resp.status === 403 || resp.status === 429) markRateLimited();
       const reachable = resp.status < 500;
       return { ok: reachable, latencyMs: dt, status: resp.status };
     } catch (e) {
@@ -234,6 +238,73 @@
     setInterval(tickFooter, 1000);
   }
 
+  // ─── SMART INTERVAL ────────────────────────────────────────────────────────
+  // Drop-in replacement for setInterval that:
+  //   1. Pauses when the tab is hidden (Page Visibility API). Tab in
+  //      background → zero network activity. Resumes on visibility change.
+  //   2. Trips a circuit breaker for 5 minutes if any callback throws
+  //      OR if global.__arcStatusBlocked is set (used by probe functions
+  //      when they detect 403/429 from Cloudflare WAF).
+  //   3. Runs the callback once immediately on tab-visible after a long
+  //      hidden period, so the user sees fresh data when they switch back.
+  //
+  // Use this instead of setInterval for every polling task on status pages.
+  let blockedUntil = 0;
+  function markRateLimited(reasonMs) {
+    blockedUntil = Math.max(blockedUntil, Date.now() + (reasonMs || 5 * 60_000));
+    console.warn('[status] polling paused for', Math.round((blockedUntil - Date.now()) / 1000), 's (WAF backoff)');
+  }
+  function isPollingPaused() {
+    return document.hidden || Date.now() < blockedUntil;
+  }
+  function smartInterval(fn, intervalMs) {
+    let lastRun = Date.now();
+    const tick = async () => {
+      if (isPollingPaused()) return;
+      lastRun = Date.now();
+      try { await fn(); }
+      catch (e) {
+        if (e && (e.status === 403 || e.status === 429)) markRateLimited();
+      }
+    };
+    const id = setInterval(tick, intervalMs);
+    // Run once when tab becomes visible after being hidden, so the user
+    // sees fresh data the moment they switch back. Debounced by interval/2.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && (Date.now() - lastRun) > intervalMs / 2) tick();
+    });
+    return id;
+  }
+
+  // ─── MANUAL REFRESH BUTTON ─────────────────────────────────────────────────
+  // Renders a small "↻ Refresh" button in the page header (nav-right area).
+  // Calls all registered refresh handlers on click. 5-second debounce prevents
+  // accidental double-clicks from triggering parallel fetches.
+  const refreshHandlers = [];
+  function onRefresh(fn) { refreshHandlers.push(fn); }
+  function mountRefreshButton() {
+    const navRight = document.querySelector('.topnav .nav-right');
+    if (!navRight || document.getElementById('manual-refresh')) return;
+    const btn = document.createElement('button');
+    btn.id = 'manual-refresh';
+    btn.className = 'btn-back';
+    btn.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;gap:6px';
+    btn.innerHTML = '<span style="font-size:14px">↻</span> Refresh';
+    let lastClick = 0;
+    btn.addEventListener('click', async () => {
+      if (Date.now() - lastClick < 5_000) return;
+      lastClick = Date.now();
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span style="font-size:14px">⟳</span> Refreshing…';
+      btn.disabled = true;
+      try { await Promise.all(refreshHandlers.map(h => h().catch(() => null))); }
+      finally {
+        setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 800);
+      }
+    });
+    navRight.insertBefore(btn, navRight.firstChild);
+  }
+
   global.ArcStatus = {
     API_BASE, rng, ri, rf, pick,
     fmtNum, fmtUsd, fmtAgo, shortHash, hex, latBucket,
@@ -241,6 +312,7 @@
     fetchSummary, fetchRecent, mountDataBadge,
     SERVICES, CHAINS,
     renderTopNav, renderSubNav, renderFooter, bootCommon,
+    smartInterval, onRefresh, mountRefreshButton, isPollingPaused, markRateLimited,
     SUBNAV_PAGES,
   };
 })(window);

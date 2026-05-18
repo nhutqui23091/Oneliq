@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/status.css?v=3"/>
+<link rel="stylesheet" href="/assets/status.css?v=4"/>
 </head>
 <body>
 
@@ -137,7 +137,7 @@
   <div id="footer-mount"></div>
 </div>
 
-<script src="/assets/status-shared.js?v=3"></script>
+<script src="/assets/status-shared.js?v=4"></script>
 <script>
 'use strict';
 const A = window.ArcStatus;
@@ -491,12 +491,18 @@ refreshAll();
 renderIncidentsMini();
 renderHealth();
 
-// Auto refresh — gentle cadence so Cloudflare WAF doesn't see this as a bot.
-// Service health probes go to cross-origin /api/* + raw RPCs (14 reqs each
-// pass), so we throttle to once every 2 minutes. Metrics summary is edge-
-// cached 2min anyway so polling more often is wasted bandwidth.
-setInterval(renderHealth, 120_000);
-setInterval(refreshAll,   120_000);
+// Mount manual "↻ Refresh" button in the page header. Click forces an
+// immediate refresh; 5-second debounce prevents accidental double-clicks.
+A.onRefresh(async () => { await refreshAll(); await renderHealth(); });
+A.mountRefreshButton();
+
+// Auto refresh — smartInterval pauses when tab is hidden (Page Visibility
+// API) and trips a 5-min circuit breaker if any probe returns 403/429.
+// Cadence: 5 minutes. The page is still useful as a real-time status
+// dashboard, but tab-in-background = zero traffic. User clicks ↻ for
+// instant refresh.
+A.smartInterval(renderHealth, 300_000);
+A.smartInterval(refreshAll,   300_000);
 </script>
 
 </body>
