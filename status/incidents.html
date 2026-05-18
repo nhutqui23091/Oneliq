@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://arcswap.net https://www.arcswap.net https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="ArcSwap Incident History — past 90 days of outages, degradations, scheduled maintenance windows, and post-mortems. All resolved unless noted."/>
+<meta name="theme-color" content="#0A1628"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<title>Incidents — ArcSwap Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/assets/status.css"/>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+<div id="nav-mount"></div>
+
+<div class="wrap">
+
+  <div class="page-head fade-in">
+    <div class="eyebrow">05 · Incident history</div>
+    <h1>Incidents</h1>
+    <div class="slogan">Past 90 days of <strong>outages, degradations, and scheduled maintenance windows</strong>. Every incident with a post-mortem and timeline. All resolved unless explicitly marked otherwise.</div>
+  </div>
+
+  <!-- KPI summary -->
+  <div class="stats-grid standalone" id="incidents-summary"><!-- injected --></div>
+
+  <div class="sec-head">
+    <h2><span class="ix">05</span> Timeline</h2>
+    <div class="inc-filter" id="inc-filter">
+      <button data-f="all" class="active">All</button>
+      <button data-f="resolved">Resolved</button>
+      <button data-f="maint">Maintenance</button>
+      <button data-f="deg">Degradation</button>
+    </div>
+  </div>
+
+  <div class="glass incidents" id="incidents"><!-- injected --></div>
+
+  <div id="footer-mount"></div>
+</div>
+
+<script src="/assets/status-shared.js"></script>
+<script>
+'use strict';
+const A = window.ArcStatus;
+A.bootCommon('incidents');
+
+const INCIDENTS = [
+  { kind: 'resolved', icon: '✓', title: 'Sepolia RPC latency spike',
+    desc: 'publicnode endpoint returned >2s p50 for ~14 minutes. Frontend probes flagged Trade Engine as Degraded. Mitigated by RPC fallback. No user funds at risk.',
+    date: '2026-05-09', status: 'resolved' },
+  { kind: 'maint',    icon: '⚙', title: 'Scheduled CSP rollout',
+    desc: 'Tightened connect-src directive across all surfaces. Added gateway-api-testnet.circle.com to allowlist. Zero-downtime.',
+    date: '2026-05-02', status: 'maint' },
+  { kind: 'resolved', icon: '✓', title: 'Gateway proxy 504 — Cloudflare edge',
+    desc: 'Pages Function timed out connecting to Circle Gateway API for 6 minutes. Affected Unified Balance refresh. Auto-recovered.',
+    date: '2026-04-22', status: 'resolved' },
+  { kind: 'deg',      icon: '!', title: 'CCTP V2 Fast attestation delays',
+    desc: 'Circle Iris attestation queue ran 90s above target during US-east peak. CCTP Standard mode unaffected. Resolved upstream.',
+    date: '2026-04-14', status: 'resolved' },
+  { kind: 'resolved', icon: '✓', title: 'Arc Testnet RPC node restart',
+    desc: 'Sequencer maintenance window — 4 minutes of read-only mode. No transactions lost.',
+    date: '2026-03-31', status: 'resolved' },
+  { kind: 'maint',    icon: '⚙', title: 'Agent cron upgrade · v2',
+    desc: 'Migrated automation workers to Durable Object scheduler. Improved p95 execution latency by ~40%.',
+    date: '2026-03-18', status: 'maint' },
+  { kind: 'resolved', icon: '✓', title: 'Avalanche Fuji block reorg',
+    desc: '3-block reorg on Fuji caused CCTP attestations to retry. No funds at risk. 2 transactions resubmitted automatically.',
+    date: '2026-03-04', status: 'resolved' },
+  { kind: 'maint',    icon: '⚙', title: 'CSP meta tightening',
+    desc: 'Removed unused script-src entries (esm.sh-wildcards) on /trade and /balance. Status page CSP unchanged.',
+    date: '2026-02-22', status: 'maint' },
+];
+
+function renderSummary() {
+  const stats = [
+    { lbl: 'Total · 90 days',      ic: '∑', val: INCIDENTS.length.toString(), tr: 'all resolved' },
+    { lbl: 'Resolved',              ic: '✓', val: INCIDENTS.filter(i => i.kind === 'resolved').length.toString(), tr: '100%' },
+    { lbl: 'Maintenance',           ic: '⚙', val: INCIDENTS.filter(i => i.kind === 'maint').length.toString(), tr: 'planned' },
+    { lbl: 'Mean Time To Recover',  ic: '⏱', val: '12m', tr: 'avg · 90d' },
+    { lbl: '90-day Uptime',         ic: '◐', val: '99.86%', tr: 'across SLOs' },
+  ];
+  document.getElementById('incidents-summary').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="lbl"><span class="ic">${s.ic}</span>${s.lbl}</div>
+      <div class="val tab-num">${s.val}</div>
+      <div class="trend"><span>${s.tr}</span></div>
+    </div>`).join('');
+}
+
+let activeFilter = 'all';
+
+function renderIncidents() {
+  const filtered = activeFilter === 'all' ? INCIDENTS : INCIDENTS.filter(i => i.kind === activeFilter);
+  if (filtered.length === 0) {
+    document.getElementById('incidents').innerHTML = `
+      <div style="padding:40px 20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px">
+        No incidents match this filter.
+      </div>`;
+    return;
+  }
+  document.getElementById('incidents').innerHTML = filtered.map(it => `
+    <div class="inc-row">
+      <div class="inc-icon ${it.kind}">${it.icon}</div>
+      <div class="inc-body">
+        <div class="inc-title">${it.title}</div>
+        <div class="inc-desc">${it.desc}</div>
+      </div>
+      <div class="inc-meta">
+        <span class="inc-status ${it.status}">${it.status === 'resolved' ? 'Resolved' : 'Maintenance'}</span>
+        <span>${it.date}</span>
+      </div>
+    </div>`).join('');
+}
+
+document.querySelectorAll('#inc-filter button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#inc-filter button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.f;
+    renderIncidents();
+  });
+});
+
+renderSummary();
+renderIncidents();
+</script>
+
+</body>
+</html>

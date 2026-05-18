@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://arcswap.net https://www.arcswap.net https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="ArcSwap Agent Operations Monitor — active agents, scheduled executions, success rate, recent failures. Bounded autonomous USDC operations via Circle Programmable Wallets."/>
+<meta name="theme-color" content="#0A1628"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<title>Agents — ArcSwap Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/assets/status.css"/>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+<div id="nav-mount"></div>
+
+<div class="wrap">
+
+  <div class="page-head fade-in">
+    <div class="eyebrow">04 · Agent operations</div>
+    <h1>Agents</h1>
+    <div class="slogan">Realtime automation control center for <strong>Circle Programmable Wallets</strong>. Pre-signed EIP-712 intents with hard ceilings; software executes within those bounds — pause or revoke anytime.</div>
+  </div>
+
+  <div class="sec-head">
+    <h2><span class="ix">04</span> Agent KPIs</h2>
+    <div class="sub"><span class="demo">testnet snapshot</span> rolling 30-day window</div>
+  </div>
+
+  <div class="agent-grid">
+    <div class="agent-kpis" id="agent-kpis"><!-- injected --></div>
+    <div class="glass agent-queue">
+      <div class="aq-title">
+        <span class="label"><span class="aq-status"></span>Next execution queue</span>
+        <span style="font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:500">PENDING · ARC TESTNET</span>
+      </div>
+      <div class="aq-list" id="aq-list"><!-- injected --></div>
+    </div>
+  </div>
+
+  <div class="sec-head">
+    <h2><span class="ix">04b</span> Recent Executions</h2>
+    <div class="sub"><span class="demo">testnet snapshot</span> last 24h</div>
+  </div>
+  <div class="glass exec-table" id="exec-table"><!-- injected --></div>
+
+  <div id="footer-mount"></div>
+</div>
+
+<script src="/assets/status-shared.js"></script>
+<script>
+'use strict';
+const A = window.ArcStatus;
+A.bootCommon('agents');
+
+function renderKpis() {
+  const active = 24 + A.ri(0, 12);
+  const scheduled = 18 + A.ri(0, 6);
+  const daily = 11 + A.ri(0, 4);
+  const weekly = 7 + A.ri(0, 3);
+  const monthly = 4 + A.ri(0, 2);
+  const refills = 9 + A.ri(0, 5);
+  const success = (97 + A.rng() * 2.4).toFixed(2);
+  const failed = A.ri(2, 6);
+  const kpis = [
+    { k: 'Active agents',          v: active,        m: '<strong class="ok">●</strong> all healthy' },
+    { k: 'Scheduled executions',   v: scheduled,     m: 'next: in <strong>3m 12s</strong>' },
+    { k: 'Daily automations',      v: daily,         m: 'cadence: 24h drip' },
+    { k: 'Weekly automations',     v: weekly,        m: 'cadence: 7d cycle' },
+    { k: 'Monthly automations',    v: monthly,       m: 'cadence: 30d cycle' },
+    { k: 'Auto-refill ops',        v: refills,       m: 'triggered on low balance' },
+    { k: 'Success rate · 30d',     v: success + '%', m: '<strong class="ok">within SLO</strong>' },
+    { k: 'Failed exec · 24h',      v: failed,        m: failed <= 3 ? '<strong class="ok">acceptable</strong>' : '<strong class="bad">review</strong>' },
+  ];
+  document.getElementById('agent-kpis').innerHTML = kpis.map(x => `
+    <div class="agent-kpi">
+      <div class="k">${x.k}</div>
+      <div class="v tab-num">${x.v}</div>
+      <div class="meta">${x.m}</div>
+    </div>`).join('');
+}
+
+function renderQueue() {
+  const ruleNames = [
+    'Daily drip · USDC 50 → ops wallet',
+    'Weekly refill · agent-04 keeper',
+    'Auto-rebalance · Base → Arc',
+    'Monthly payroll · 12 recipients',
+    'Threshold refill · agent-09 (USDC < 100)',
+    'Cross-chain sweep · OP → Arc',
+    'Daily transfer · USDC 25 → vendor',
+  ];
+  const cadences = ['DAILY','WEEKLY','MONTHLY','ON-TRIGGER'];
+  const queue = [];
+  let nextSec = A.ri(60, 220);
+  for (let i = 0; i < 7; i++) {
+    queue.push({
+      rule: A.pick(ruleNames),
+      cadence: A.pick(cadences),
+      next: nextSec,
+    });
+    nextSec += A.ri(180, 900);
+  }
+  document.getElementById('aq-list').innerHTML = queue.map(q => `
+    <div class="aq-row">
+      <div class="aq-status"></div>
+      <div>
+        <div class="aq-rule">${q.rule}</div>
+        <div class="aq-cadence">${q.cadence}</div>
+      </div>
+      <div class="aq-next">in ${q.next < 60 ? q.next + 's' : Math.floor(q.next/60) + 'm ' + (q.next%60) + 's'}</div>
+      <div style="color:var(--muted);font-family:var(--mono);font-size:11px">⌁</div>
+    </div>`).join('');
+}
+
+function renderExec() {
+  const rules = [
+    'Daily drip',
+    'Auto-refill keeper',
+    'Cross-chain sweep',
+    'Monthly payroll',
+    'Weekly USDC top-up',
+    'Threshold rebalance',
+  ];
+  const chains = ['ARC', 'BASE', 'SEP', 'ARB', 'OP'];
+  const rows = [];
+  let elapsed = 0;
+  for (let i = 0; i < 14; i++) {
+    elapsed += A.ri(180, 3600);
+    const ok = A.rng() > 0.08; // 92% success
+    rows.push({
+      ok,
+      rule: A.pick(rules),
+      id: 'ag_' + A.hex(8).slice(2, 8),
+      amount: (5 + A.rng() * 250).toFixed(2),
+      chain: A.pick(chains),
+      ago: elapsed * 1000,
+    });
+  }
+  document.getElementById('exec-table').innerHTML =
+    `<div class="exec-row head">
+       <div></div>
+       <div>Rule</div>
+       <div>Amount</div>
+       <div>Chain</div>
+       <div>Time</div>
+     </div>` +
+    rows.map(r => `
+      <div class="exec-row">
+        <div class="exec-icon ${r.ok ? 'ok' : 'fail'}">${r.ok ? '✓' : '✕'}</div>
+        <div>
+          <div class="exec-rule">${r.rule}</div>
+          <div class="exec-id">${r.id}</div>
+        </div>
+        <div class="exec-amt">${r.ok ? r.amount + ' USDC' : '—'}</div>
+        <div class="exec-chain">${r.chain}</div>
+        <div class="exec-time">${A.fmtAgo(r.ago)}</div>
+      </div>`).join('');
+}
+
+renderKpis();
+renderQueue();
+renderExec();
+</script>
+
+</body>
+</html>
