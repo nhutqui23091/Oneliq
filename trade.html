@@ -1378,6 +1378,10 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     let runAmt = parseAmt(state.amountIn, state.fromToken.decimals);
     let runChain = state.src.chainKey;
     let runTokSym = state.fromToken.symbol;
+    // Track the last successful tx hash + chain in the pipeline so we can
+    // surface it on status.arcswap.net (Latest Activity → "view ↗" link).
+    let lastTxHash = null;
+    let lastTxChain = state.dst.chainKey;
 
     // SECURITY: styled confirm dialog listing the full plan before any
     // wallet sign popup. Without this, attackers on a tampered page could
@@ -1484,6 +1488,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
           if (APPKIT && appKitSupports('arc', tInTok, tOutTok)) {
             const result = await APPKIT.appKitSwap(step.tIn, step.tOut, inputStr);
             const txHash = result?.txHash || result?.transactionHash || result?.hash || '';
+            if (txHash) { lastTxHash = txHash; lastTxChain = 'arc'; }
             modal.set(stepId, 'done', txHash
               ? `<a href="${CHAINS.arc.explorerTx(txHash)}" target="_blank" rel="noopener" style="color:var(--arc2)">${shortAddr(txHash)} ↗</a>`
               : 'Done');
@@ -1498,6 +1503,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
             const r = new Contract(router, ABIS.router, wallet.signer);
             const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
             const tx = await r.swapExactTokensForTokens(runAmt, minOut, sw.path, wallet.address, deadline);
+            lastTxHash = tx.hash; lastTxChain = 'arc';
             modal.set(stepId, 'active', `Tx ${shortAddr(tx.hash)} — waiting…`);
             await tx.wait();
             modal.set(stepId, 'done', `<a href="${CHAINS.arc.explorerTx(tx.hash)}" target="_blank" rel="noopener" style="color:var(--arc2)">${shortAddr(tx.hash)} ↗</a>`);
@@ -1513,6 +1519,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
           const tok = TOKENS[step.chain][step.token];
           const c = new Contract(tok.address, ABIS.erc20, wallet.signer);
           const tx = await c.transfer(stepRecipient, runAmt);
+          lastTxHash = tx.hash; lastTxChain = step.chain;
           modal.set(stepId, 'active', `Tx ${shortAddr(tx.hash)} — waiting…`);
           await tx.wait();
           modal.set(stepId, 'done', `<a href="${CHAINS[step.chain].explorerTx(tx.hash)}" target="_blank" rel="noopener" style="color:var(--arc2)">${shortAddr(tx.hash)} ↗</a>`);
@@ -1527,13 +1534,12 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     }
     modal.finish();
     ArcUI.toast('success', 'Trade complete', `Received ≈ ${formatAmt(runAmt, state.toToken.decimals)} ${state.toToken.symbol} on ${chainShort(state.dst.chainKey)}`);
-    // Real-metrics telemetry — fire-and-forget so the status page (status.arcswap.net)
-    // can report actual usage instead of seeded mocks. Failure is non-blocking.
+    // Real-metrics telemetry — uses the user-typed input amount (always USDC
+    // across this surface) and the LAST tx hash captured in the pipeline so
+    // the status page can deep-link to the chain's native explorer.
     try {
-      // Approximate USDC-equivalent amount: amount-in always denominated in source token
-      // (USDC across all flows in this surface).
-      const amtUsdc = Number(formatAmt(runAmt, state.fromToken.decimals));
-      ARC.track('trade', state.dst.chainKey, amtUsdc, null, 'trade');
+      const amtUsdc = parseFloat(state.amountIn) || 0;
+      ARC.track('trade', lastTxChain || state.dst.chainKey, amtUsdc, lastTxHash, 'trade');
     } catch {}
     // Refresh sources and current-balance widgets
     loadAllSources().catch(() => null);
