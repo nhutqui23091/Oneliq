@@ -6,24 +6,51 @@
  *                     Public (no auth) but validated + origin-allowlisted.
  *                     Fire-and-forget from client; never blocks UX.
  *   GET  /summary     30-day aggregate stats (totalTx, by event, by chain).
- *                     Cached at edge 30s.
+ *                     Reads ONE pre-aggregated key. Edge-cached 120s.
  *   GET  /recent      Last N events (default 20) for the activity feed.
- *                     Cached at edge 15s.
+ *                     Reads ONE ring-buffer key. Edge-cached 60s.
  *   GET  /health      Health probe (204, no upstream work).
  *
- * Storage: shares the existing AGENT_KV binding with a `metric:` key prefix
- * to avoid spinning up a new KV namespace. Schema:
+ * ─── Architecture: compute-on-write ─────────────────────────────────────
  *
- *   metric:event:<ts>:<rand>      → JSON { event, chain, amount, txHash, surface, ts }
- *                                  (TTL 7 days — the ring buffer for /recent)
- *   metric:count:<YYYY-MM-DD>:<event>          → "N"     (per-day total)
- *   metric:count:<YYYY-MM-DD>:<event>:<chain>  → "N"     (per-day per-chain)
- *   metric:total:<event>          → "N"     (lifetime total)
- *   metric:user:<YYYY-MM-DD>:<hashed-fingerprint> → "1"  (unique-user marker)
+ * Prior version computed rollups on /summary by fan-out reading 7 events
+ * × 30 days + 7 events × 8 chains + lifetime totals + a kv.list — about
+ * 273 reads + 1 list per call. With status pages polling every 5 minutes
+ * from multiple regions, that easily blew the 100k/day KV-read free cap.
  *
- * Counter writes are best-effort eventually-consistent (KV has no INCR), so
- * concurrent writes can drop +1 occasionally. That's acceptable for
- * analytics — the ring buffer (events) is the source of truth.
+ * New version pre-aggregates into ONE rollup key on every /track:
+ *
+ *   metric:summary:v1   { lifetime, byDay, byChainToday, fpToday, todayKey }
+ *   metric:recent:v1    [ event, event, ..., 50 entries newest-first ]
+ *
+ * /summary reads `metric:summary:v1` (1 read) and shapes the response.
+ * /recent  reads `metric:recent:v1`  (1 read) and slices.
+ *
+ * Cold-start (cache key missing) → fall back to fan-out compute once,
+ * then store the result. Daily reconciliation cron (in workers/kv-backup)
+ * recomputes the cache from raw counters to fix any race-condition drift.
+ *
+ * ─── Storage schema ─────────────────────────────────────────────────────
+ *
+ * Raw audit trail (kept for reconciliation, never read in hot path):
+ *   metric:event:<ts>:<rand>                         → JSON event (7-day TTL)
+ *   metric:count:<YYYY-MM-DD>:<event>                → "N"  (per-day total)
+ *   metric:count:<YYYY-MM-DD>:<event>:<chain>        → "N"  (per-day per-chain)
+ *   metric:total:<event>                             → "N"  (lifetime)
+ *   metric:user:<YYYY-MM-DD>:<hashed-fingerprint>    → "1"  (unique-user marker, 35-day TTL)
+ *
+ * Hot-path pre-aggregates (read on every /summary, /recent):
+ *   metric:summary:v1    → JSON rollup { version, computedAt, todayKey,
+ *                                       lifetime, byDay, byChainToday,
+ *                                       fpToday }
+ *   metric:recent:v1     → JSON array of last 50 events, newest-first
+ *
+ * ─── Race conditions ────────────────────────────────────────────────────
+ *
+ * Two concurrent /track calls can race the rollup update (read JSON →
+ * modify → write JSON) and lose one increment. Acceptable for analytics —
+ * the daily reconcile from raw counters (which are 4 separate keys, less
+ * contended) fixes any drift within 24h.
  */
 
 const ALLOWED_ORIGINS = [
@@ -34,7 +61,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 // Event types we accept. Anything else → 400.
-const EVENT_ALLOWLIST = new Set([
+const EVENT_TYPES = [
   'trade',         // swap on Uniswap V2 router (Arc)
   'deposit',       // Circle Gateway deposit
   'spend',         // cross-chain Spend via Gateway
@@ -42,13 +69,21 @@ const EVENT_ALLOWLIST = new Set([
   'agent-create',  // user created a new agent
   'agent-exec',    // agent execution succeeded (server-side write)
   'failure',       // any transaction failure caught at client
-]);
+];
+const EVENT_ALLOWLIST = new Set(EVENT_TYPES);
 
 // Chain keys allowlist — matches assets/arc-core.js CHAINS keys
-const CHAIN_ALLOWLIST = new Set([
+const CHAIN_KEYS = [
   'arc','sepolia','baseSepolia','arbitrumSepolia','optimismSepolia',
   'avalancheFuji','polygonAmoy','unichainSepolia',
-]);
+];
+const CHAIN_ALLOWLIST = new Set(CHAIN_KEYS);
+
+// Rollup config
+const SUMMARY_KEY = 'metric:summary:v1';
+const RECENT_KEY  = 'metric:recent:v1';
+const RECENT_MAX  = 50;          // ring buffer size
+const SERIES_DAYS = 30;          // 30-day rolling window
 
 function isAllowed(origin) {
   return !origin
@@ -76,7 +111,7 @@ async function incr(kv, key) {
   await kv.put(key, String(cur + 1));
 }
 
-// Hash IP+UA → 8 hex chars; used as a daily uniqueness marker without storing PII.
+// Hash IP+UA → 12 hex chars; used as a daily uniqueness marker without storing PII.
 async function fingerprint(request) {
   const ip = request.headers.get('CF-Connecting-IP') || '';
   const ua = request.headers.get('User-Agent') || '';
@@ -90,6 +125,216 @@ function bad(msg, origin, status = 400) {
   return new Response(JSON.stringify({ error: msg }), {
     status, headers: { 'Content-Type': 'application/json', ...cors(origin) },
   });
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   ROLLUP CACHE — single source of truth for /summary
+   ────────────────────────────────────────────────────────────────────────
+   Shape (always v1; bump version + change key suffix if you change shape):
+     {
+       version:    1,
+       computedAt: ISO timestamp,
+       todayKey:   "YYYY-MM-DD",       // UTC day this rollup considers "today"
+       lifetime:   { [event]: count },
+       byDay:      { [day]: { [event]: count } },   // up to SERIES_DAYS entries
+       byChainToday: { [chain]: { [event]: count } },
+       fpToday:    { [fingerprintHex]: 1 }          // map for O(1) membership
+     }
+   ──────────────────────────────────────────────────────────────────────── */
+
+function emptyRollup(today) {
+  const r = { version: 1, computedAt: new Date().toISOString(), todayKey: today, lifetime: {}, byDay: {}, byChainToday: {}, fpToday: {} };
+  for (const e of EVENT_TYPES) r.lifetime[e] = 0;
+  return r;
+}
+
+/**
+ * Apply one /track increment to the in-memory rollup. Mutates `r`.
+ * Handles UTC day rollover: when `r.todayKey` doesn't match `day`, the
+ * existing today's byChain/fingerprint state is reset (it's archived in
+ * byDay implicitly via per-event counts).
+ */
+function applyIncrement(r, day, event, chain, fp) {
+  // Day rollover: reset today-only state. byDay accumulates across days,
+  // so we don't touch it here — yesterday's counts stay where they are.
+  if (r.todayKey !== day) {
+    r.todayKey = day;
+    r.byChainToday = {};
+    r.fpToday = {};
+  }
+  // Drop byDay entries older than SERIES_DAYS to keep the cache small.
+  const cutoff = new Date(day + 'T00:00:00Z');
+  cutoff.setUTCDate(cutoff.getUTCDate() - (SERIES_DAYS - 1));
+  const cutoffKey = utcDate(cutoff.getTime());
+  for (const d of Object.keys(r.byDay)) {
+    if (d < cutoffKey) delete r.byDay[d];
+  }
+  // Increment buckets
+  r.lifetime[event] = (r.lifetime[event] || 0) + 1;
+  r.byDay[day] = r.byDay[day] || {};
+  r.byDay[day][event] = (r.byDay[day][event] || 0) + 1;
+  if (chain) {
+    r.byChainToday[chain] = r.byChainToday[chain] || {};
+    r.byChainToday[chain][event] = (r.byChainToday[chain][event] || 0) + 1;
+  }
+  if (fp) r.fpToday[fp] = 1;
+  r.computedAt = new Date().toISOString();
+}
+
+/**
+ * Best-effort rollup update. Reads cache, applies one increment, writes back.
+ * Race-tolerant: concurrent writers may lose ≤1 increment per race — daily
+ * reconcile cron repairs drift. Never throws (analytics must not block UX).
+ */
+async function updateRollupCache(kv, day, event, chain, fp) {
+  try {
+    let r;
+    try { r = JSON.parse((await kv.get(SUMMARY_KEY)) || 'null'); } catch { r = null; }
+    if (!r || r.version !== 1) r = emptyRollup(day);
+    applyIncrement(r, day, event, chain, fp);
+    await kv.put(SUMMARY_KEY, JSON.stringify(r));
+  } catch (e) {
+    // Don't break /track if rollup write fails — raw counters are still authoritative.
+    console.warn('[metrics] rollup update failed:', e?.message);
+  }
+}
+
+/**
+ * Best-effort ring-buffer update. Reads recent JSON, prepends, trims to
+ * RECENT_MAX, writes back. Same race characteristics as rollup.
+ */
+async function pushRecentRing(kv, eventData) {
+  try {
+    let ring;
+    try { ring = JSON.parse((await kv.get(RECENT_KEY)) || '[]'); } catch { ring = []; }
+    if (!Array.isArray(ring)) ring = [];
+    ring.unshift(eventData);
+    if (ring.length > RECENT_MAX) ring.length = RECENT_MAX;
+    await kv.put(RECENT_KEY, JSON.stringify(ring));
+  } catch (e) {
+    console.warn('[metrics] ring update failed:', e?.message);
+  }
+}
+
+/**
+ * Cold-start fallback: rebuild the rollup from raw counters with the full
+ * fan-out scan. Used only when the cache key is missing or the version
+ * tag doesn't match. Caller stores the result back to SUMMARY_KEY.
+ *
+ * NOTE: fingerprints can't be recovered from raw counters (we only stored
+ * a marker key per fp, no count). On cold rebuild we estimate today's
+ * active users by listing `metric:user:<today>:` once and storing the
+ * count as an opaque seed — subsequent /track calls will incrementally
+ * add new fingerprints. This means activeUsers may be off on rebuild day
+ * by a tiny amount; daily reconcile cleans it up.
+ */
+async function rebuildRollupFromCounters(kv) {
+  const today = utcDate();
+  const r = emptyRollup(today);
+
+  // Lifetime totals
+  await Promise.all(EVENT_TYPES.map(async e => {
+    r.lifetime[e] = parseInt((await kv.get(`metric:total:${e}`)) || '0', 10);
+  }));
+
+  // 30-day series per event
+  const days = [];
+  const d0 = new Date();
+  for (let i = SERIES_DAYS - 1; i >= 0; i--) {
+    const d = new Date(d0); d.setUTCDate(d0.getUTCDate() - i);
+    days.push(utcDate(d.getTime()));
+  }
+  await Promise.all(days.map(async day => {
+    const bucket = {};
+    await Promise.all(EVENT_TYPES.map(async e => {
+      const v = parseInt((await kv.get(`metric:count:${day}:${e}`)) || '0', 10);
+      if (v > 0) bucket[e] = v;
+    }));
+    if (Object.keys(bucket).length > 0) r.byDay[day] = bucket;
+  }));
+
+  // byChainToday — only "today" matters for the byChain shape we expose
+  await Promise.all(CHAIN_KEYS.map(async c => {
+    const byEvent = {};
+    await Promise.all(EVENT_TYPES.map(async e => {
+      const v = parseInt((await kv.get(`metric:count:${today}:${e}:${c}`)) || '0', 10);
+      if (v > 0) byEvent[e] = v;
+    }));
+    if (Object.keys(byEvent).length > 0) r.byChainToday[c] = byEvent;
+  }));
+
+  // fpToday — seed from listing user markers for today. This is the only
+  // kv.list() we ever do for metrics, and it runs ONCE per rebuild.
+  try {
+    const userList = await kv.list({ prefix: `metric:user:${today}:`, limit: 1000 });
+    for (const k of userList.keys) {
+      const m = k.name.match(/^metric:user:[^:]+:(.+)$/);
+      if (m) r.fpToday[m[1]] = 1;
+    }
+  } catch (e) {
+    console.warn('[metrics] rebuild fp list failed:', e?.message);
+  }
+
+  r.computedAt = new Date().toISOString();
+  return r;
+}
+
+/**
+ * Shape a rollup into the public /summary response. Pure function — does
+ * not touch KV. Same response shape as the legacy fan-out version, for
+ * backward compatibility with the status page.
+ */
+function shapeSummary(r) {
+  const today = utcDate();
+
+  // Build 30-day sliding window of dates, oldest → newest.
+  const days = [];
+  const d0 = new Date();
+  for (let i = SERIES_DAYS - 1; i >= 0; i--) {
+    const d = new Date(d0); d.setUTCDate(d0.getUTCDate() - i);
+    days.push(utcDate(d.getTime()));
+  }
+
+  const totals  = { ...r.lifetime };
+  for (const e of EVENT_TYPES) if (totals[e] == null) totals[e] = 0;
+
+  const last30  = {};
+  const series  = {};
+  const last24h = {};
+  for (const e of EVENT_TYPES) last30[e] = 0;
+  for (const day of days) {
+    const bucket = r.byDay[day] || {};
+    let dayTotal = 0;
+    for (const e of EVENT_TYPES) {
+      const v = bucket[e] || 0;
+      last30[e] += v;
+      dayTotal += v;
+      if (day === today) last24h[e] = v;
+    }
+    series[day] = dayTotal;
+  }
+  for (const e of EVENT_TYPES) if (last24h[e] == null) last24h[e] = 0;
+
+  // byChain: today's per-chain totals (sum across events) — matches legacy shape.
+  const byChain = {};
+  for (const c of CHAIN_KEYS) {
+    let n = 0;
+    const byEvent = r.byChainToday[c] || {};
+    for (const e of EVENT_TYPES) n += byEvent[e] || 0;
+    byChain[c] = n;
+  }
+
+  const activeUsers = Object.keys(r.fpToday || {}).length;
+  const grandTotal  = Object.values(totals).reduce((a, b) => a + b, 0);
+  const todayTotal  = series[today] || 0;
+
+  return {
+    ready: true,
+    totals, last30, last24h, byChain,
+    activeUsers, grandTotal, todayTotal,
+    series,
+    asOf: new Date().toISOString(),
+  };
 }
 
 export async function onRequest(context) {
@@ -157,18 +402,23 @@ export async function onRequest(context) {
     const rand = Math.random().toString(36).slice(2, 10);
     const eventKey = `metric:event:${ts}:${rand}`;
     const eventData = { event, chain, amount, txHash, surface, ts };
-
-    // Write event with 7-day TTL (the ring buffer)
-    await kv.put(eventKey, JSON.stringify(eventData), { expirationTtl: 7 * 24 * 60 * 60 });
-
-    // Counter writes — best-effort, run in parallel
     const fp = await fingerprint(request);
+
+    // Raw audit-trail writes — kept for reconciliation. Best-effort, parallel.
+    // Counters use incr() (read-modify-write); event keys use simple put.
     await Promise.all([
+      kv.put(eventKey, JSON.stringify(eventData), { expirationTtl: 7 * 24 * 60 * 60 }),
       incr(kv, `metric:count:${day}:${event}`),
       incr(kv, `metric:count:${day}:${event}:${chain}`),
       incr(kv, `metric:total:${event}`),
-      // Unique-user marker for the day (no expiry — used for "active users" rollups)
       kv.put(`metric:user:${day}:${fp}`, '1', { expirationTtl: 35 * 24 * 60 * 60 }),
+    ]);
+
+    // Hot-path pre-aggregates — what /summary and /recent actually read.
+    // Parallel because they touch different keys.
+    await Promise.all([
+      updateRollupCache(kv, day, event, chain, fp),
+      pushRecentRing(kv, eventData),
     ]);
 
     return new Response(null, { status: 204, headers: cors(origin) });
@@ -176,79 +426,25 @@ export async function onRequest(context) {
 
   // ─── GET /summary ────────────────────────────────────────────────────────
   if (route === 'summary' && request.method === 'GET') {
-    const events = ['trade','deposit','spend','bridge','agent-create','agent-exec','failure'];
-    const chains = ['arc','sepolia','baseSepolia','arbitrumSepolia','optimismSepolia','avalancheFuji','polygonAmoy','unichainSepolia'];
+    let r;
+    try { r = JSON.parse((await kv.get(SUMMARY_KEY)) || 'null'); } catch { r = null; }
 
-    // Lifetime totals (1 read per event)
-    const totals = {};
-    await Promise.all(events.map(async e => {
-      totals[e] = parseInt((await kv.get(`metric:total:${e}`)) || '0', 10);
-    }));
-
-    // Last 30 days — daily series for the chart + 30d aggregates
-    const today = new Date();
-    const days = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today); d.setUTCDate(today.getUTCDate() - i);
-      days.push(utcDate(d));
-    }
-    const series = {};   // { 'YYYY-MM-DD': totalTx }
-    const last30 = {};   // { event: count }
-    const last24h = {};  // { event: count } — today's counters
-    const byChain = {};  // { chain: count }
-
-    // Build day-by-day rollup
-    await Promise.all(days.map(async day => {
-      let dayTotal = 0;
-      await Promise.all(events.map(async e => {
-        const v = parseInt((await kv.get(`metric:count:${day}:${e}`)) || '0', 10);
-        dayTotal += v;
-        last30[e] = (last30[e] || 0) + v;
-        if (day === days[days.length - 1]) last24h[e] = v;
-      }));
-      series[day] = dayTotal;
-    }));
-
-    // Per-chain rollup for today
-    const todayKey = days[days.length - 1];
-    await Promise.all(chains.map(async c => {
-      let n = 0;
-      await Promise.all(events.map(async e => {
-        n += parseInt((await kv.get(`metric:count:${todayKey}:${e}:${c}`)) || '0', 10);
-      }));
-      byChain[c] = n;
-    }));
-
-    // Active users today (list keys with prefix — caps at 1000 entries)
-    let activeUsers = 0;
-    try {
-      const userList = await kv.list({ prefix: `metric:user:${todayKey}:`, limit: 1000 });
-      activeUsers = userList.keys.length;
-    } catch (e) {
-      activeUsers = 0;
+    if (!r || r.version !== 1) {
+      // Cold start (key missing or version mismatch) → rebuild ONCE.
+      // This is the only path that does fan-out reads. Subsequent calls
+      // are 1 read each until the key is evicted (KV has no TTL eviction;
+      // only manual delete or version bump triggers a rebuild).
+      r = await rebuildRollupFromCounters(kv);
+      await kv.put(SUMMARY_KEY, JSON.stringify(r));
     }
 
-    const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
-    const todayTotal = series[todayKey] || 0;
-
-    return new Response(JSON.stringify({
-      ready: true,
-      totals,
-      last30,
-      last24h,
-      byChain,
-      activeUsers,
-      grandTotal,
-      todayTotal,
-      series, // { 'YYYY-MM-DD': total } — 30 entries
-      asOf: new Date().toISOString(),
-    }), {
+    return new Response(JSON.stringify(shapeSummary(r)), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        // Edge-cache 2 minutes — multiple status page visitors share one
-        // origin KV read. Status page polls every 2 minutes anyway, so
-        // most polls will hit a fresh edge cache and never touch origin.
+        // Edge-cache 2 minutes. Single-key reads are cheap so we don't
+        // need extreme caching, but edge cache still saves origin trips
+        // when many status-page tabs share an edge colo.
         'Cache-Control': 'public, max-age=120, s-maxage=120',
         ...cors(origin),
       },
@@ -257,32 +453,39 @@ export async function onRequest(context) {
 
   // ─── GET /recent ─────────────────────────────────────────────────────────
   if (route === 'recent' && request.method === 'GET') {
-    const n = Math.max(1, Math.min(50, parseInt(url.searchParams.get('n') || '20', 10)));
-    // KV list keys in lexicographic order. Our event keys are `metric:event:<ts>:...`
-    // where ts is base-10 ms. To get newest first, list all + sort desc by ts.
-    // For testnet scale this is fine; for production wire a Durable Object.
-    const list = await kv.list({ prefix: 'metric:event:', limit: Math.min(1000, n * 5) });
-    const keys = list.keys.map(k => k.name).sort((a, b) => {
-      const ta = parseInt(a.split(':')[2], 10);
-      const tb = parseInt(b.split(':')[2], 10);
-      return tb - ta;
-    }).slice(0, n);
+    const n = Math.max(1, Math.min(RECENT_MAX, parseInt(url.searchParams.get('n') || '20', 10)));
 
-    const events = [];
-    await Promise.all(keys.map(async k => {
-      const raw = await kv.get(k);
-      if (raw) {
-        try { events.push(JSON.parse(raw)); } catch {}
+    let ring;
+    try { ring = JSON.parse((await kv.get(RECENT_KEY)) || 'null'); } catch { ring = null; }
+
+    if (!Array.isArray(ring)) {
+      // Cold start: seed ring buffer from kv.list. ONE TIME — every
+      // subsequent /track will keep it warm via pushRecentRing.
+      try {
+        const list = await kv.list({ prefix: 'metric:event:', limit: 200 });
+        const keys = list.keys.map(k => k.name).sort((a, b) => {
+          const ta = parseInt(a.split(':')[2], 10);
+          const tb = parseInt(b.split(':')[2], 10);
+          return tb - ta;
+        }).slice(0, RECENT_MAX);
+        const events = [];
+        await Promise.all(keys.map(async k => {
+          const raw = await kv.get(k);
+          if (raw) { try { events.push(JSON.parse(raw)); } catch {} }
+        }));
+        events.sort((a, b) => b.ts - a.ts);
+        ring = events;
+        await kv.put(RECENT_KEY, JSON.stringify(ring));
+      } catch (e) {
+        ring = [];
       }
-    }));
-    events.sort((a, b) => b.ts - a.ts);
+    }
 
-    return new Response(JSON.stringify({ ready: true, events }), {
+    return new Response(JSON.stringify({ ready: true, events: ring.slice(0, n) }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        // Edge-cache 60s for the activity feed. Trades won't appear
-        // INSTANTLY but within 60s, which is acceptable for a status page.
+        // 60s edge cache — activity feed should feel near-live.
         'Cache-Control': 'public, max-age=60, s-maxage=60',
         ...cors(origin),
       },
@@ -291,3 +494,10 @@ export async function onRequest(context) {
 
   return bad('not_found', origin, 404);
 }
+
+// Re-export the hot-path helpers so the agent endpoint (which also
+// generates events server-side) can use them without duplicating logic.
+// NOTE: Pages Functions can't share modules across routes easily, so
+// `functions/api/agent/[[path]].js` reimplements the same write pattern
+// inline. Keep these two files in sync if you change the rollup shape.
+export { updateRollupCache, pushRecentRing, utcDate as _utcDate };

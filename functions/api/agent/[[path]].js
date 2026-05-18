@@ -89,29 +89,106 @@ async function putJSON(kv, key, val) {
  * execution, etc.). Best-effort and never throws — analytics must never
  * block the actual agent flow.
  *
- * Writes:
- *   metric:event:<ts>:<rand>         (event ring buffer, TTL 7d)
- *   metric:count:<date>:<event>      (daily total)
+ * Writes (raw audit trail, for daily reconciliation):
+ *   metric:event:<ts>:<rand>             (event ring buffer, TTL 7d)
+ *   metric:count:<date>:<event>          (daily total)
  *   metric:count:<date>:<event>:<chain>  (daily per-chain)
- *   metric:total:<event>             (lifetime)
+ *   metric:total:<event>                 (lifetime)
+ *
+ * Writes (hot-path pre-aggregates, read by /api/metrics/summary and /recent):
+ *   metric:summary:v1   (rollup JSON — read-modify-write, race-tolerant)
+ *   metric:recent:v1    (ring buffer JSON — read-modify-write, race-tolerant)
+ *
+ * KEEP IN SYNC with `functions/api/metrics/[[path]].js` — the same write
+ * pattern is duplicated here because Pages Functions don't share modules
+ * across routes easily. If you change the rollup shape, update both.
  */
+const _METRICS_EVENT_TYPES = ['trade','deposit','spend','bridge','agent-create','agent-exec','failure'];
+const _METRICS_SERIES_DAYS = 30;
+const _METRICS_RECENT_MAX  = 50;
+const _METRICS_SUMMARY_KEY = 'metric:summary:v1';
+const _METRICS_RECENT_KEY  = 'metric:recent:v1';
+
+function _metricsUtcDate(ts) {
+  const d = new Date(ts || Date.now());
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth()+1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+}
+
+function _metricsEmptyRollup(today) {
+  const r = { version: 1, computedAt: new Date().toISOString(), todayKey: today, lifetime: {}, byDay: {}, byChainToday: {}, fpToday: {} };
+  for (const e of _METRICS_EVENT_TYPES) r.lifetime[e] = 0;
+  return r;
+}
+
+function _metricsApplyIncrement(r, day, event, chain, fp) {
+  if (r.todayKey !== day) {
+    r.todayKey = day;
+    r.byChainToday = {};
+    r.fpToday = {};
+  }
+  const cutoff = new Date(day + 'T00:00:00Z');
+  cutoff.setUTCDate(cutoff.getUTCDate() - (_METRICS_SERIES_DAYS - 1));
+  const cutoffKey = _metricsUtcDate(cutoff.getTime());
+  for (const d of Object.keys(r.byDay)) {
+    if (d < cutoffKey) delete r.byDay[d];
+  }
+  r.lifetime[event] = (r.lifetime[event] || 0) + 1;
+  r.byDay[day] = r.byDay[day] || {};
+  r.byDay[day][event] = (r.byDay[day][event] || 0) + 1;
+  if (chain) {
+    r.byChainToday[chain] = r.byChainToday[chain] || {};
+    r.byChainToday[chain][event] = (r.byChainToday[chain][event] || 0) + 1;
+  }
+  if (fp) r.fpToday[fp] = 1;
+  r.computedAt = new Date().toISOString();
+}
+
+async function _metricsUpdateRollup(kv, day, event, chain) {
+  try {
+    let r;
+    try { r = JSON.parse((await kv.get(_METRICS_SUMMARY_KEY)) || 'null'); } catch { r = null; }
+    if (!r || r.version !== 1) r = _metricsEmptyRollup(day);
+    _metricsApplyIncrement(r, day, event, chain, null);
+    await kv.put(_METRICS_SUMMARY_KEY, JSON.stringify(r));
+  } catch (e) {
+    console.warn('[metrics] rollup update failed (server-side):', e?.message);
+  }
+}
+
+async function _metricsPushRecent(kv, eventData) {
+  try {
+    let ring;
+    try { ring = JSON.parse((await kv.get(_METRICS_RECENT_KEY)) || '[]'); } catch { ring = []; }
+    if (!Array.isArray(ring)) ring = [];
+    ring.unshift(eventData);
+    if (ring.length > _METRICS_RECENT_MAX) ring.length = _METRICS_RECENT_MAX;
+    await kv.put(_METRICS_RECENT_KEY, JSON.stringify(ring));
+  } catch (e) {
+    console.warn('[metrics] ring update failed (server-side):', e?.message);
+  }
+}
+
 async function incrMetric(kv, event, chain, amount) {
   try {
     const ts = Date.now();
-    const d = new Date(ts);
-    const day = d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth()+1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+    const day = _metricsUtcDate(ts);
     const rand = Math.random().toString(36).slice(2, 10);
+    const eventData = { event, chain, amount: amount ?? null, txHash: null, surface: 'cron', ts };
     const incr = async (key) => {
       const cur = parseInt((await kv.get(key)) || '0', 10);
       await kv.put(key, String(cur + 1));
     };
+    // Raw audit-trail writes (parallel)
     await Promise.all([
-      kv.put(`metric:event:${ts}:${rand}`,
-        JSON.stringify({ event, chain, amount: amount ?? null, txHash: null, surface: 'cron', ts }),
-        { expirationTtl: 7 * 24 * 60 * 60 }),
+      kv.put(`metric:event:${ts}:${rand}`, JSON.stringify(eventData), { expirationTtl: 7 * 24 * 60 * 60 }),
       incr(`metric:count:${day}:${event}`),
       incr(`metric:count:${day}:${event}:${chain}`),
       incr(`metric:total:${event}`),
+    ]);
+    // Hot-path pre-aggregates (parallel) — these are what /summary and /recent read
+    await Promise.all([
+      _metricsUpdateRollup(kv, day, event, chain),
+      _metricsPushRecent(kv, eventData),
     ]);
   } catch (e) {
     console.warn('[metrics] server-side incr failed:', e?.message);

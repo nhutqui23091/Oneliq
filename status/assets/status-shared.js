@@ -108,8 +108,11 @@
   // ── Real-metrics fetchers (cross-origin to arcswap.net/api/metrics/*)
   // Both return null on failure so callers can fall back to seeded data.
   async function fetchSummary() {
+    // No `cache: 'no-cache'` — that header forces edge revalidation on every
+    // request, defeating Cloudflare's edge cache (max-age=120 on the response).
+    // The server response Cache-Control already controls freshness correctly.
     try {
-      const r = await fetch(API_BASE + '/api/metrics/summary', { cache: 'no-cache' });
+      const r = await fetch(API_BASE + '/api/metrics/summary');
       if (!r.ok) return null;
       const j = await r.json();
       return j && j.ready ? j : null;

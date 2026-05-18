@@ -33,6 +33,12 @@
 
 const RETENTION_DAYS = 30;
 
+// Metrics rollup config — must match functions/api/metrics/[[path]].js
+const METRICS_EVENT_TYPES = ['trade','deposit','spend','bridge','agent-create','agent-exec','failure'];
+const METRICS_CHAIN_KEYS  = ['arc','sepolia','baseSepolia','arbitrumSepolia','optimismSepolia','avalancheFuji','polygonAmoy','unichainSepolia'];
+const METRICS_SERIES_DAYS = 30;
+const METRICS_SUMMARY_KEY = 'metric:summary:v1';
+
 export default {
   /**
    * Cron trigger — fired by Cloudflare on the schedule in wrangler.toml.
@@ -135,6 +141,22 @@ async function runBackup(env, snapshotDate, source) {
   cutoff.setUTCDate(cutoff.getUTCDate() - RETENTION_DAYS);
   const deleted = await pruneOldBackups(env.BACKUPS, cutoff);
 
+  // Step 6: reconcile the metrics rollup cache (`metric:summary:v1`) from
+  // raw counters. The /api/metrics/track hot path does best-effort
+  // read-modify-write updates that can lose +1 increments on concurrent
+  // writes. Once per day we rebuild from the raw `metric:count:*` and
+  // `metric:total:*` keys to repair any drift.
+  //
+  // We already have a fresh `entries` map from the backup scan, so we can
+  // reconcile WITHOUT any extra KV reads — just iterate the in-memory map.
+  let reconcileResult = null;
+  try {
+    reconcileResult = await reconcileMetricsRollup(env.AGENT_KV, entries);
+    console.log(`[kv-backup] reconciled metrics rollup:`, reconcileResult);
+  } catch (e) {
+    console.warn(`[kv-backup] reconcile failed (non-fatal):`, e?.message);
+  }
+
   const summary = {
     ok: true,
     source,
@@ -143,9 +165,112 @@ async function runBackup(env, snapshotDate, source) {
     sizeKb: Number(sizeKb),
     durationMs: Date.now() - t0,
     deletedOldBackups: deleted,
+    metricsReconcile: reconcileResult,
   };
   console.log(`[kv-backup] done`, summary);
   return summary;
+}
+
+/**
+ * Rebuild `metric:summary:v1` from the raw `metric:count:*` and
+ * `metric:total:*` keys we already have in `entries` (fresh from the
+ * backup scan — zero extra KV reads). Writes the new rollup back to KV.
+ *
+ * Why: the /track hot path uses read-modify-write on the rollup key,
+ * which loses +1 increments under concurrent writes. The raw counters
+ * use separate keys per (day, event, chain) so they are far less
+ * contended. This nightly reconcile keeps the rollup eventually-correct.
+ */
+async function reconcileMetricsRollup(kv, entries) {
+  const today = utcDateString(new Date());
+
+  // Build day list (last SERIES_DAYS days ending today, UTC).
+  const days = [];
+  const d0 = new Date();
+  for (let i = METRICS_SERIES_DAYS - 1; i >= 0; i--) {
+    const d = new Date(d0); d.setUTCDate(d0.getUTCDate() - i);
+    days.push(utcDateString(d));
+  }
+  const dayHas = new Set(days);
+
+  const r = {
+    version: 1,
+    computedAt: new Date().toISOString(),
+    todayKey: today,
+    lifetime: {},
+    byDay: {},
+    byChainToday: {},
+    fpToday: {},
+  };
+  for (const e of METRICS_EVENT_TYPES) r.lifetime[e] = 0;
+
+  // Lifetime totals
+  for (const e of METRICS_EVENT_TYPES) {
+    const v = entries[`metric:total:${e}`];
+    r.lifetime[e] = parseIntSafe(v);
+  }
+
+  // Per-day per-event + per-chain — iterate `entries` once, much cheaper
+  // than reading 7×30 + 7×8 individual keys.
+  const countRe       = /^metric:count:(\d{4}-\d{2}-\d{2}):([a-z-]+)$/;
+  const countChainRe  = /^metric:count:(\d{4}-\d{2}-\d{2}):([a-z-]+):([A-Za-z]+)$/;
+  for (const [k, v] of Object.entries(entries)) {
+    // Per-day per-event
+    let m = k.match(countRe);
+    if (m && dayHas.has(m[1])) {
+      const day = m[1], event = m[2];
+      if (METRICS_EVENT_TYPES.includes(event)) {
+        const n = parseIntSafe(v);
+        if (n > 0) {
+          r.byDay[day] = r.byDay[day] || {};
+          r.byDay[day][event] = n;
+        }
+      }
+      continue;
+    }
+    // Per-day per-event per-chain (only today matters for byChainToday)
+    m = k.match(countChainRe);
+    if (m && m[1] === today) {
+      const event = m[2], chain = m[3];
+      if (METRICS_EVENT_TYPES.includes(event) && METRICS_CHAIN_KEYS.includes(chain)) {
+        const n = parseIntSafe(v);
+        if (n > 0) {
+          r.byChainToday[chain] = r.byChainToday[chain] || {};
+          r.byChainToday[chain][event] = n;
+        }
+      }
+    }
+  }
+
+  // fpToday — count `metric:user:<today>:<fp>` markers from entries.
+  const userPrefix = `metric:user:${today}:`;
+  for (const k of Object.keys(entries)) {
+    if (k.startsWith(userPrefix)) {
+      r.fpToday[k.slice(userPrefix.length)] = 1;
+    }
+  }
+
+  await kv.put(METRICS_SUMMARY_KEY, JSON.stringify(r));
+
+  return {
+    todayKey: today,
+    seriesDays: Object.keys(r.byDay).length,
+    activeFingerprints: Object.keys(r.fpToday).length,
+    lifetimeTotal: Object.values(r.lifetime).reduce((a, b) => a + b, 0),
+  };
+}
+
+function utcDateString(d) {
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth()+1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+}
+
+function parseIntSafe(v) {
+  // entries[k] may be a parsed JSON value (number) or a string (since
+  // fetchAllValues JSON.parses when possible). Counters are stored as
+  // strings like "42" so they parse to numbers.
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; }
+  return 0;
 }
 
 /**
