@@ -24,7 +24,9 @@
   --display:'Space Grotesk','Inter',system-ui,sans-serif; --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace;
 }
 html{scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+/* Body styling comes from arc-ui.css — do NOT redeclare line-height here:
+   it would cascade into the shared sidebar (which inherits line-height) and
+   make /balance's sidebar items taller than /trade, /agent, /history. */
 .aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
   background:
     radial-gradient(ellipse 100% 50% at 50% 0%,rgba(244,200,154,0.12) 0%,transparent 60%),
@@ -34,7 +36,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:h
 
 /* Top nav removed — sidebar provides chrome via ArcUI.bootApp('balance'). */
 
-.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:44px 28px 80px}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:44px 28px 80px;line-height:1.6}
 @media(max-width:900px){.wrap{padding:72px 18px 60px}}
 
 .hero-strip{margin-bottom:24px}
