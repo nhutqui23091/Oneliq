@@ -5,33 +5,22 @@
   const ARC = global.ARC;
 
   // ── NAVBAR ─────────────────────────────────────────────
-  // Whitelist: addresses allowed to see Pool while it's still in development.
-  // Direct URL (/pool) still resolves — gating is nav-only so bookmarks keep
-  // working for testers.
-  const TESTER_ADDRESSES = new Set([
-    '0x738722f22ef4fb6abc3ac69bbc30f77b2b6bc762',
-  ]);
-  function isTester(addr) {
-    return !!addr && TESTER_ADDRESSES.has(String(addr).toLowerCase());
-  }
+  // Two chrome variants:
+  //   1. boot()    — classic top nav. Marketing/landing pages (/, /blog).
+  //   2. bootApp() — left sidebar app shell. Operator surfaces (/history,
+  //                  later /trade, /balance, /agent, etc).
+  // /pool and /vault have been retired. Dashboard (the operator one) is
+  // still gated in functions/_middleware.js; the sidebar "Dashboard" entry
+  // is a public placeholder for the future user dashboard.
 
   function navTabs(active) {
-    // Dashboard is intentionally NOT in this list — it's a private operator
-    // page gated behind Basic Auth in functions/_middleware.js. Reach it by
-    // typing /dashboard in the URL bar. Will be re-added once it's public.
-    const base = [
+    return [
       { id: 'trade',     label: 'Trade',        href: '/trade'   },
       { id: 'balance',   label: 'Balance',      href: '/balance' },
       { id: 'agent',     label: 'Agent',        href: '/agent', newBadge: true },
       { id: 'history',   label: 'History',      href: '/history', newBadge: true },
       { id: 'token',     label: 'Create Token', href: '/token'   },
     ];
-    const gated = isTester(ARC.wallet.address)
-      ? [
-          { id: 'pool',  label: 'Pool',  href: '/pool'  },
-        ]
-      : [];
-    return [...base, ...gated];
   }
 
   function renderNav(active) {
@@ -378,6 +367,144 @@
     });
   }
 
+  // ── SIDEBAR (app shell) ─────────────────────────────────
+  // Used by operator surfaces (/history, future /trade /balance /agent).
+  // Marketing pages keep the top nav via boot(). State persists via:
+  //   localStorage 'arc.side.collapsed' = '1' | '0'   — desktop collapse
+  //   body.arc-side-collapsed                          — applied class
+  //   body.arc-side-open                               — mobile drawer open
+  const SIDE_SECTIONS = [
+    {
+      title: 'Products',
+      items: [
+        { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
+        { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
+        { id: 'agent',     label: 'Agent',     icon: '∞', href: '/agent',   badge: 'NEW'  },
+        { id: 'history',   label: 'History',   icon: '⏱', href: '/history', badge: 'NEW'  },
+        { id: 'payment',   label: 'Payment',   icon: '⇢',                    badge: 'SOON', soon: true },
+        { id: 'dashboard', label: 'Dashboard', icon: '▦',                    badge: 'SOON', soon: true },
+      ],
+    },
+    {
+      title: 'Tools',
+      items: [
+        { id: 'token',  label: 'Create Token', icon: '⊕', href: '/token'  },
+        { id: 'faucet', label: 'Faucet',       icon: '💧', href: 'https://faucet.circle.com', external: true },
+        { id: 'blog',   label: 'Blog',         icon: '✎', href: '/blog'   },
+      ],
+    },
+  ];
+
+  function renderSidebar(active) {
+    // Initial collapsed state (desktop only; mobile ignores via CSS)
+    const collapsed = localStorage.getItem('arc.side.collapsed') === '1';
+    document.body.classList.toggle('arc-side-collapsed', collapsed);
+
+    // Sidebar shell
+    let side = document.querySelector('aside.arc-side');
+    if (!side) {
+      side = document.createElement('aside');
+      side.className = 'arc-side';
+      side.setAttribute('aria-label', 'Primary');
+      document.body.insertBefore(side, document.body.firstChild);
+    }
+
+    // Mobile backdrop
+    let backdrop = document.querySelector('.arc-side-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'arc-side-backdrop';
+      backdrop.addEventListener('click', () => document.body.classList.remove('arc-side-open'));
+      document.body.appendChild(backdrop);
+    }
+
+    // Mobile hamburger trigger (top-left, only visible <900px)
+    let hamb = document.querySelector('.arc-side-hamb');
+    if (!hamb) {
+      hamb = document.createElement('button');
+      hamb.type = 'button';
+      hamb.className = 'arc-side-hamb';
+      hamb.setAttribute('aria-label', 'Open menu');
+      hamb.innerHTML = '<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="M1 1h14M1 6h14M1 11h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      hamb.addEventListener('click', () => document.body.classList.add('arc-side-open'));
+      document.body.appendChild(hamb);
+    }
+
+    const paint = () => {
+      const sectionsHtml = SIDE_SECTIONS.map(sec => `
+        <div class="arc-side-section">
+          <div class="arc-side-sectitle">${sec.title}</div>
+          ${sec.items.map(it => {
+            const isActive = it.id === active;
+            const cls = ['arc-side-item', isActive ? 'active' : '', it.soon ? 'soon' : ''].filter(Boolean).join(' ');
+            const badge = it.badge
+              ? `<span class="arc-side-badge ${it.badge.toLowerCase()}">${it.badge}</span>`
+              : '';
+            const inner = `
+              <span class="arc-side-ico" aria-hidden="true">${it.icon}</span>
+              <span class="arc-side-label">${it.label}</span>
+              ${badge}`;
+            if (it.soon) {
+              return `<button type="button" class="${cls}" data-soon="${it.label}" title="${it.label} — Coming soon">${inner}</button>`;
+            }
+            const ext = it.external ? ' target="_blank" rel="noopener"' : '';
+            return `<a class="${cls}" href="${it.href}"${ext} title="${it.label}">${inner}</a>`;
+          }).join('')}
+        </div>`).join('');
+
+      side.innerHTML = `
+        <div class="arc-side-head">
+          <a class="arc-side-brand" href="/" aria-label="ArcSwap home">
+            <span class="arc-side-logo">A</span>
+            <span class="arc-side-brandtext">
+              <span class="arc-side-name">ArcSwap</span>
+              <span class="arc-side-pill">TESTNET</span>
+            </span>
+          </a>
+          <button class="arc-side-toggle" type="button" aria-label="Toggle sidebar">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <nav class="arc-side-nav">${sectionsHtml}</nav>
+        <div class="arc-side-foot">
+          <div class="arc-side-chain" title="Arc Testnet"><span class="dot"></span><span class="arc-side-chain-label">Arc Testnet</span></div>
+          <button id="arc-wallet-btn" class="wallet-btn disconnected" title="Connect Wallet">Connect Wallet</button>
+        </div>`;
+
+      // Toggle (desktop collapse / expand)
+      side.querySelector('.arc-side-toggle').addEventListener('click', () => {
+        const isNow = document.body.classList.toggle('arc-side-collapsed');
+        localStorage.setItem('arc.side.collapsed', isNow ? '1' : '0');
+      });
+
+      // Coming-soon items → toast feedback
+      side.querySelectorAll('[data-soon]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const name = btn.dataset.soon;
+          toast('', `${name} — Coming soon`, "It's on the roadmap. We'll announce when it ships.");
+          document.body.classList.remove('arc-side-open');
+        });
+      });
+
+      // Auto-close mobile drawer when a real link is tapped
+      side.querySelectorAll('a.arc-side-item').forEach(a => {
+        a.addEventListener('click', () => {
+          if (window.innerWidth <= 900) document.body.classList.remove('arc-side-open');
+        });
+      });
+
+      // Wallet button (same handler as top-nav variant)
+      const wb = document.getElementById('arc-wallet-btn');
+      if (wb) wb.onclick = onWalletClick;
+      refreshWalletBtn();
+    };
+
+    paint();
+    ARC.wallet.on(paint);
+  }
+
   // ── BOOT ───────────────────────────────────────────────
   async function boot(activeTab) {
     renderAurora();
@@ -386,5 +513,15 @@
     await ARC.wallet.autoConnect().catch(() => null);
   }
 
-  global.ArcUI = { boot, renderNav, toast, openModal, closeModal, confirm };
+  // App-shell variant: left sidebar + content area. Sets body.arc-app so
+  // pages can style around the sidebar's reserved width.
+  async function bootApp(activeTab) {
+    renderAurora();
+    renderCursor();
+    document.body.classList.add('arc-app');
+    renderSidebar(activeTab);
+    await ARC.wallet.autoConnect().catch(() => null);
+  }
+
+  global.ArcUI = { boot, bootApp, renderNav, renderSidebar, toast, openModal, closeModal, confirm };
 })(window);

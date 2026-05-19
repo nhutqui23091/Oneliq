@@ -1,13 +1,22 @@
 // Page-level access gate.
 //
-// Locks the Pool, Vault, and Dashboard pages so only the operator can view
-// them. All three share the same credentials, which come from Cloudflare
-// Pages env vars (Settings → Environment variables → Production):
+// Locks the (operator) Dashboard page so only the operator can view it.
+// Credentials come from Cloudflare Pages env vars (Settings → Environment
+// variables → Production):
 //   POOL_AUTH_USER  — username (anything you want)
 //   POOL_AUTH_PASS  — password
 //
 // If either env var is missing, the gate FAILS CLOSED (503) rather than
 // silently exposing the page.
+//
+// History: /pool and /vault used to live here too — both have been retired
+// and removed from the nav. The remaining HTML files (pool.html, vault.html)
+// are unreachable via UI but kept un-gated to avoid 401-ing any external
+// bookmarks; they'll get cleaned up in a follow-up.
+//
+// The sidebar "Dashboard" entry is a public placeholder for the FUTURE
+// user dashboard (marked "Coming soon"); /dashboard itself remains the
+// gated operator surface — they're different surfaces.
 //
 // Note on logout: HTTP Basic Auth has no real logout. Close the browser /
 // use an incognito window if you need to clear credentials.
@@ -16,14 +25,6 @@ const REALM = 'ArcSwap — Private';
 
 function isProtected(pathname) {
   return (
-    pathname === '/pool' ||
-    pathname === '/pool/' ||
-    pathname === '/pool.html' ||
-    pathname.startsWith('/pool/') ||
-    pathname === '/vault' ||
-    pathname === '/vault/' ||
-    pathname === '/vault.html' ||
-    pathname.startsWith('/vault/') ||
     pathname === '/dashboard' ||
     pathname === '/dashboard/' ||
     pathname === '/dashboard.html' ||

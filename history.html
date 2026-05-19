@@ -11,7 +11,7 @@
 <title>History — ArcSwap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.6.4"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.7.0"/>
 <style>
 /* ============================================================
    HISTORY — minimal receipt feed.
@@ -19,7 +19,7 @@
    No charts, no toolbar, no modal. Each row is a receipt.
 ============================================================ */
 
-.hist-wrap{position:relative;z-index:2;max-width:980px;margin:0 auto;padding:104px 24px 80px}
+.hist-wrap{position:relative;z-index:2;max-width:980px;margin:0 auto;padding:48px 36px 80px}
 
 /* HERO — one big glass card */
 .hist-hero{position:relative;padding:38px 40px 36px;border-radius:24px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:22px}
@@ -95,8 +95,11 @@
 .hist-tag b{color:var(--arc1);font-weight:700}
 
 /* Responsive */
+@media(max-width:900px){
+  .hist-wrap{padding:72px 18px 60px}
+}
 @media(max-width:680px){
-  .hist-wrap{padding-top:96px;padding-left:16px;padding-right:16px}
+  .hist-wrap{padding:68px 14px 50px}
   .hist-hero{padding:28px 22px}
   .hist-row{grid-template-columns:38px 1fr auto;grid-template-rows:auto auto;gap:12px;padding:14px 14px}
   .hist-row-ico{width:38px;height:38px;grid-row:1/3}
@@ -110,7 +113,7 @@
 </head>
 <body>
 
-<!-- aurora + cursor + nav are injected by ArcUI.boot('history') below -->
+<!-- aurora + cursor + sidebar are injected by ArcUI.bootApp('history') below -->
 
 <main class="hist-wrap">
 
@@ -141,7 +144,7 @@
         referrerpolicy="no-referrer"></script>
 <script src="/assets/arc-core.js?v=9.6.2"></script>
 <script src="/assets/arc-gateway.js?v=9.6.2"></script>
-<script src="/assets/arc-ui.js?v=9.6.6"></script>
+<script src="/assets/arc-ui.js?v=9.7.0"></script>
 <script>
 (async () => {
   /* ============================================================
@@ -160,7 +163,7 @@
           mirrors the same shape when the backend is unconfigured.
   ============================================================ */
 
-  await ArcUI.boot('history');
+  await ArcUI.bootApp('history');
 
   // ── CHAIN REGISTRY ────────────────────────────────────────────
   const CHIPS = [
