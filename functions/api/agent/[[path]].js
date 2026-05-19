@@ -652,6 +652,15 @@ async function handlePauseResume(req, kv, id, newState) {
     return json(401, { error: 'signature_invalid' });
 
   agent.state = newState;
+  // Manual resume after auto-pause → clear the auto-pause counter so the
+  // agent gets a fresh streak. Operator is asserting the underlying issue
+  // is fixed; we trust them and let the cron try again. If it still fails
+  // it'll re-auto-pause after AUTO_PAUSE_THRESHOLD ticks.
+  if (newState === 'active') {
+    agent.consecutiveFailures = 0;
+    delete agent.autoPausedReason;
+    delete agent.autoPausedAt;
+  }
   await putJSON(kv, `agent:${id}`, agent);
   await appendExecution(kv, id, { type: newState, detail: `Agent ${newState}` });
   return json(200, agent);
@@ -1080,15 +1089,18 @@ async function topupTargetBelowFloor(env, agent) {
  *   }
  */
 async function handleDebugFailures(req, kv, env) {
-  // Auth: prefer env.DEBUG_KEY (a separate one-time-use secret operators can
-  // add via Cloudflare Pages UI and delete after diagnostic), fall back to
-  // env.CRON_SECRET. This lets you run the diagnostic without rotating the
-  // production CRON_SECRET (which would also need to be rotated on the
-  // agent-cron worker, breaking the cron mid-day).
+  // Auth: requires env.DEBUG_KEY explicitly. We DELIBERATELY don't fall
+  // back to env.CRON_SECRET because that secret is also used by the
+  // production cron-tick worker — leaking it via this read-only endpoint
+  // would let anyone who scrapes its value also forge cron-tick calls.
+  //
+  // Operator workflow:
+  //   1. Cloudflare Pages → Settings → Variables → add DEBUG_KEY (plaintext, any value)
+  //   2. Call this endpoint with X-Debug-Key: <value>
+  //   3. Delete DEBUG_KEY env var — endpoint goes back to 503
   const provided = req.headers.get('X-Debug-Key') || '';
-  const expected = env.DEBUG_KEY || env.CRON_SECRET || '';
-  if (!expected) return json(503, { error: 'auth_not_configured', message: 'Set DEBUG_KEY (or CRON_SECRET) env var on Cloudflare Pages to enable this endpoint.' });
-  if (provided !== expected) return json(401, { error: 'unauthorized' });
+  if (!env.DEBUG_KEY) return json(503, { error: 'debug_disabled', message: 'Set DEBUG_KEY env var on Cloudflare Pages to enable this endpoint (delete after use).' });
+  if (provided !== env.DEBUG_KEY) return json(401, { error: 'unauthorized' });
 
   const url = new URL(req.url);
   const lookbackHours = Math.min(168, Math.max(1, parseInt(url.searchParams.get('hours') || '24', 10)));
@@ -1279,10 +1291,25 @@ async function handleCronTick(req, kv, env) {
  * + execution logging + state update. Updates `summary` in place so the
  * caller's accounting stays consistent. Never throws — errors are caught,
  * logged to the agent's execution feed, and surfaced via summary.errors.
+ *
+ * Auto-pause: tracks consecutive failures on the agent record. After
+ * AUTO_PAUSE_THRESHOLD consecutive failed tick fires (no successful tx),
+ * the agent is auto-paused and a `paused` execution entry is appended.
+ * The user can resume from /agent UI once they fix the underlying issue
+ * (fund wallet, reprovision, etc). Counter resets on the first successful
+ * tx (or CCTP burn fired) in a tick.
  */
+const AUTO_PAUSE_THRESHOLD = 5;
+
 async function fireAgentInCron(kv, env, agent, summary, now) {
+  // Persist agent at the end of every code path (success + catch). This
+  // keeps `lastTrigger`, `consecutiveFailures`, and any auto-pause state
+  // change durable even when the executeRefill call throws mid-flight.
+  let persistAgent = true;
   try {
     const result = await executeRefill(env, agent);
+    let anySuccessOrBurn = false;
+    let allFailed = (result.txs || []).length > 0; // false if no txs at all (e.g. CCTP not yet started)
     for (const t of (result.txs || [])) {
       if (t.error) {
         await appendExecution(kv, agent.id, {
@@ -1292,6 +1319,8 @@ async function fireAgentInCron(kv, env, agent, summary, now) {
         // Real-metrics: track agent failure (server-side, no CORS to worry about).
         await incrMetric(kv, 'failure', 'arc', null);
       } else if (t.flow === 'cctp') {
+        allFailed = false;
+        anySuccessOrBurn = true;
         await appendExecution(kv, agent.id, {
           type: 'cctp_burn',
           detail: `[cron] CCTP burn $${t.amount} ${t.source}→${t.target?.slice(0,10) || '?'} (awaiting attestation ~30s)`,
@@ -1301,6 +1330,8 @@ async function fireAgentInCron(kv, env, agent, summary, now) {
           flow: t.flow,
         });
       } else {
+        allFailed = false;
+        anySuccessOrBurn = true;
         await appendExecution(kv, agent.id, {
           type: 'sent',
           detail: `[cron] sent $${t.amount} ${t.source}→${t.target?.slice(0,10) || '?'}`,
@@ -1323,7 +1354,35 @@ async function fireAgentInCron(kv, env, agent, summary, now) {
     if (agent.mode === 'schedule') {
       agent.nextRun = advanceNextRun(agent.nextRun, agent.params.cadence);
     }
+
+    // ── Auto-pause accounting ────────────────────────────────────────────
+    // Reset on any success-or-burn; increment on all-failed; ignore "no txs"
+    // (e.g. throttle/balance skip — caller handles before reaching here).
+    if (anySuccessOrBurn) {
+      // Capture last failure reason for UI surface even after counter resets.
+      agent.consecutiveFailures = 0;
+      delete agent.autoPausedReason;
+    } else if (allFailed) {
+      agent.consecutiveFailures = (agent.consecutiveFailures || 0) + 1;
+      // Capture the first error from this tick as the "last failure reason"
+      // so the /agent UI can surface it without re-reading executions.
+      const firstErr = (result.txs || []).find(t => t.error)?.error;
+      if (firstErr) agent.lastFailureReason = String(firstErr).slice(0, 240);
+      agent.lastFailureAt = now;
+      if (agent.consecutiveFailures >= AUTO_PAUSE_THRESHOLD && agent.state === 'active') {
+        agent.state = 'paused';
+        agent.autoPausedReason = `Auto-paused after ${AUTO_PAUSE_THRESHOLD} consecutive failures · ${agent.lastFailureReason || 'see executions'}`;
+        agent.autoPausedAt = now;
+        await appendExecution(kv, agent.id, {
+          type: 'paused',
+          detail: `Auto-paused after ${AUTO_PAUSE_THRESHOLD} consecutive failures. Fix the underlying issue (fund wallet, reprovision, etc) then resume from /agent.`,
+        });
+        summary.autoPaused = (summary.autoPaused || 0) + 1;
+      }
+    }
+
     await putJSON(kv, `agent:${agent.id}`, agent);
+    persistAgent = false; // already persisted
 
     summary.fired++;
     summary.details.push({ id: agent.id, mode: agent.mode, sent: result.totalSent });
@@ -1334,6 +1393,27 @@ async function fireAgentInCron(kv, env, agent, summary, now) {
       type: 'error',
       detail: `[cron] executeRefill threw: ${String(e?.message || e).slice(0, 200)}`,
     });
+    // Treat a thrown executeRefill as a failed tick for auto-pause counter.
+    agent.lastTrigger = now;
+    agent.consecutiveFailures = (agent.consecutiveFailures || 0) + 1;
+    agent.lastFailureReason = String(e?.message || e).slice(0, 240);
+    agent.lastFailureAt = now;
+    if (agent.consecutiveFailures >= AUTO_PAUSE_THRESHOLD && agent.state === 'active') {
+      agent.state = 'paused';
+      agent.autoPausedReason = `Auto-paused after ${AUTO_PAUSE_THRESHOLD} consecutive failures · ${agent.lastFailureReason}`;
+      agent.autoPausedAt = now;
+      await appendExecution(kv, agent.id, {
+        type: 'paused',
+        detail: `Auto-paused after ${AUTO_PAUSE_THRESHOLD} consecutive failures (last: thrown).`,
+      });
+      summary.autoPaused = (summary.autoPaused || 0) + 1;
+    }
+  }
+  // Persist agent state from catch path (if not already persisted in try)
+  if (persistAgent) {
+    try { await putJSON(kv, `agent:${agent.id}`, agent); } catch (e2) {
+      console.warn('[cron] failed to persist agent state after catch:', e2?.message);
+    }
   }
 }
 

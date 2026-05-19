@@ -2077,8 +2077,12 @@ select option:checked{background:#1a2c4a;color:#fff}
     }
     list.innerHTML = agents.map(a => {
       const p = a.params || {};
+      // Distinguish auto-paused (system did it after 5 fails) from
+      // user-paused (manual click). Auto-paused agents need user action
+      // — surface that clearly with a red label, not the neutral "Paused".
+      const isAutoPaused = a.state === 'paused' && a.autoPausedReason;
       const stateClass = a.state === 'paused' ? 'state-paused' : 'state-active';
-      const stateLabel = a.state === 'paused' ? 'Paused' : 'Active';
+      const stateLabel = isAutoPaused ? 'Auto-paused' : (a.state === 'paused' ? 'Paused' : 'Active');
       const title = a.mode === 'topup' ? 'Auto Top-Up' : 'Scheduled Send';
       const sourcesHtml = a.sources.map(s => `<span class="chain-tag">${CHAIN_LABELS[s] || s}</span>`).join('<span class="arr">·</span>');
       const tcArrR = a.targetChains || [];
@@ -2103,6 +2107,13 @@ select option:checked{background:#1a2c4a;color:#fff}
       const hasFailed = (a.failedChains || []).length > 0;
       const failedBadge = hasFailed ? `<span style="font-size:9px;font-family:var(--mono);font-weight:700;color:#FF8BA3;background:rgba(255,85,119,.10);border:1px solid rgba(255,85,119,.28);padding:2px 5px;border-radius:5px;letter-spacing:.06em">⚠ ${a.failedChains.length} FAILED</span>` : '';
 
+      // Consecutive-failure warning — shows even before auto-pause threshold
+      // hits, so user has a chance to fix proactively.
+      const failStreak = a.consecutiveFailures || 0;
+      const failBadge = (failStreak > 0 && !isAutoPaused)
+        ? `<span title="Last ${failStreak} cron run${failStreak === 1 ? '' : 's'} failed. Open to see details." style="font-size:9px;font-family:var(--mono);font-weight:700;color:#FFD580;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);padding:2px 5px;border-radius:5px;letter-spacing:.06em">⚠ ${failStreak} FAIL</span>`
+        : '';
+
       return `
         <button class="agent-row-compact" type="button" onclick="window.openAgentDrawer('${a.id}')">
           <div class="arc-row-left">
@@ -2111,6 +2122,7 @@ select option:checked{background:#1a2c4a;color:#fff}
               <span class="agent-row-state ${stateClass}">${stateLabel}</span>
               ${cctpBadge}
               ${failedBadge}
+              ${failBadge}
             </div>
             <div class="arc-row-flow">${sourcesHtml}<span class="arr">→</span>${destHtmlR}</div>
             <div class="arc-row-meta-line">${metaLine}</div>
@@ -2418,11 +2430,61 @@ select option:checked{background:#1a2c4a;color:#fff}
       const destChains = Array.from(new Set(tcArr.length ? tcArr : a.sources));
       const destHtml = destChains.map(c => `<span class="chain-tag">${CHAIN_LABELS[c] || c}</span>`).join('<span class="arr">·</span>');
 
+      // ── Failure banner ──────────────────────────────────────────────────
+      // Renders at the TOP of the drawer when the agent has recent failures
+      // or has been auto-paused. Designed to be the first thing the user
+      // sees so they know exactly what to fix. Three states:
+      //   - auto-paused: red banner + "Resume after fixing" hint
+      //   - active w/ failures: amber banner + retry-in-progress hint
+      //   - no failures: empty string (banner hidden)
+      // CTAs are tailored to the error pattern:
+      //   - "No Circle wallet for chain X" → Reprovision button
+      //   - "insufficient token balance"   → Fund Wallet hint pointing at the SCA
+      const failStreakDrawer = a.consecutiveFailures || 0;
+      const isAutoPausedDrawer = a.state === 'paused' && a.autoPausedReason;
+      let failureBannerHtml = '';
+      if (failStreakDrawer > 0 || isAutoPausedDrawer) {
+        const reason = String(a.lastFailureReason || a.autoPausedReason || '').slice(0, 240);
+        const lastFailAgo = a.lastFailureAt ? Math.round((Date.now() - a.lastFailureAt) / 60_000) : null;
+        const reasonLower = reason.toLowerCase();
+        // Heuristic CTA picker.
+        const ctas = [];
+        if (reasonLower.includes('no circle wallet for chain') || reasonLower.includes('provisioning may have failed')) {
+          ctas.push(`<button onclick="window.retryProvision('${a.id}')" style="padding:6px 12px;border-radius:6px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.36);color:var(--arc1);font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.04em;cursor:pointer">↻ Retry Circle wallet provisioning</button>`);
+        }
+        if (reasonLower.includes('insufficient token balance') || reasonLower.includes('asset amount owned by the wallet is insufficient')) {
+          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:#FFD580;font-size:10.5px;font-family:var(--mono);font-weight:600">→ Fund the agent's source wallet with USDC (see Permission section below)</div>`);
+        }
+        if (reasonLower.includes('no source wallet with permit')) {
+          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:#FFD580;font-size:10.5px;font-family:var(--mono);font-weight:600">→ Submit a permit on a source chain (see Permission section below)</div>`);
+        }
+        if (isAutoPausedDrawer) {
+          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.28);color:var(--arc1);font-size:10.5px;font-family:var(--mono);font-weight:600">→ Click <strong>Resume</strong> below after fixing the issue. The cron will retry; if it still fails after 5 ticks, it'll auto-pause again.</div>`);
+        }
+        const bg     = isAutoPausedDrawer ? 'rgba(255,85,119,.08)'  : 'rgba(255,184,0,.06)';
+        const border = isAutoPausedDrawer ? 'rgba(255,85,119,.32)'  : 'rgba(255,184,0,.28)';
+        const titleColor = isAutoPausedDrawer ? '#FF8BA3' : '#FFD580';
+        const iconChar = isAutoPausedDrawer ? '⛔' : '⚠';
+        const headLine = isAutoPausedDrawer
+          ? `Agent auto-paused after ${failStreakDrawer} consecutive failures`
+          : `${failStreakDrawer} recent cron run${failStreakDrawer === 1 ? '' : 's'} failed${lastFailAgo != null ? ` (last ${lastFailAgo}m ago)` : ''}`;
+        failureBannerHtml = `
+          <div class="drawer-section" style="background:${bg};border:1px solid ${border};border-radius:8px;padding:12px 14px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:14px;color:${titleColor}">${iconChar}</span>
+              <div style="font-size:12px;font-family:var(--mono);font-weight:700;color:${titleColor};letter-spacing:.02em">${headLine}</div>
+            </div>
+            <div style="font-size:11.5px;color:var(--text);font-family:var(--mono);line-height:1.5;margin-bottom:10px;word-break:break-word;background:rgba(0,0,0,.15);padding:8px 10px;border-radius:6px">${escapeHtml(reason || 'See Recent activity log below for details.')}</div>
+            ${ctas.length ? `<div style="display:flex;flex-direction:column;gap:6px">${ctas.join('')}</div>` : ''}
+          </div>`;
+      }
+
       // ── Build the drawer body sections. No wrapping `<div class="agent-row">`,
       // no title/state header (drawer-head owns that), no action buttons
       // (drawer-foot owns those). Sections are plain blocks so the drawer
       // scrolls naturally when content grows.
       return `
+        ${failureBannerHtml}
         <div class="drawer-section">
           <div class="drawer-section-h">Flow</div>
           <div class="agent-row-flow">
