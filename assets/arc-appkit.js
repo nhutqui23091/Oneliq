@@ -122,6 +122,17 @@ export async function initAppKit() {
 }
 
 /**
+ * Pre-warm the App Kit SDK CDN bundle. Safe to call before the wallet is
+ * connected — only triggers the dynamic import (esm.sh download + parse),
+ * which is the dominant fixed cost (~500-1500ms cold) for the first quote.
+ * Idempotent: subsequent calls hit the cached `_sdkPromise`.
+ * Errors are swallowed — this is a best-effort optimization, never a blocker.
+ */
+export async function prefetchSdk() {
+  try { await loadSdk(); } catch { /* best-effort */ }
+}
+
+/**
  * Get a pre-swap estimate: how much tokenOut you'll receive for tokenIn.
  * @param {string} tokenIn  e.g. 'USDC'
  * @param {string} tokenOut e.g. 'EURC'
@@ -337,7 +348,7 @@ export function isAppKitReady() {
 // Expose globally for debugging in console (NOT for production logic — use imports above)
 if (typeof window !== 'undefined') {
   window.ARC_APPKIT = {
-    initAppKit, isAppKitReady,
+    initAppKit, isAppKitReady, prefetchSdk,
     estimateAppKitSwap, appKitSwap,
     appKitBridge, estimateAppKitBridge,
     ubDeposit, ubSpend, ubGetBalance,

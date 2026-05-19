@@ -236,6 +236,11 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
 .metric-row .val.warn{color:var(--yellow)}
 .metric-row .val.danger{color:var(--red)}
 .metric-row .val.good{color:var(--arc4)}
+/* In-flight quote indicator — readable italic text instead of shimmer skeleton
+   for the Rate row, so users learn WHY there's a 1-2s wait (real RFQ-style
+   quote, not a static FX feed). */
+.metric-row .val .quoting-msg{font-family:var(--mono);font-size:11px;font-style:italic;font-weight:500;color:var(--muted);opacity:.9;letter-spacing:.01em}
+.metric-row .val .quoting-msg::after{content:'';display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--arc1);animation:pulse-dot 1s infinite;vertical-align:middle}
 
 .slippage-row{display:flex;gap:6px;align-items:center}
 .slip-btn{padding:4px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--mono)}
@@ -470,7 +475,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     }
   }
   try {
-    APPKIT = await import('/assets/arc-appkit.js?v=9.1.20');
+    APPKIT = await import('/assets/arc-appkit.js?v=9.1.21');
     if (!APPKIT.isAppKitReady()) {
       console.warn('[arcswap] App Kit config missing or placeholder — same-chain swaps will fall back to Uniswap (likely empty pools).');
       APPKIT = null;
@@ -974,6 +979,18 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     state.amountIn = clean;
     triggerQuote();
   };
+  // Prefetch the App Kit SDK + adapter the moment the user touches the amount
+  // input. The CDN bundle (~500-1500ms cold) and the ethers adapter init run
+  // in parallel with the user typing a number — by the time triggerQuote
+  // fires its first real estimate, the SDK is already loaded.
+  // { once: true } so this only ever runs once per page load. Errors swallowed.
+  amtIn.addEventListener('focus', () => {
+    if (!APPKIT) return;
+    if (APPKIT.prefetchSdk) APPKIT.prefetchSdk();
+    if (window.ethereum && APPKIT.initAppKit) {
+      APPKIT.initAppKit().catch(() => { /* wallet not ready yet — fine */ });
+    }
+  }, { once: true });
 
   // ── ROUTE PLANNER ────────────────────────────────────
   // Returns an array of pipeline steps that, executed in order, move the user's
@@ -1082,7 +1099,10 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
   // ── QUOTE ENGINE ─────────────────────────────────────
   let quoteSeq = 0;
   let quoteTimer = null;
-  function triggerQuote() { clearTimeout(quoteTimer); quoteTimer = setTimeout(quote, 250); }
+  // 150ms debounce — tuned to feel responsive while still collapsing the
+  // 5-7 keystrokes a user types per second into a single App Kit call.
+  // Was 250ms; dropping to 150ms shaves ~100ms off perceived latency.
+  function triggerQuote() { clearTimeout(quoteTimer); quoteTimer = setTimeout(quote, 150); }
 
   async function quote() {
     const seq = ++quoteSeq;
@@ -1109,7 +1129,16 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       document.getElementById('to-usd').textContent = '≈ $0.00';
       state.quote = null; refreshExec(); return;
     }
-    setMetrics({ rate: '<span class="skel">—</span>', impact: '<span class="skel">—</span>', fee: '<span class="skel">—</span>', min: '<span class="skel">—</span>', time: '<span class="skel">—</span>' });
+    // Inform users the quote is live (App Kit → aggregator round-trip ~1-2s).
+    // Other metrics stay shimmer-skeleton; only the rate row gets the message
+    // because it's the field users actually look at while waiting.
+    setMetrics({
+      rate: '<span class="quoting-msg">Querying Circle App Kit · routing aggregator</span>',
+      impact: '<span class="skel">—</span>',
+      fee:    '<span class="skel">—</span>',
+      min:    '<span class="skel">—</span>',
+      time:   '<span class="skel">—</span>',
+    });
 
     try {
       // Walk the pipeline, accumulating output token + fee labels + time.
