@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/icon-arcswap.png?v=1"/>
+<link rel="apple-touch-icon" href="/assets/logos/icon-arcswap.png?v=1"/>
+<meta name="description" content="ArcSwap History — personal stablecoin operations explorer. Trace every trade, deposit, settlement, and agent execution across chains."/>
+<title>History — ArcSwap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.6.4"/>
+<style>
+/* ============================================================
+   HISTORY — Personal Stablecoin Operations Explorer.
+   Tokens are namespaced .hist-* so the page can co-exist with
+   /trade, /balance, /agent, /dashboard without leaking styles.
+   Visual grammar (cards, glow, mono numerics, peach/teal accent)
+   mirrors /dashboard so the four pages feel like one app.
+============================================================ */
+
+.hist-wrap{position:relative;z-index:2;max-width:1320px;margin:0 auto;padding:104px 24px 80px}
+
+/* HERO STRIP */
+.hist-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+.hist-hero-l h1{font-size:clamp(40px,5.5vw,68px);font-weight:900;letter-spacing:-.035em;line-height:1;margin:8px 0 10px;text-transform:uppercase}
+.hist-hero-l p{font-size:14px;color:var(--muted);max-width:580px;line-height:1.6}
+.hist-hero-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hist-live{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:100px;font-size:11.5px;font-weight:600;font-family:var(--mono);color:var(--arc4);background:rgba(123,228,149,.08);border:1px solid rgba(123,228,149,.25);letter-spacing:.04em;text-transform:uppercase}
+.hist-live-dot{width:6px;height:6px;border-radius:50%;background:var(--arc4);box-shadow:0 0 8px var(--arc4);animation:hist-blink 2s ease-in-out infinite}
+@keyframes hist-blink{0%,100%{opacity:1}50%{opacity:.35}}
+.hist-clock{font-family:var(--mono);font-size:13px;color:var(--muted);padding:8px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border)}
+
+/* CONNECT PROMPT (when no address) */
+.hist-connect{padding:30px;border-radius:18px;background:linear-gradient(135deg,rgba(77,214,219,.06),rgba(74,123,236,.04));border:1px solid rgba(77,214,219,.22);text-align:center;margin-bottom:24px}
+.hist-connect h3{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px;color:var(--text)}
+.hist-connect p{font-size:13px;color:var(--muted);max-width:480px;margin:0 auto 18px;line-height:1.6}
+.hist-connect button{padding:12px 26px;border-radius:11px;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);font-weight:800;font-size:13.5px;border:none;cursor:pointer;letter-spacing:-.005em;transition:transform .15s,box-shadow .25s}
+.hist-connect button:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(77,214,219,.32)}
+
+/* WALLET OVERVIEW CARDS */
+.hist-overview{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr 1fr;gap:14px;margin-bottom:22px}
+@media(max-width:1200px){.hist-overview{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:680px){.hist-overview{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.hist-overview{grid-template-columns:1fr}}
+
+.hist-card{position:relative;padding:18px 20px;border-radius:18px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;transition:border-color .2s,transform .2s}
+.hist-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.hist-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(77,214,219,.4),transparent);opacity:0;transition:opacity .25s}
+.hist-card:hover::after{opacity:1}
+.hist-card-label{font-size:10px;font-family:var(--mono);font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.hist-card-label .mico{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,rgba(77,214,219,.2),rgba(74,123,236,.15));display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:var(--arc1);font-weight:700}
+.hist-card-val{font-size:24px;font-weight:800;letter-spacing:-.035em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-card-val .unit{font-size:12px;color:var(--muted);font-weight:500;margin-left:5px;letter-spacing:0}
+.hist-card-sub{font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono);display:flex;align-items:center;gap:6px;line-height:1.4;word-break:break-all}
+
+/* Wallet identity card — wider, has copy button */
+.hist-id-card{padding:18px 20px}
+.hist-id-row{display:flex;align-items:center;gap:12px;margin-top:4px}
+.hist-id-avatar{width:42px;height:42px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--arc1),var(--arc2));display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--bg);font-size:15px;letter-spacing:-.02em;box-shadow:0 0 20px rgba(77,214,219,.18)}
+.hist-id-info{flex:1;min-width:0}
+.hist-id-name{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-id-addr{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
+.hist-id-addr a{color:var(--muted);text-decoration:none;border-bottom:1px dashed transparent;transition:all .12s}
+.hist-id-addr a:hover{color:var(--arc1);border-bottom-color:var(--arc1)}
+.hist-copy-btn{background:none;border:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px;transition:color .12s}
+.hist-copy-btn:hover{color:var(--arc1)}
+.hist-id-meta{display:flex;gap:14px;margin-top:10px;font-size:11px;font-family:var(--mono);color:var(--muted);flex-wrap:wrap}
+.hist-id-meta b{color:var(--text);font-weight:600}
+
+/* FILTERS BAR */
+.hist-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px)}
+.hist-search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(0,0,0,.18);border:1px solid var(--border)}
+.hist-search:focus-within{border-color:rgba(77,214,219,.32)}
+.hist-search input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--font)}
+.hist-search input::placeholder{color:var(--muted-soft)}
+.hist-search .si{font-size:13px;color:var(--muted)}
+
+.hist-select{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;background:rgba(0,0,0,.18);border:1px solid var(--border);font-size:12px;font-family:var(--mono);font-weight:600;color:var(--muted);cursor:pointer;letter-spacing:.04em;text-transform:uppercase}
+.hist-select select{background:none;border:none;color:var(--text);font-size:12px;font-family:var(--mono);font-weight:600;outline:none;cursor:pointer;letter-spacing:.04em;padding-right:4px}
+.hist-select select option{background:#0F1E36;color:var(--text)}
+.hist-select:hover{border-color:var(--border2)}
+
+.hist-range{display:flex;gap:2px;background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:10px;padding:3px}
+.hist-range-pill{padding:5px 10px;font-size:11px;font-family:var(--mono);font-weight:700;border-radius:7px;color:var(--muted);cursor:pointer;transition:all .12s;letter-spacing:.04em;text-transform:uppercase;border:none;background:none}
+.hist-range-pill:hover{color:var(--text)}
+.hist-range-pill.active{background:rgba(77,214,219,.14);color:var(--arc1)}
+
+.hist-refresh{padding:7px 12px;border-radius:10px;background:rgba(0,0,0,.18);border:1px solid var(--border);font-size:12px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.hist-refresh:hover{color:var(--arc1);border-color:rgba(77,214,219,.32)}
+.hist-refresh.spinning .ri{animation:hist-spin 1s linear infinite}
+@keyframes hist-spin{to{transform:rotate(360deg)}}
+
+/* LAYOUT GRID */
+.hist-grid{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:flex-start}
+@media(max-width:1080px){.hist-grid{grid-template-columns:1fr}}
+.hist-col{display:flex;flex-direction:column;gap:24px;min-width:0}
+
+/* MODULE SHELL — same as dashboard */
+.hist-module{background:var(--surface);border:1px solid var(--border);border-radius:22px;backdrop-filter:blur(20px);padding:22px 24px;position:relative}
+.hist-module-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.hist-module-h-l{display:flex;align-items:center;gap:10px;min-width:0}
+.hist-module-h-l h2{font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--text)}
+.hist-module-eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--arc1);background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.28);padding:3px 8px;border-radius:6px}
+.hist-module-count{font-family:var(--mono);font-size:11px;color:var(--muted);padding:3px 9px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);letter-spacing:.04em}
+
+/* TRANSACTION TABLE — explorer feed */
+.hist-table-head{display:grid;grid-template-columns:auto 1fr auto auto auto auto;gap:14px;padding:8px 14px 10px;font-size:10px;font-family:var(--mono);font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;border-bottom:1px solid var(--border)}
+.hist-rows{display:flex;flex-direction:column}
+.hist-row{display:grid;grid-template-columns:auto 1fr auto auto auto auto;gap:14px;align-items:center;padding:14px;border-radius:12px;background:rgba(255,255,255,.012);border:1px solid transparent;transition:all .15s;cursor:pointer;margin-top:6px}
+.hist-row:hover{background:rgba(255,255,255,.04);border-color:var(--border)}
+.hist-row:hover .hist-row-go{opacity:1;transform:translateX(0)}
+
+.hist-row-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;letter-spacing:0}
+.hist-row-ico.t-swap{background:rgba(77,214,219,.10);color:var(--arc1)}
+.hist-row-ico.t-bridge{background:linear-gradient(135deg,rgba(77,214,219,.16),rgba(74,123,236,.10));color:var(--arc1)}
+.hist-row-ico.t-deposit{background:rgba(123,228,149,.10);color:var(--arc4)}
+.hist-row-ico.t-spend{background:rgba(244,200,154,.10);color:#F4C89A}
+.hist-row-ico.t-transfer{background:rgba(74,123,236,.10);color:var(--arc2)}
+.hist-row-ico.t-agent{background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(74,123,236,.10));color:#A78BFA}
+.hist-row-ico.t-refill{background:rgba(244,200,154,.10);color:#F4C89A}
+.hist-row-ico.t-permit{background:rgba(77,214,219,.10);color:var(--arc1)}
+.hist-row-ico.t-system{background:rgba(255,255,255,.05);color:var(--muted)}
+.hist-row-ico.t-error{background:rgba(255,107,138,.10);color:#FF8BA3}
+
+.hist-row-main{min-width:0;display:flex;flex-direction:column;gap:3px}
+.hist-row-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-row-meta{font-size:11px;color:var(--muted);font-family:var(--mono);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hist-row-meta .dot-sep{opacity:.4}
+.hist-row-meta a{color:var(--muted);text-decoration:none;border-bottom:1px dashed transparent;transition:all .12s}
+.hist-row-meta a:hover{color:var(--arc1);border-bottom-color:var(--arc1)}
+
+/* Chain arrow */
+.hist-chain-flow{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:var(--mono);font-weight:600;color:var(--muted)}
+.hist-chain-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);letter-spacing:0}
+.hist-chain-tag .cd{width:5px;height:5px;border-radius:50%}
+.hist-chain-arr{color:var(--arc1);font-weight:700}
+
+.hist-amt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist-amt small{display:block;font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+.hist-amt.up{color:var(--arc4)}
+.hist-amt.down{color:#FF8BA3}
+
+.hist-status{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;font-size:10.5px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.hist-status.completed{background:rgba(123,228,149,.10);border:1px solid rgba(123,228,149,.32);color:var(--arc4)}
+.hist-status.pending{background:rgba(255,204,119,.10);border:1px solid rgba(255,204,119,.32);color:var(--yellow)}
+.hist-status.processing{background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.32);color:var(--arc1)}
+.hist-status.failed{background:rgba(255,107,138,.10);border:1px solid rgba(255,107,138,.32);color:#FF8BA3}
+.hist-status .sd{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+.hist-status.processing .sd,.hist-status.pending .sd{animation:hist-blink 1.4s infinite}
+
+.hist-ts{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;letter-spacing:.02em}
+.hist-ts small{display:block;font-size:10px;color:var(--muted-soft);margin-top:2px;opacity:.8}
+
+.hist-row-go{color:var(--muted);font-size:14px;opacity:0;transform:translateX(-4px);transition:all .15s}
+
+/* Skeleton rows */
+.hist-skel-row{display:grid;grid-template-columns:34px 1fr 110px 90px 80px 70px;gap:14px;align-items:center;padding:14px;border-radius:12px;margin-top:6px}
+.hist-skel-line{display:inline-block;height:11px;border-radius:6px;background:linear-gradient(90deg,var(--surface) 0%,var(--surface2) 50%,var(--surface) 100%);background-size:200% 100%;animation:hist-shimmer 1.3s infinite}
+@keyframes hist-shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+.hist-empty{padding:48px 24px;text-align:center;border:1px dashed var(--border);border-radius:14px;background:rgba(255,255,255,.012);margin-top:8px}
+.hist-empty-ico{font-size:28px;opacity:.42;margin-bottom:10px}
+.hist-empty-t{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-.005em}
+.hist-empty-s{font-size:12px;color:var(--muted);max-width:340px;margin:0 auto 16px;line-height:1.6}
+.hist-empty-cta{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:11px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:12.5px;font-weight:700;text-decoration:none;transition:all .15s}
+.hist-empty-cta:hover{background:rgba(77,214,219,.2);border-color:rgba(77,214,219,.5)}
+
+/* PAGINATION */
+.hist-pager{display:flex;align-items:center;justify-content:space-between;padding:16px 4px 0;font-size:11.5px;font-family:var(--mono);color:var(--muted)}
+.hist-pager-btns{display:flex;gap:6px}
+.hist-pager-btn{padding:6px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;font-family:var(--mono);font-weight:700;cursor:pointer;transition:all .15s}
+.hist-pager-btn:hover:not(:disabled){border-color:rgba(77,214,219,.35);color:var(--arc1)}
+.hist-pager-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* UNIFIED BALANCE ACTIVITY — right column module */
+.hist-ub-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.hist-ub-mini{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border)}
+.hist-ub-mini-l{font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.hist-ub-mini-v{font-size:18px;font-weight:800;letter-spacing:-.025em;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-ub-mini-v .u{font-size:11px;color:var(--muted);font-weight:600;margin-left:4px}
+.hist-ub-mini-s{font-size:10.5px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.hist-ub-mini.in .hist-ub-mini-v{color:var(--arc4)}
+.hist-ub-mini.out .hist-ub-mini-v{color:#F4C89A}
+
+.hist-flow-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.hist-flow-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.018);border:1px solid var(--border);font-size:12px}
+.hist-flow-l{display:flex;align-items:center;gap:8px;min-width:0;color:var(--muted)}
+.hist-flow-arr{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.hist-flow-arr.in{background:rgba(123,228,149,.14);color:var(--arc4)}
+.hist-flow-arr.out{background:rgba(244,200,154,.14);color:#F4C89A}
+.hist-flow-v{font-family:var(--mono);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+
+/* AGENT ACTIVITY — right column module */
+.hist-agent-list{display:flex;flex-direction:column;gap:6px}
+.hist-agent-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.018);border:1px solid var(--border);transition:all .15s;cursor:pointer;text-decoration:none;color:inherit}
+.hist-agent-row:hover{border-color:var(--border2);background:rgba(255,255,255,.04);transform:translateX(2px)}
+.hist-agent-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--arc4);box-shadow:0 0 6px var(--arc4)}
+.hist-agent-dot.paused{background:#FFB454;box-shadow:0 0 6px #FFB454}
+.hist-agent-dot.failed{background:#FF8BA3;box-shadow:0 0 6px #FF8BA3}
+.hist-agent-info{flex:1;min-width:0}
+.hist-agent-name{font-size:12.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.005em}
+.hist-agent-meta{font-size:10.5px;font-family:var(--mono);color:var(--muted);margin-top:2px;display:flex;gap:8px}
+.hist-agent-meta b{color:var(--text);font-weight:500}
+.hist-agent-amt{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.hist-agent-amt small{display:block;font-size:9.5px;color:var(--muted);font-weight:500;margin-top:1px}
+
+.hist-next-run{padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,rgba(77,214,219,.06),rgba(74,123,236,.04));border:1px solid rgba(77,214,219,.22);margin-top:12px}
+.hist-next-run-l{font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--arc1);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.hist-next-run-l .live-dot{width:5px;height:5px;border-radius:50%;background:var(--arc1);box-shadow:0 0 6px var(--arc1);animation:hist-blink 2s infinite}
+.hist-next-run-v{font-size:13.5px;font-weight:700;color:var(--text);letter-spacing:-.005em}
+.hist-next-run-s{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+
+/* TRANSACTION DETAIL MODAL */
+.hist-detail-bg{position:fixed;inset:0;background:rgba(3,12,28,.72);backdrop-filter:blur(10px);z-index:9500;display:none;align-items:flex-start;justify-content:center;padding:80px 20px 20px;overflow-y:auto;animation:hist-fade .2s ease}
+.hist-detail-bg.show{display:flex}
+.hist-detail{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:580px;overflow:hidden;animation:hist-pop .25s cubic-bezier(.2,.9,.3,1.3);box-shadow:0 30px 80px rgba(0,0,0,.6);position:relative}
+.hist-detail::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(77,214,219,.55),transparent)}
+.hist-detail-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hist-detail-head-l{display:flex;align-items:center;gap:12px;min-width:0}
+.hist-detail-head-l .hist-row-ico{width:38px;height:38px;font-size:14px}
+.hist-detail-title{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.01em;line-height:1.2}
+.hist-detail-sub{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.hist-detail-close{background:none;border:none;color:var(--muted);font-size:22px;line-height:1;padding:4px 8px;border-radius:8px;cursor:pointer}
+.hist-detail-close:hover{color:var(--text);background:var(--surface)}
+.hist-detail-body{padding:18px 22px 22px;max-height:65vh;overflow-y:auto}
+@keyframes hist-fade{from{opacity:0}to{opacity:1}}
+@keyframes hist-pop{0%{transform:scale(.94);opacity:0}100%{transform:scale(1);opacity:1}}
+
+.hist-detail-banner{padding:12px 14px;border-radius:11px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.hist-detail-banner.ok{background:rgba(123,228,149,.06);border:1px solid rgba(123,228,149,.24)}
+.hist-detail-banner.warn{background:rgba(255,204,119,.06);border:1px solid rgba(255,204,119,.26)}
+.hist-detail-banner.err{background:rgba(255,107,138,.06);border:1px solid rgba(255,107,138,.26)}
+.hist-detail-banner-i{font-size:16px;line-height:1;flex-shrink:0}
+.hist-detail-banner-t{font-size:12.5px;color:var(--text);line-height:1.5}
+.hist-detail-banner-t b{font-weight:700}
+
+/* TIMELINE for cross-chain */
+.hist-timeline{margin:14px 0 18px;padding:14px;border-radius:13px;background:rgba(255,255,255,.018);border:1px solid var(--border)}
+.hist-timeline-h{font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.hist-tl-steps{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hist-tl-step{flex:1;text-align:center;position:relative}
+.hist-tl-step-dot{width:24px;height:24px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);position:relative;z-index:2}
+.hist-tl-step.done .hist-tl-step-dot{background:linear-gradient(135deg,var(--arc1),var(--arc2));border-color:transparent;color:var(--bg);box-shadow:0 0 10px rgba(77,214,219,.32)}
+.hist-tl-step.active .hist-tl-step-dot{background:var(--surface2);border-color:var(--arc1);color:var(--arc1);animation:hist-pulse 1.6s ease-in-out infinite}
+.hist-tl-step.fail .hist-tl-step-dot{background:rgba(255,107,138,.18);border-color:rgba(255,107,138,.5);color:#FF8BA3}
+@keyframes hist-pulse{0%,100%{box-shadow:0 0 0 0 rgba(77,214,219,.3)}50%{box-shadow:0 0 0 8px rgba(77,214,219,0)}}
+.hist-tl-step-l{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.04em;line-height:1.3}
+.hist-tl-line{position:absolute;top:11px;left:50%;width:100%;height:2px;background:var(--border);z-index:1}
+.hist-tl-step:last-child .hist-tl-line{display:none}
+.hist-tl-step.done .hist-tl-line{background:linear-gradient(90deg,var(--arc1),var(--arc2))}
+
+.hist-detail-grid{display:flex;flex-direction:column;gap:0}
+.hist-detail-kv{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
+.hist-detail-kv:last-child{border-bottom:none}
+.hist-detail-kv .k{color:var(--muted);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
+.hist-detail-kv .v{color:var(--text);font-weight:500;text-align:right;word-break:break-all;font-family:var(--mono);font-size:12.5px}
+.hist-detail-kv .v a{color:var(--arc1);text-decoration:none;border-bottom:1px dashed transparent;transition:all .12s}
+.hist-detail-kv .v a:hover{border-bottom-color:var(--arc1)}
+
+.hist-detail-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.hist-detail-btn{flex:1;min-width:130px;padding:11px 14px;border-radius:11px;font-size:12.5px;font-weight:700;text-align:center;text-decoration:none;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.hist-detail-btn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.28)}
+.hist-detail-btn.primary{background:linear-gradient(135deg,var(--arc1),var(--arc2));border-color:transparent;color:var(--bg);font-weight:800}
+.hist-detail-btn.primary:hover{box-shadow:0 6px 20px rgba(77,214,219,.32)}
+
+/* Tagline footer */
+.hist-tag{text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--muted-soft);letter-spacing:.16em;text-transform:uppercase;margin-top:48px;padding-top:24px;border-top:1px solid var(--border)}
+.hist-tag b{color:var(--arc1);font-weight:700}
+
+@media(max-width:760px){
+  .hist-wrap{padding-top:96px}
+  .hist-module{padding:18px}
+  .hist-table-head{display:none}
+  .hist-row{grid-template-columns:34px 1fr auto;grid-template-rows:auto auto auto;gap:10px;padding:12px}
+  .hist-row .hist-chain-flow{grid-column:2/-1;grid-row:2}
+  .hist-row .hist-status{grid-column:2/-1;grid-row:3;justify-self:flex-start}
+  .hist-row .hist-amt{grid-column:3;grid-row:1;font-size:12.5px}
+  .hist-row .hist-ts{grid-column:2/-1;grid-row:3;justify-self:flex-end;text-align:right}
+  .hist-row .hist-row-go{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- aurora + cursor + nav are injected by ArcUI.boot('history') below -->
+
+<main class="hist-wrap">
+
+  <!-- HERO STRIP -->
+  <section class="hist-hero">
+    <div class="hist-hero-l">
+      <span class="arc-label">Personal Stablecoin Operations Explorer</span>
+      <h1>History</h1>
+      <p>Every trade, deposit, settlement, and agent execution — across every chain. One USDC. One Balance. Everywhere.</p>
+    </div>
+    <div class="hist-hero-r">
+      <span class="hist-live"><span class="hist-live-dot"></span>Live · Arc Testnet</span>
+      <span class="hist-clock" id="hist-clock">--:--:--</span>
+    </div>
+  </section>
+
+  <!-- CONNECT PROMPT (hidden when connected) -->
+  <div id="hist-connect" class="hist-connect" style="display:none">
+    <h3>Connect your wallet to see your activity</h3>
+    <p>Trades, cross-chain settlements, Unified Balance deposits, and agent executions will appear here once your wallet is connected.</p>
+    <button id="hist-connect-btn" type="button">Connect Wallet</button>
+  </div>
+
+  <!-- WALLET OVERVIEW -->
+  <section class="hist-overview" id="hist-overview">
+    <div class="hist-card hist-id-card" style="grid-column:span 2">
+      <div class="hist-card-label"><span class="mico">◈</span>Wallet</div>
+      <div class="hist-id-row">
+        <div class="hist-id-avatar" id="hist-id-avatar">—</div>
+        <div class="hist-id-info">
+          <div class="hist-id-name" id="hist-id-name">Not connected</div>
+          <div class="hist-id-addr">
+            <span id="hist-id-addr-text">—</span>
+            <button class="hist-copy-btn" id="hist-copy-btn" title="Copy address">⎘ copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="hist-id-meta">
+        <span>Active chains <b id="hist-id-chains">—</b></span>
+        <span>Last activity <b id="hist-id-last">—</b></span>
+      </div>
+    </div>
+    <div class="hist-card">
+      <div class="hist-card-label"><span class="mico">Σ</span>Transactions</div>
+      <div class="hist-card-val" id="hist-m-total">—</div>
+      <div class="hist-card-sub" id="hist-m-total-sub">All-time count</div>
+    </div>
+    <div class="hist-card">
+      <div class="hist-card-label"><span class="mico">$</span>Total Volume</div>
+      <div class="hist-card-val" id="hist-m-volume">—<span class="unit">USDC</span></div>
+      <div class="hist-card-sub" id="hist-m-volume-sub">Across all activity</div>
+    </div>
+    <div class="hist-card">
+      <div class="hist-card-label"><span class="mico">⚡</span>Unified Balance</div>
+      <div class="hist-card-val" id="hist-m-ub">—<span class="unit">USDC</span></div>
+      <div class="hist-card-sub" id="hist-m-ub-sub">Settlement volume</div>
+    </div>
+    <div class="hist-card">
+      <div class="hist-card-label"><span class="mico">∞</span>Agents</div>
+      <div class="hist-card-val" id="hist-m-agents">—</div>
+      <div class="hist-card-sub" id="hist-m-agents-sub">Created</div>
+    </div>
+  </section>
+
+  <!-- FILTERS BAR -->
+  <div class="hist-toolbar">
+    <div class="hist-search">
+      <span class="si">⌕</span>
+      <input id="hist-search" type="text" placeholder="Search tx hash · address · asset · agent…" autocomplete="off"/>
+    </div>
+
+    <label class="hist-select" title="Filter by type">
+      <span>Type</span>
+      <select id="hist-f-type">
+        <option value="all">All</option>
+        <option value="swap">Swap</option>
+        <option value="bridge">Cross-chain</option>
+        <option value="deposit">Deposit</option>
+        <option value="spend">Spend</option>
+        <option value="transfer">Transfer</option>
+        <option value="agent">Agent</option>
+        <option value="error">Failed</option>
+      </select>
+    </label>
+
+    <label class="hist-select" title="Filter by chain">
+      <span>Chain</span>
+      <select id="hist-f-chain">
+        <option value="all">All</option>
+      </select>
+    </label>
+
+    <label class="hist-select" title="Filter by status">
+      <span>Status</span>
+      <select id="hist-f-status">
+        <option value="all">All</option>
+        <option value="completed">Completed</option>
+        <option value="processing">Processing</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+      </select>
+    </label>
+
+    <div class="hist-range" id="hist-range">
+      <button type="button" class="hist-range-pill" data-range="24h">24h</button>
+      <button type="button" class="hist-range-pill" data-range="7d">7d</button>
+      <button type="button" class="hist-range-pill active" data-range="30d">30d</button>
+      <button type="button" class="hist-range-pill" data-range="all">All</button>
+    </div>
+
+    <button class="hist-refresh" id="hist-refresh" type="button" title="Refresh"><span class="ri">↻</span> Refresh</button>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="hist-grid">
+
+    <!-- LEFT COLUMN — main feed -->
+    <div class="hist-col">
+
+      <section class="hist-module" id="hist-feed-module">
+        <div class="hist-module-h">
+          <div class="hist-module-h-l">
+            <span class="hist-module-eyebrow">Activity Feed</span>
+            <h2>All Transactions</h2>
+          </div>
+          <span class="hist-module-count" id="hist-feed-count">— TXS</span>
+        </div>
+
+        <div class="hist-table-head">
+          <span></span>
+          <span>Activity</span>
+          <span>Route</span>
+          <span style="text-align:right">Amount</span>
+          <span style="text-align:center">Status</span>
+          <span style="text-align:right">Time</span>
+        </div>
+
+        <div class="hist-rows" id="hist-rows"></div>
+
+        <div class="hist-pager" id="hist-pager" style="display:none">
+          <span id="hist-pager-info">—</span>
+          <div class="hist-pager-btns">
+            <button class="hist-pager-btn" id="hist-pager-prev" type="button">← Prev</button>
+            <button class="hist-pager-btn" id="hist-pager-next" type="button">Next →</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT COLUMN — sidebar modules -->
+    <div class="hist-col">
+
+      <!-- UNIFIED BALANCE ACTIVITY -->
+      <section class="hist-module">
+        <div class="hist-module-h">
+          <div class="hist-module-h-l">
+            <span class="hist-module-eyebrow">Cross-chain Flow</span>
+            <h2>Unified Balance</h2>
+          </div>
+          <a class="hist-module-count" href="/balance" style="text-decoration:none">/balance ↗</a>
+        </div>
+
+        <div class="hist-ub-summary">
+          <div class="hist-ub-mini in">
+            <div class="hist-ub-mini-l">↓ Deposits</div>
+            <div class="hist-ub-mini-v" id="hist-ub-in">—<span class="u">USDC</span></div>
+            <div class="hist-ub-mini-s" id="hist-ub-in-c">— tx</div>
+          </div>
+          <div class="hist-ub-mini out">
+            <div class="hist-ub-mini-l">→ Spent</div>
+            <div class="hist-ub-mini-v" id="hist-ub-out">—<span class="u">USDC</span></div>
+            <div class="hist-ub-mini-s" id="hist-ub-out-c">— tx</div>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px">Liquidity sources</div>
+        <div class="hist-flow-list" id="hist-flow-list">
+          <div class="hist-flow-row">
+            <span class="hist-flow-l">No cross-chain activity yet</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- AGENT ACTIVITY -->
+      <section class="hist-module">
+        <div class="hist-module-h">
+          <div class="hist-module-h-l">
+            <span class="hist-module-eyebrow">Automation</span>
+            <h2>Agent Activity</h2>
+          </div>
+          <a class="hist-module-count" href="/agent" style="text-decoration:none">/agent ↗</a>
+        </div>
+
+        <div class="hist-agent-list" id="hist-agent-list">
+          <div style="padding:20px 12px;text-align:center;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,.012);font-size:12px;color:var(--muted);line-height:1.5">
+            No agents yet.<br/><a href="/agent" style="color:var(--arc1);text-decoration:none">Create one in /agent →</a>
+          </div>
+        </div>
+
+        <div class="hist-next-run" id="hist-next-run" style="display:none">
+          <div class="hist-next-run-l"><span class="live-dot"></span>Next scheduled</div>
+          <div class="hist-next-run-v" id="hist-next-run-v">—</div>
+          <div class="hist-next-run-s" id="hist-next-run-s">—</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- TAGLINE -->
+  <div class="hist-tag"><b>One USDC.</b> One Balance. Everywhere.</div>
+</main>
+
+<!-- TRANSACTION DETAIL MODAL -->
+<div class="hist-detail-bg" id="hist-detail-bg" role="dialog" aria-modal="true">
+  <div class="hist-detail" id="hist-detail-card">
+    <div class="hist-detail-head">
+      <div class="hist-detail-head-l">
+        <div class="hist-row-ico t-swap" id="hist-detail-ico">⇄</div>
+        <div>
+          <div class="hist-detail-title" id="hist-detail-title">Transaction</div>
+          <div class="hist-detail-sub" id="hist-detail-sub">—</div>
+        </div>
+      </div>
+      <button class="hist-detail-close" id="hist-detail-close" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="hist-detail-body" id="hist-detail-body"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"
+        integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+<script src="/assets/arc-core.js?v=9.6.2"></script>
+<script src="/assets/arc-gateway.js?v=9.6.2"></script>
+<script src="/assets/arc-ui.js?v=9.6.6"></script>
+<script>
+(async () => {
+  /* ============================================================
+     ArcSwap History — Personal Stablecoin Operations Explorer.
+
+     This page is a *read-only* aggregator: it doesn't write any
+     new state. It merges three sources into one unified feed:
+
+       1. arc.trade.activity.v1  (trade.html localStorage)
+            → swap / bridge / transfer / gateway operations
+       2. arcswap_execs          (agent.html localStorage)
+            → legacy local agent log
+       3. /api/agent/list?owner=…  + /api/agent/:id/executions
+            → authoritative server-side agent execution log
+
+     Each source row is normalized to the `Tx` shape below and
+     funneled through the same filter pipeline. The right-hand
+     rail provides cross-cuts (UB flow, agent breakdown) computed
+     from the same dataset so the numbers can never drift.
+
+     We intentionally avoid scraping public explorers — the data
+     a user expects to see here is the data ArcSwap itself
+     observed. Anything we missed (a manual transfer they made
+     outside ArcSwap) is by definition not part of this surface.
+  ============================================================ */
+
+  await ArcUI.boot('history');
+
+  // ── CHAIN REGISTRY (matches dashboard.html) ───────────────────
+  const CHIPS = [
+    { id:'base',     arcKey:'baseSepolia',     short:'Base',  name:'Base Sepolia',     color:'#0052FF' },
+    { id:'arc',      arcKey:'arc',             short:'Arc',   name:'Arc Testnet',      color:'#4DD6DB' },
+    { id:'sepolia',  arcKey:'sepolia',         short:'Sep',   name:'Ethereum Sepolia', color:'#627EEA' },
+    { id:'arbitrum', arcKey:'arbitrumSepolia', short:'Arb',   name:'Arbitrum Sepolia', color:'#28A0F0' },
+    { id:'optimism', arcKey:'optimismSepolia', short:'OP',    name:'Optimism Sepolia', color:'#FF0420' },
+    { id:'polygon',  arcKey:'polygonAmoy',     short:'Poly',  name:'Polygon Amoy',     color:'#8247E5' },
+    { id:'unichain', arcKey:'unichainSepolia', short:'Uni',   name:'Unichain Sepolia', color:'#FF007A' },
+    { id:'fuji',     arcKey:'avalancheFuji',   short:'Fuji',  name:'Avalanche Fuji',   color:'#E84142' },
+  ];
+  // Both directions — agent records use chip ids ('base'), trade records
+  // use arc keys ('baseSepolia'). Normalize lookups through either.
+  const BY_CHIP = Object.fromEntries(CHIPS.map(c => [c.id, c]));
+  const BY_ARC  = Object.fromEntries(CHIPS.map(c => [c.arcKey, c]));
+  function chainOf(key) { return BY_CHIP[key] || BY_ARC[key] || null; }
+  function chainShort(key) { return chainOf(key)?.short || (key || '—'); }
+  function chainColor(key) { return chainOf(key)?.color || 'var(--muted)'; }
+  function chainName(key) { return chainOf(key)?.name || key || ''; }
+  function explorerTx(key, hash) {
+    const arcKey = chainOf(key)?.arcKey;
+    const c = ARC?.CHAINS?.[arcKey];
+    return c?.explorerTx?.(hash) || '';
+  }
+  function explorerAddr(key, addr) {
+    const arcKey = chainOf(key)?.arcKey;
+    const c = ARC?.CHAINS?.[arcKey];
+    return c?.explorerAddr?.(addr) || '';
+  }
+
+  // ── STATE ─────────────────────────────────────────────────────
+  const state = {
+    addr:        null,
+    agents:      [],     // backend-shape agents (or local fallback)
+    txs:         [],     // normalized Tx[]
+    range:       '30d',  // '24h' | '7d' | '30d' | 'all'
+    filters:     { type:'all', chain:'all', status:'all', search:'' },
+    page:        0,
+    pageSize:    25,
+    selected:    null,   // currently open Tx for the detail modal
+  };
+
+  // ── UTILS ─────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function shortHash(h, head = 8, tail = 6) {
+    if (!h) return '';
+    return h.length > head + tail + 2 ? `${h.slice(0, head)}…${h.slice(-tail)}` : h;
+  }
+  function shortAddr(a) {
+    if (!a) return '';
+    try { return ARC.shortAddr(a); } catch { return shortHash(a, 6, 4); }
+  }
+  function fmtMoney(n, frac = 2) {
+    if (n == null || isNaN(n)) return '—';
+    const v = Number(n);
+    if (!isFinite(v)) return '—';
+    return v.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac });
+  }
+  function fmtRelTime(ts) {
+    if (!ts) return '—';
+    const diff = Date.now() - ts;
+    const s = Math.floor(diff / 1000);
+    if (s < 60) return `${s}s ago`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    if (d < 30) return `${d}d ago`;
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  function fmtAbsTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+  function rangeMs(r) {
+    if (r === '24h') return 86_400_000;
+    if (r === '7d')  return 7 * 86_400_000;
+    if (r === '30d') return 30 * 86_400_000;
+    return Infinity;
+  }
+
+  // ── CLOCK ─────────────────────────────────────────────────────
+  (function tickClock() {
+    const el = document.getElementById('hist-clock');
+    const paint = () => {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      const off = -d.getTimezoneOffset() / 60;
+      const sign = off >= 0 ? '+' : '-';
+      el.textContent = `${hh}:${mm}:${ss} UTC${sign}${Math.abs(off)}`;
+    };
+    paint();
+    setInterval(paint, 1000);
+  })();
+
+  // ── CONNECT BUTTON ────────────────────────────────────────────
+  document.getElementById('hist-connect-btn').onclick = async () => {
+    try { await ARC.wallet.connect(); }
+    catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError ? ARC.explainError(e) : (e?.message || 'Try again')); }
+  };
+
+  // ── COPY ADDRESS ──────────────────────────────────────────────
+  document.getElementById('hist-copy-btn').onclick = async () => {
+    if (!state.addr) return;
+    try {
+      await navigator.clipboard.writeText(state.addr);
+      ArcUI.toast('success', 'Address copied', state.addr);
+    } catch { ArcUI.toast('error', 'Copy failed', 'Clipboard unavailable'); }
+  };
+
+  // ── BACKEND HELPER ────────────────────────────────────────────
+  // Mirrors the contract in agent.html — quietly degrades to {_fallback:true}
+  // if backend storage is unconfigured, so the page can still render purely
+  // from localStorage (useful for local dev).
+  let backendStatus = null;
+  async function api(path) {
+    if (backendStatus === 'fallback') return { _fallback: true };
+    try {
+      const r = await fetch('/api/agent' + path, { headers: { 'Content-Type': 'application/json' }});
+      if (r.status === 503) {
+        const b = await r.json().catch(() => ({}));
+        if (b.error === 'agent_storage_unconfigured') {
+          backendStatus = 'fallback';
+          return { _fallback: true };
+        }
+      }
+      backendStatus = 'ok';
+      if (r.status === 204) return [];
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error || body.message || ('HTTP ' + r.status));
+      return body;
+    } catch (e) {
+      console.warn('[history] api error:', path, e?.message || e);
+      return null;
+    }
+  }
+
+  // ── NORMALIZE: trade.html activity (arc.trade.activity.v1) ────
+  // Shape we wrote on the other side:
+  //   { kind, chain, hash, status, text, at }
+  // kind ∈ {swap, bridge, transfer}
+  function mapTradeRow(x, i) {
+    const kind = x.kind || 'transfer';
+    let type = kind; // swap | bridge | transfer
+    if (kind === 'bridge') type = 'bridge';
+    // The text contains the amount + direction (e.g. "Bridge 100 USDC → Base").
+    // We don't have structured src/dst on the trade record, but we can sniff
+    // a dst chain out of the text. Best-effort, since explorer linking only
+    // needs the SOURCE chain (where the hash lives) and we have that.
+    const dstSniff = (() => {
+      const m = /→\s+([A-Za-z][A-Za-z\s]*)/.exec(x.text || '');
+      if (!m) return '';
+      const guess = m[1].trim().toLowerCase().replace(/\s+/g, '');
+      const c = CHIPS.find(c =>
+        c.short.toLowerCase() === guess ||
+        c.id === guess ||
+        c.name.toLowerCase().includes(guess)
+      );
+      return c?.id || '';
+    })();
+    const amtM = /(\d+(?:\.\d+)?)\s*USDC/i.exec(x.text || '');
+    const amt = amtM ? parseFloat(amtM[1]) : null;
+    return {
+      id: `trade-${x.hash || i}-${x.at}`,
+      type,
+      asset: 'USDC',
+      amount: amt,
+      srcChain: BY_ARC[x.chain]?.id || x.chain,
+      dstChain: dstSniff || (type === 'bridge' ? '' : (BY_ARC[x.chain]?.id || x.chain)),
+      status: x.status === 'done' ? 'completed' : (x.status === 'pending' ? 'pending' : (x.status || 'completed')),
+      ts: x.at || Date.now(),
+      hash: x.hash || '',
+      detail: x.text || '',
+      source: 'trade',
+      raw: x,
+    };
+  }
+
+  // ── NORMALIZE: agent execution event ──────────────────────────
+  // Server shape (appendExecution): { type, detail, amount, time, hash?, src?, dst? }
+  // type ∈ deployed | provisioned | sent | cctp_burn | cctp_mint | permit |
+  //        error | paused | active | revoked
+  function mapAgentExec(e, agent) {
+    const owner = agent?.owner || agent?.ownerAddress || '';
+    let type = 'agent';
+    let status = 'completed';
+    let icoType = 't-agent';
+    if (e.type === 'error')           { type = 'error';   status = 'failed';    icoType = 't-error'; }
+    else if (e.type === 'paused')     { type = 'agent';   status = 'failed';    icoType = 't-error'; }
+    else if (e.type === 'cctp_burn')  { type = 'bridge';  status = 'processing';icoType = 't-bridge'; }
+    else if (e.type === 'cctp_mint')  { type = 'bridge';  status = 'completed'; icoType = 't-bridge'; }
+    else if (e.type === 'sent')       { type = 'agent';   status = e.simulated ? 'pending' : 'completed'; icoType = 't-agent'; }
+    else if (e.type === 'permit')     { type = 'permit';  status = 'completed'; icoType = 't-permit'; }
+    else if (e.type === 'deployed')   { type = 'system';  status = 'completed'; icoType = 't-system'; }
+    else if (e.type === 'provisioned'){ type = 'system';  status = 'completed'; icoType = 't-system'; }
+    else if (e.type === 'revoked')    { type = 'system';  status = 'failed';    icoType = 't-system'; }
+    else if (e.type === 'active')     { type = 'system';  status = 'completed'; icoType = 't-system'; }
+    return {
+      id: `agent-${agent.id}-${e.time || 0}-${Math.random().toString(36).slice(2,6)}`,
+      type,
+      icoType,
+      asset: 'USDC',
+      amount: typeof e.amount === 'number' ? e.amount : null,
+      srcChain: e.src || agent.sources?.[0] || '',
+      dstChain: e.dst || agent.targetChains?.[0] || agent.sources?.[0] || '',
+      status,
+      ts: e.time || Date.now(),
+      hash: e.hash || '',
+      detail: e.detail || e.type || '',
+      agentId: agent.id,
+      agentName: agent.name || `Agent ${(agent.id || '').slice(0,6)}`,
+      agentMode: agent.mode,
+      owner,
+      simulated: !!e.simulated,
+      eventType: e.type,
+      source: 'agent',
+      raw: e,
+    };
+  }
+
+  // ── LOAD: trade activity ──────────────────────────────────────
+  function loadTradeActivity() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('arc.trade.activity.v1') || '[]');
+      return raw.map((x, i) => mapTradeRow(x, i));
+    } catch { return []; }
+  }
+
+  // ── LOAD: agents + executions ─────────────────────────────────
+  async function loadAgentActivity() {
+    const out = { agents: [], txs: [] };
+    if (!state.addr) return out;
+    // Server-side
+    const serverList = await api(`/list?owner=${state.addr}`);
+    if (Array.isArray(serverList) && serverList.length) {
+      out.agents = serverList;
+      // Fetch executions for each agent (cap at 100 each, fan out concurrently).
+      // 100 is the server-side cap in appendExecution so we won't double-paginate.
+      const batches = await Promise.all(
+        serverList.map(a => api(`/${a.id}/executions`).then(arr => Array.isArray(arr) ? arr.map(e => mapAgentExec(e, a)) : []))
+      );
+      out.txs = batches.flat();
+    } else {
+      // Local fallback
+      try {
+        const agents = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
+        const execs  = JSON.parse(localStorage.getItem('arcswap_execs') || '[]');
+        const own = (a) => (a.owner || a.ownerAddress || '').toLowerCase();
+        const mine = agents.filter(a => !state.addr || own(a) === state.addr.toLowerCase());
+        out.agents = mine;
+        const agentById = Object.fromEntries(mine.map(a => [a.id, a]));
+        out.txs = execs
+          .map(e => agentById[e.agentId] ? mapAgentExec(e, agentById[e.agentId]) : null)
+          .filter(Boolean);
+      } catch {}
+    }
+    return out;
+  }
+
+  // ── LOAD ALL ──────────────────────────────────────────────────
+  async function loadAll() {
+    if (!state.addr) {
+      state.txs = [];
+      state.agents = [];
+      paint();
+      return;
+    }
+    showSkeleton(8);
+    const [tradeRows, agentData] = await Promise.all([
+      Promise.resolve(loadTradeActivity()),
+      loadAgentActivity(),
+    ]);
+    state.agents = agentData.agents;
+    // Merge + sort desc by ts. Dedupe by id (paranoia — sources should be disjoint).
+    const seen = new Set();
+    const merged = [];
+    for (const r of [...tradeRows, ...agentData.txs]) {
+      if (seen.has(r.id)) continue;
+      seen.add(r.id);
+      merged.push(r);
+    }
+    merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    state.txs = merged;
+    paint();
+  }
+
+  // ── FILTER PIPELINE ───────────────────────────────────────────
+  function applyFilters() {
+    const { type, chain, status, search } = state.filters;
+    const cutoff = Date.now() - rangeMs(state.range);
+    const q = (search || '').trim().toLowerCase();
+
+    return state.txs.filter(t => {
+      if (t.ts < cutoff) return false;
+
+      if (type !== 'all') {
+        if (type === 'deposit' && t.type !== 'deposit') return false;
+        else if (type === 'spend' && t.type !== 'spend') return false;
+        else if (type === 'agent' && t.type !== 'agent' && t.type !== 'permit') return false;
+        else if (type === 'error' && t.status !== 'failed') return false;
+        else if (['swap','bridge','transfer'].includes(type) && t.type !== type) return false;
+      }
+      if (status !== 'all' && t.status !== status) return false;
+      if (chain !== 'all') {
+        const s = chainOf(t.srcChain)?.id;
+        const d = chainOf(t.dstChain)?.id;
+        if (s !== chain && d !== chain) return false;
+      }
+      if (q) {
+        const blob = `${t.hash || ''} ${t.detail || ''} ${t.agentName || ''} ${t.asset || ''} ${chainName(t.srcChain)} ${chainName(t.dstChain)}`.toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ── RENDER: overview cards ────────────────────────────────────
+  function paintOverview() {
+    const filtered = applyFilters();
+    const allRange = state.txs.filter(t => t.ts > Date.now() - rangeMs(state.range));
+
+    // Identity card
+    const addr = state.addr;
+    document.getElementById('hist-id-name').textContent = addr ? 'Connected wallet' : 'Not connected';
+    document.getElementById('hist-id-addr-text').textContent = addr ? shortAddr(addr) : '—';
+    document.getElementById('hist-id-avatar').textContent = addr ? addr.slice(2, 4).toUpperCase() : '—';
+    const last = allRange[0]?.ts;
+    document.getElementById('hist-id-last').textContent = last ? fmtRelTime(last) : '—';
+    const activeChainSet = new Set();
+    for (const t of allRange) {
+      const s = chainOf(t.srcChain)?.id; if (s) activeChainSet.add(s);
+      const d = chainOf(t.dstChain)?.id; if (d) activeChainSet.add(d);
+    }
+    document.getElementById('hist-id-chains').textContent = activeChainSet.size || '0';
+
+    // Totals
+    document.getElementById('hist-m-total').textContent = allRange.length;
+    document.getElementById('hist-m-total-sub').textContent = state.range === 'all' ? 'All-time count' : `In last ${state.range}`;
+
+    const totalVol = allRange.reduce((s, t) => s + (t.amount || 0), 0);
+    document.getElementById('hist-m-volume').innerHTML = `${fmtMoney(totalVol)}<span class="unit">USDC</span>`;
+    document.getElementById('hist-m-volume-sub').textContent = 'Across all activity';
+
+    const ubVol = allRange
+      .filter(t => t.type === 'bridge' || (t.type === 'agent' && t.eventType === 'cctp_mint'))
+      .reduce((s, t) => s + (t.amount || 0), 0);
+    document.getElementById('hist-m-ub').innerHTML = `${fmtMoney(ubVol)}<span class="unit">USDC</span>`;
+
+    document.getElementById('hist-m-agents').textContent = state.agents.length;
+    const activeAg = state.agents.filter(a => a.state === 'active').length;
+    document.getElementById('hist-m-agents-sub').textContent = state.agents.length
+      ? `${activeAg} active · ${state.agents.length - activeAg} idle`
+      : 'Created';
+  }
+
+  // ── RENDER: filter chain dropdown ─────────────────────────────
+  // Populated from CHIPS list so it stays in sync with the chain registry.
+  (function fillChainDropdown() {
+    const sel = document.getElementById('hist-f-chain');
+    for (const c of CHIPS) {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.short;
+      sel.appendChild(opt);
+    }
+  })();
+
+  // ── RENDER: rows ──────────────────────────────────────────────
+  function iconForRow(t) {
+    if (t.icoType) return t.icoType;
+    if (t.type === 'swap') return 't-swap';
+    if (t.type === 'bridge') return 't-bridge';
+    if (t.type === 'deposit') return 't-deposit';
+    if (t.type === 'spend') return 't-spend';
+    if (t.type === 'transfer') return 't-transfer';
+    if (t.type === 'agent') return 't-agent';
+    if (t.type === 'permit') return 't-permit';
+    if (t.type === 'system') return 't-system';
+    if (t.type === 'error') return 't-error';
+    return 't-system';
+  }
+  function glyphFor(t) {
+    if (t.type === 'swap') return '⇄';
+    if (t.type === 'bridge') return '⊳';
+    if (t.type === 'deposit') return '+';
+    if (t.type === 'spend') return '→';
+    if (t.type === 'transfer') return '↪';
+    if (t.type === 'agent') return '∞';
+    if (t.type === 'permit') return '✓';
+    if (t.type === 'error') return '!';
+    return '•';
+  }
+  function titleFor(t) {
+    if (t.detail) return t.detail;
+    if (t.type === 'swap') return 'Swap';
+    if (t.type === 'bridge') return `Cross-chain transfer · ${t.asset}`;
+    if (t.type === 'deposit') return `Deposit · ${t.asset}`;
+    if (t.type === 'spend') return `Spend · ${t.asset}`;
+    if (t.type === 'transfer') return `Transfer · ${t.asset}`;
+    if (t.type === 'agent') return `Agent execution${t.agentName ? ' · ' + t.agentName : ''}`;
+    if (t.type === 'permit') return 'Permit submitted';
+    if (t.type === 'error') return 'Failed execution';
+    return 'Activity';
+  }
+  function chainFlowHtml(t) {
+    const s = chainOf(t.srcChain);
+    const d = chainOf(t.dstChain);
+    if (s && d && s.id !== d.id) {
+      return `<span class="hist-chain-flow">
+        <span class="hist-chain-tag"><span class="cd" style="background:${s.color}"></span>${s.short}</span>
+        <span class="hist-chain-arr">→</span>
+        <span class="hist-chain-tag"><span class="cd" style="background:${d.color}"></span>${d.short}</span>
+      </span>`;
+    }
+    const one = s || d;
+    if (one) {
+      return `<span class="hist-chain-flow">
+        <span class="hist-chain-tag"><span class="cd" style="background:${one.color}"></span>${one.short}</span>
+      </span>`;
+    }
+    return `<span class="hist-chain-flow"><span style="color:var(--muted-soft)">—</span></span>`;
+  }
+  function statusHtml(t) {
+    return `<span class="hist-status ${t.status}"><span class="sd"></span>${t.status}</span>`;
+  }
+  function rowHtml(t) {
+    const ico = iconForRow(t);
+    const glyph = glyphFor(t);
+    const title = titleFor(t);
+    const amt = (t.amount != null)
+      ? `<div class="hist-amt ${t.type === 'deposit' ? 'up' : (t.type === 'spend' ? 'down' : '')}">${fmtMoney(t.amount)}<small>${t.asset || 'USDC'}</small></div>`
+      : `<div class="hist-amt" style="color:var(--muted)">—</div>`;
+    const hashLink = (t.hash && t.srcChain)
+      ? `<a href="${explorerTx(t.srcChain, t.hash)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${shortHash(t.hash)} ↗</a>`
+      : (t.simulated ? '<span style="color:var(--muted-soft)">simulated</span>' : '');
+    return `
+      <div class="hist-row" data-id="${escapeHtml(t.id)}">
+        <div class="hist-row-ico ${ico}">${glyph}</div>
+        <div class="hist-row-main">
+          <div class="hist-row-title">${escapeHtml(title)}</div>
+          <div class="hist-row-meta">
+            ${hashLink || ''}
+            ${t.agentName ? `<span class="dot-sep">·</span><span>${escapeHtml(t.agentName)}</span>` : ''}
+          </div>
+        </div>
+        ${chainFlowHtml(t)}
+        ${amt}
+        ${statusHtml(t)}
+        <div class="hist-ts">${fmtRelTime(t.ts)}<small>${fmtAbsTime(t.ts)}</small></div>
+      </div>`;
+  }
+
+  function paintRows() {
+    const rows = applyFilters();
+    const total = rows.length;
+    document.getElementById('hist-feed-count').textContent = `${total} TX${total === 1 ? '' : 'S'}`;
+
+    const start = state.page * state.pageSize;
+    const slice = rows.slice(start, start + state.pageSize);
+    const wrap = document.getElementById('hist-rows');
+
+    if (!state.addr) {
+      wrap.innerHTML = `<div class="hist-empty">
+        <div class="hist-empty-ico">◇</div>
+        <div class="hist-empty-t">Wallet not connected</div>
+        <div class="hist-empty-s">Connect your wallet to see your full activity history across every chain you've used on ArcSwap.</div>
+      </div>`;
+      document.getElementById('hist-pager').style.display = 'none';
+      return;
+    }
+    if (!slice.length) {
+      wrap.innerHTML = `<div class="hist-empty">
+        <div class="hist-empty-ico">◇</div>
+        <div class="hist-empty-t">No activity matches these filters</div>
+        <div class="hist-empty-s">Try widening the time range or clearing filters. Activity from /trade, /balance and /agent will appear here automatically.</div>
+        <a class="hist-empty-cta" href="/trade">Start trading →</a>
+      </div>`;
+      document.getElementById('hist-pager').style.display = 'none';
+      return;
+    }
+
+    wrap.innerHTML = slice.map(rowHtml).join('');
+    // Wire row clicks → modal
+    wrap.querySelectorAll('.hist-row').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-id');
+        const tx = state.txs.find(x => x.id === id);
+        if (tx) openDetail(tx);
+      });
+    });
+
+    // Pager
+    const pageCount = Math.ceil(total / state.pageSize) || 1;
+    const pager = document.getElementById('hist-pager');
+    if (pageCount > 1) {
+      pager.style.display = 'flex';
+      document.getElementById('hist-pager-info').textContent =
+        `Showing ${start + 1}–${Math.min(start + state.pageSize, total)} of ${total}`;
+      document.getElementById('hist-pager-prev').disabled = state.page <= 0;
+      document.getElementById('hist-pager-next').disabled = state.page >= pageCount - 1;
+    } else {
+      pager.style.display = 'none';
+    }
+  }
+
+  function showSkeleton(n) {
+    const wrap = document.getElementById('hist-rows');
+    wrap.innerHTML = Array.from({ length: n }).map(() => `
+      <div class="hist-row hist-skel-row">
+        <span class="hist-skel-line" style="width:34px;height:34px;border-radius:10px"></span>
+        <span><span class="hist-skel-line" style="width:60%"></span><br/><span class="hist-skel-line" style="width:38%;margin-top:4px"></span></span>
+        <span class="hist-skel-line" style="width:110px"></span>
+        <span class="hist-skel-line" style="width:80px;justify-self:end"></span>
+        <span class="hist-skel-line" style="width:70px"></span>
+        <span class="hist-skel-line" style="width:60px;justify-self:end"></span>
+      </div>`).join('');
+  }
+
+  // ── RENDER: right rail — UB flow ──────────────────────────────
+  function paintUbRail() {
+    const rows = state.txs.filter(t => t.ts > Date.now() - rangeMs(state.range));
+    // "Deposit" = bridge IN to UB (cctp_mint or trade-side gateway), "Spend"
+    // = bridge OUT. We approximate with type=bridge directionality since UB
+    // ops generally show as bridges in the dataset.
+    let inSum = 0, outSum = 0, inCt = 0, outCt = 0;
+    const sourceChainCount = {}; // arcKey → count
+    for (const t of rows) {
+      if (t.type === 'bridge' || t.eventType === 'cctp_mint' || t.eventType === 'cctp_burn') {
+        const amt = t.amount || 0;
+        // Heuristic: if the src is Arc → outflow back to L2, otherwise inflow.
+        const isInbound = chainOf(t.dstChain)?.id === 'arc' || t.eventType === 'cctp_mint';
+        if (isInbound) { inSum += amt; inCt++; }
+        else { outSum += amt; outCt++; }
+        const srcId = chainOf(t.srcChain)?.id;
+        if (srcId) sourceChainCount[srcId] = (sourceChainCount[srcId] || 0) + 1;
+      }
+    }
+    document.getElementById('hist-ub-in').innerHTML  = `${fmtMoney(inSum)}<span class="u">USDC</span>`;
+    document.getElementById('hist-ub-out').innerHTML = `${fmtMoney(outSum)}<span class="u">USDC</span>`;
+    document.getElementById('hist-ub-in-c').textContent  = `${inCt} tx`;
+    document.getElementById('hist-ub-out-c').textContent = `${outCt} tx`;
+
+    const list = document.getElementById('hist-flow-list');
+    const sorted = Object.entries(sourceChainCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (!sorted.length) {
+      list.innerHTML = `<div class="hist-flow-row"><span class="hist-flow-l">No cross-chain activity in this range</span></div>`;
+      return;
+    }
+    list.innerHTML = sorted.map(([id, n]) => {
+      const c = BY_CHIP[id];
+      return `<div class="hist-flow-row">
+        <span class="hist-flow-l">
+          <span class="hist-flow-arr in">↑</span>
+          <span class="hist-chain-tag"><span class="cd" style="background:${c?.color || 'var(--muted)'}"></span>${c?.short || id}</span>
+        </span>
+        <span class="hist-flow-v">${n} tx</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── RENDER: right rail — agent activity ───────────────────────
+  function paintAgentRail() {
+    const list = document.getElementById('hist-agent-list');
+    const next = document.getElementById('hist-next-run');
+
+    if (!state.agents.length) {
+      list.innerHTML = `<div style="padding:20px 12px;text-align:center;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,.012);font-size:12px;color:var(--muted);line-height:1.5">
+        No agents yet.<br/><a href="/agent" style="color:var(--arc1);text-decoration:none">Create one in /agent →</a>
+      </div>`;
+      next.style.display = 'none';
+      return;
+    }
+
+    // Per-agent rollup (count of successful executions, total sent)
+    const byAgent = {};
+    for (const t of state.txs) {
+      if (!t.agentId) continue;
+      const k = t.agentId;
+      if (!byAgent[k]) byAgent[k] = { sent: 0, count: 0, fails: 0 };
+      if (t.status === 'failed') byAgent[k].fails++;
+      else if (t.type === 'agent' || t.type === 'bridge') {
+        byAgent[k].sent += (t.amount || 0);
+        byAgent[k].count++;
+      }
+    }
+
+    list.innerHTML = state.agents.slice(0, 5).map(a => {
+      const r = byAgent[a.id] || { sent: 0, count: 0, fails: 0 };
+      const dotCls = a.state === 'paused' ? 'paused' : (r.fails > 0 ? 'failed' : '');
+      const stateLabel = a.state === 'paused' ? 'Paused' : (a.state === 'revoked' ? 'Revoked' : 'Active');
+      return `<a class="hist-agent-row" href="/agent?focus=${encodeURIComponent(a.id)}">
+        <span class="hist-agent-dot ${dotCls}"></span>
+        <div class="hist-agent-info">
+          <div class="hist-agent-name">${escapeHtml(a.name || `Agent ${(a.id || '').slice(0, 6)}`)}</div>
+          <div class="hist-agent-meta"><b>${stateLabel}</b><span>${escapeHtml(a.mode || '—')}</span>${r.fails ? `<span style="color:#FF8BA3">${r.fails} fail</span>` : ''}</div>
+        </div>
+        <div class="hist-agent-amt">${fmtMoney(r.sent)}<small>${r.count} runs</small></div>
+      </a>`;
+    }).join('');
+
+    // Next scheduled
+    const sched = state.agents
+      .filter(a => a.state === 'active' && a.nextRun && a.nextRun > Date.now())
+      .sort((a, b) => a.nextRun - b.nextRun)[0];
+    if (sched) {
+      next.style.display = 'block';
+      document.getElementById('hist-next-run-v').textContent =
+        sched.name || `Agent ${(sched.id || '').slice(0, 6)}`;
+      const dt = sched.nextRun - Date.now();
+      const m = Math.max(1, Math.round(dt / 60000));
+      const phrase = m < 60 ? `in ${m}m` : (m < 1440 ? `in ${Math.round(m/60)}h` : `in ${Math.round(m/1440)}d`);
+      document.getElementById('hist-next-run-s').textContent = `${phrase} · ${fmtAbsTime(sched.nextRun)}`;
+    } else {
+      next.style.display = 'none';
+    }
+  }
+
+  // ── PAINT (all) ───────────────────────────────────────────────
+  function paint() {
+    // Connect prompt vs full UI
+    const connectBox = document.getElementById('hist-connect');
+    const overview   = document.getElementById('hist-overview');
+    if (!state.addr) {
+      connectBox.style.display = 'block';
+      overview.style.opacity = '.5';
+    } else {
+      connectBox.style.display = 'none';
+      overview.style.opacity = '1';
+    }
+    paintOverview();
+    paintRows();
+    paintUbRail();
+    paintAgentRail();
+  }
+
+  // ── FILTER WIRING ─────────────────────────────────────────────
+  document.getElementById('hist-search').addEventListener('input', (e) => {
+    state.filters.search = e.target.value;
+    state.page = 0;
+    paintRows();
+  });
+  document.getElementById('hist-f-type').addEventListener('change', (e) => {
+    state.filters.type = e.target.value;
+    state.page = 0;
+    paintRows();
+  });
+  document.getElementById('hist-f-chain').addEventListener('change', (e) => {
+    state.filters.chain = e.target.value;
+    state.page = 0;
+    paintRows();
+  });
+  document.getElementById('hist-f-status').addEventListener('change', (e) => {
+    state.filters.status = e.target.value;
+    state.page = 0;
+    paintRows();
+  });
+  document.querySelectorAll('#hist-range .hist-range-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#hist-range .hist-range-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.range = btn.getAttribute('data-range');
+      state.page = 0;
+      paint();
+    });
+  });
+  document.getElementById('hist-pager-prev').addEventListener('click', () => { state.page = Math.max(0, state.page - 1); paintRows(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  document.getElementById('hist-pager-next').addEventListener('click', () => { state.page = state.page + 1; paintRows(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  document.getElementById('hist-refresh').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.classList.add('spinning');
+    try { await loadAll(); }
+    finally { setTimeout(() => btn.classList.remove('spinning'), 350); }
+  });
+
+  // ── DETAIL MODAL ──────────────────────────────────────────────
+  const modalBg = document.getElementById('hist-detail-bg');
+  function closeDetail() { modalBg.classList.remove('show'); state.selected = null; }
+  document.getElementById('hist-detail-close').addEventListener('click', closeDetail);
+  modalBg.addEventListener('click', (e) => { if (e.target === modalBg) closeDetail(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
+
+  function timelineFor(t) {
+    // Cross-chain (bridge / agent CCTP) shows a 3-step pipeline.
+    if (t.type === 'bridge' || t.eventType === 'cctp_burn' || t.eventType === 'cctp_mint') {
+      const burnDone = !!(t.hash || t.eventType === 'cctp_burn' || t.eventType === 'cctp_mint');
+      const attestDone = (t.eventType === 'cctp_mint' || t.status === 'completed');
+      const mintDone = (t.eventType === 'cctp_mint' || t.status === 'completed');
+      const failed = t.status === 'failed';
+      return `
+        <div class="hist-timeline">
+          <div class="hist-timeline-h">Cross-chain settlement</div>
+          <div class="hist-tl-steps">
+            <div class="hist-tl-step ${burnDone ? 'done' : 'active'}">
+              <div class="hist-tl-step-dot">1<span class="hist-tl-line"></span></div>
+              <div class="hist-tl-step-l">Burn<br/>on source</div>
+            </div>
+            <div class="hist-tl-step ${attestDone ? 'done' : (burnDone ? 'active' : '')} ${failed && !attestDone ? 'fail' : ''}">
+              <div class="hist-tl-step-dot">2<span class="hist-tl-line"></span></div>
+              <div class="hist-tl-step-l">Attest<br/>via Circle IRIS</div>
+            </div>
+            <div class="hist-tl-step ${mintDone ? 'done' : ''} ${failed && !mintDone ? 'fail' : ''}">
+              <div class="hist-tl-step-dot">3</div>
+              <div class="hist-tl-step-l">Mint<br/>on dest</div>
+            </div>
+          </div>
+        </div>`;
+    }
+    // Single-chain — simple "submitted → confirmed" timeline
+    const ok = t.status === 'completed';
+    const fail = t.status === 'failed';
+    return `
+      <div class="hist-timeline">
+        <div class="hist-timeline-h">Execution status</div>
+        <div class="hist-tl-steps">
+          <div class="hist-tl-step done"><div class="hist-tl-step-dot">1<span class="hist-tl-line"></span></div><div class="hist-tl-step-l">Submitted</div></div>
+          <div class="hist-tl-step ${ok ? 'done' : (fail ? 'fail' : 'active')}"><div class="hist-tl-step-dot">2</div><div class="hist-tl-step-l">${fail ? 'Failed' : (ok ? 'Confirmed' : 'Processing')}</div></div>
+        </div>
+      </div>`;
+  }
+
+  function detailBannerHtml(t) {
+    if (t.status === 'failed') {
+      return `<div class="hist-detail-banner err">
+        <span class="hist-detail-banner-i">⚠</span>
+        <div class="hist-detail-banner-t"><b>Execution failed.</b> ${escapeHtml(t.detail || 'See the raw error below.')}</div>
+      </div>`;
+    }
+    if (t.status === 'pending' || t.status === 'processing') {
+      return `<div class="hist-detail-banner warn">
+        <span class="hist-detail-banner-i">⏳</span>
+        <div class="hist-detail-banner-t"><b>In flight.</b> Cross-chain settlements typically complete in 1–5 minutes once the source tx is confirmed.</div>
+      </div>`;
+    }
+    return `<div class="hist-detail-banner ok">
+      <span class="hist-detail-banner-i">✓</span>
+      <div class="hist-detail-banner-t"><b>Settled.</b> ${t.type === 'bridge' ? 'USDC minted on destination chain.' : 'Transaction confirmed.'}</div>
+    </div>`;
+  }
+
+  function openDetail(t) {
+    state.selected = t;
+    const icoEl = document.getElementById('hist-detail-ico');
+    icoEl.className = `hist-row-ico ${iconForRow(t)}`;
+    icoEl.textContent = glyphFor(t);
+    document.getElementById('hist-detail-title').textContent = titleFor(t);
+    document.getElementById('hist-detail-sub').textContent =
+      `${fmtAbsTime(t.ts)} · ${t.source === 'agent' ? 'Agent execution' : 'On-chain'}`;
+
+    const src = chainOf(t.srcChain);
+    const dst = chainOf(t.dstChain);
+    const txLink = t.hash && src ? explorerTx(src.id, t.hash) : '';
+
+    const kvRows = [];
+    kvRows.push(['Type', `<span style="color:var(--text)">${escapeHtml(t.type)}</span>`]);
+    if (t.asset)    kvRows.push(['Asset', t.asset]);
+    if (t.amount != null) kvRows.push(['Amount', `${fmtMoney(t.amount, 4)} ${t.asset || 'USDC'}`]);
+    if (src) kvRows.push(['Source chain', `<span class="hist-chain-tag" style="font-family:var(--mono)"><span class="cd" style="background:${src.color}"></span>${src.name}</span>`]);
+    if (dst && (!src || dst.id !== src.id)) kvRows.push(['Destination chain', `<span class="hist-chain-tag" style="font-family:var(--mono)"><span class="cd" style="background:${dst.color}"></span>${dst.name}</span>`]);
+    if (t.hash) kvRows.push(['Tx hash', txLink ? `<a href="${txLink}" target="_blank" rel="noopener">${escapeHtml(shortHash(t.hash, 10, 8))} ↗</a>` : escapeHtml(t.hash)]);
+    if (t.agentId)   kvRows.push(['Agent', `${escapeHtml(t.agentName || '')} <span style="color:var(--muted-soft)">· ${escapeHtml(t.agentId.slice(0,8))}…</span>`]);
+    if (t.agentMode) kvRows.push(['Agent mode', escapeHtml(t.agentMode)]);
+    if (t.eventType) kvRows.push(['Event', escapeHtml(t.eventType)]);
+    kvRows.push(['Status', `<span class="hist-status ${t.status}"><span class="sd"></span>${t.status}</span>`]);
+    kvRows.push(['Timestamp', escapeHtml(new Date(t.ts).toISOString())]);
+    if (t.simulated) kvRows.push(['Mode', '<span style="color:var(--yellow)">Simulated · backend not configured</span>']);
+
+    const actions = [];
+    if (txLink) actions.push(`<a class="hist-detail-btn primary" href="${txLink}" target="_blank" rel="noopener">View on explorer ↗</a>`);
+    if (t.agentId) actions.push(`<a class="hist-detail-btn" href="/agent?focus=${encodeURIComponent(t.agentId)}">Open agent →</a>`);
+    if (t.type === 'bridge' || t.type === 'spend') actions.push(`<a class="hist-detail-btn" href="/balance">Manage Unified Balance →</a>`);
+    if (t.type === 'swap') actions.push(`<a class="hist-detail-btn" href="/trade">Trade again →</a>`);
+
+    document.getElementById('hist-detail-body').innerHTML = `
+      ${detailBannerHtml(t)}
+      ${timelineFor(t)}
+      <div class="hist-detail-grid">
+        ${kvRows.map(([k, v]) => `<div class="hist-detail-kv"><span class="k">${escapeHtml(k)}</span><span class="v">${v}</span></div>`).join('')}
+      </div>
+      ${actions.length ? `<div class="hist-detail-actions">${actions.join('')}</div>` : ''}
+    `;
+
+    modalBg.classList.add('show');
+  }
+
+  // ── WALLET REACTIVITY ─────────────────────────────────────────
+  function onWalletChange() {
+    const snap = ARC.wallet.snapshot();
+    state.addr = snap.connected ? snap.address : null;
+    state.page = 0;
+    loadAll();
+  }
+  ARC.wallet.on(onWalletChange);
+  // Initial — ArcUI.boot already awaited autoConnect, so snapshot is final.
+  onWalletChange();
+
+  // ── REALTIME — re-poll trade activity every 8s, agent every 30s.
+  // (trade.html writes localStorage on each pipeline tick; mirroring it
+  // here keeps "pending → completed" status fresh without a hard refresh.)
+  setInterval(() => {
+    if (!state.addr) return;
+    const fresh = loadTradeActivity();
+    // Merge: replace trade rows in state.txs with the fresh set.
+    const others = state.txs.filter(t => t.source !== 'trade');
+    const seen = new Set();
+    const merged = [];
+    for (const r of [...fresh, ...others]) {
+      if (seen.has(r.id)) continue;
+      seen.add(r.id);
+      merged.push(r);
+    }
+    merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    state.txs = merged;
+    paint();
+  }, 8000);
+  setInterval(() => { if (state.addr) loadAgentActivity().then(({ agents, txs }) => {
+    state.agents = agents;
+    const others = state.txs.filter(t => t.source !== 'agent');
+    const merged = [...txs, ...others].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    state.txs = merged;
+    paint();
+  }); }, 30000);
+
+})().catch(err => {
+  console.error('[history] fatal:', err);
+});
+</script>
+</body>
+</html>

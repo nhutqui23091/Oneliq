@@ -23,6 +23,7 @@
       { id: 'trade',     label: 'Trade',        href: '/trade'   },
       { id: 'balance',   label: 'Balance',      href: '/balance' },
       { id: 'agent',     label: 'Agent',        href: '/agent', newBadge: true },
+      { id: 'history',   label: 'History',      href: '/history', newBadge: true },
       { id: 'token',     label: 'Create Token', href: '/token'   },
     ];
     const gated = isTester(ARC.wallet.address)
