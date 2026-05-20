@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/icon-arcswap.png?v=1"/>
+<link rel="apple-touch-icon" href="/assets/logos/icon-arcswap.png?v=1"/>
+<meta name="description" content="ArcSwap launches the Auto-Replenish Agent in preview — sign once, your agent keeps any wallet topped up or runs scheduled USDC transfers across 8 chains via Circle Programmable Wallets and CCTP V2."/>
+<link rel="canonical" href="https://arcswap.net/blog/launch-agent"/>
+<meta property="og:title" content="Meet the Auto-Replenish Agent — USDC moves itself now"/>
+<meta property="og:description" content="Sign once. Your agent keeps wallets topped up or sends USDC on a schedule across 8 chains. Powered by Circle Programmable Wallets, CCTP V2 fast finality, and Paymaster-sponsored gas. Preview on Arc Testnet."/>
+<meta property="og:image" content="https://arcswap.net/assets/social/blog-agent-banner.svg"/>
+<meta property="og:url" content="https://arcswap.net/blog/launch-agent"/>
+<meta property="og:type" content="article"/>
+<title>Meet the Auto-Replenish Agent | ArcSwap Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A1628;--bg2:#0F1E36;
+  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
+  --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
+  --agent:#A78BFA;
+  --warn:#FFB454;--danger:#FF7A7A;
+  --display:'Space Grotesk','Inter',system-ui,sans-serif; --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.7}
+.aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  background:radial-gradient(ellipse 100% 40% at 50% 0%,rgba(167,139,250,0.10) 0%,transparent 60%),
+  linear-gradient(180deg,#0A1628 0%,#0E1F39 60%,#0A1628 100%)}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .nav-logo{justify-self:start}
+nav .nav-links{justify-self:center}
+nav .nav-right{justify-self:end}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-name{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.035em;color:var(--text);line-height:1}
+.logo-img{height:28px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
+.logo-tag{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);font-family:var(--mono);text-transform:uppercase;border-left:1px solid var(--border);padding-left:10px;margin-left:4px}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:8px 16px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;text-decoration:none}
+.nav-link:hover{color:var(--text);background:var(--surface)}
+.nav-link.active{color:var(--text);background:var(--surface)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(255,255,255,0.14)}
+
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:120px 24px 80px}
+.crumb{font-size:12px;font-family:var(--mono);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px}
+.crumb a{color:var(--muted);text-decoration:none}
+.crumb a:hover{color:var(--text)}
+.eyebrow{font-size:12px;font-family:var(--mono);color:var(--agent);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+h1.title{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin-bottom:18px}
+h1.title .grad{background:linear-gradient(90deg,var(--agent),var(--arc2),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lead{font-size:19px;color:#C8D1E0;line-height:1.6;margin-bottom:28px;font-weight:400}
+.byline{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.byline-author{font-weight:600;color:var(--text)}
+.byline-sep{color:var(--border2)}
+.byline-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:rgba(167,139,250,0.10);border:1px solid rgba(167,139,250,0.35);color:var(--agent);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.banner{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:48px;background:#0A1628}
+
+article{font-size:17px;line-height:1.78}
+article p{color:#D8DFEA;margin-bottom:22px}
+article p strong{color:var(--text);font-weight:600}
+article p em{color:var(--text);font-style:italic;background:rgba(167,139,250,0.10);padding:1px 4px;border-radius:3px}
+article a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.3);transition:border-color .2s}
+article a:hover{border-bottom-color:var(--arc1)}
+article a:visited{color:var(--arc1)}
+article h2{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:72px 0 20px;line-height:1.2;color:var(--text)}
+article h2:first-of-type{margin-top:12px}
+article h3{font-size:22px;font-weight:600;margin:44px 0 14px;letter-spacing:-.01em;color:var(--text)}
+article ul,article ol{padding-left:24px;margin-bottom:24px}
+article li{color:#D8DFEA;margin-bottom:8px}
+article li::marker{color:var(--agent)}
+
+code{font-family:var(--mono);font-size:14px;background:rgba(167,139,250,0.10);border:1px solid rgba(167,139,250,0.22);padding:1px 6px;border-radius:5px;color:var(--agent)}
+
+.callout{border-left:3px solid var(--agent);background:rgba(167,139,250,0.07);padding:16px 20px;border-radius:0 10px 10px 0;margin:28px 0}
+.callout.info{border-left-color:var(--arc1);background:rgba(77,214,219,0.06)}
+.callout.warn{border-left-color:var(--warn);background:rgba(255,180,84,0.06)}
+.callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--agent)}
+.callout.info .callout-title{color:var(--arc1)}
+.callout.warn .callout-title{color:var(--warn)}
+.callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
+
+.inline-img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin:32px 0;background:#0A1628}
+
+.modes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:36px 0 44px}
+.mode-card{padding:24px 24px 26px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));position:relative;overflow:hidden;transition:border-color .2s}
+.mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:140px;background:linear-gradient(180deg,var(--accent-glow,rgba(167,139,250,0.16)) 0%,transparent 100%);pointer-events:none}
+.mode-card:hover{border-color:var(--border2)}
+.mode-card.c-topup{--accent-glow:rgba(167,139,250,0.18);--accent:var(--agent)}
+.mode-card.c-sched{--accent-glow:rgba(74,123,236,0.18);--accent:var(--arc2)}
+.mode-card .mcard-icon{font-size:24px;margin-bottom:14px;display:block;position:relative}
+.mode-card .mcard-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:block;position:relative}
+.mode-card .mcard-name{font-size:20px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.015em;line-height:1.25;position:relative}
+.mode-card .mcard-desc{font-size:14.5px;color:#D8DFEA;line-height:1.55;margin-bottom:16px;position:relative}
+.mode-card .mcard-meta{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;color:var(--accent);opacity:.9;text-transform:uppercase;position:relative;border-top:1px solid var(--border);padding-top:12px;margin-top:auto}
+@media(max-width:720px){.modes-grid{grid-template-columns:1fr}}
+
+table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.t th,.t td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.t th{background:rgba(255,255,255,0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.t td{color:#C8D1E0}
+.t tr:last-child td{border-bottom:none}
+
+.steps{counter-reset:step;list-style:none;padding:0;margin:28px 0}
+.steps li{padding:20px 22px 20px 68px;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;position:relative;background:var(--surface)}
+.steps li::before{counter-increment:step;content:counter(step);position:absolute;left:18px;top:20px;width:34px;height:34px;border-radius:9px;background:rgba(167,139,250,0.14);border:1px solid rgba(167,139,250,0.36);color:var(--agent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px}
+.steps li > strong:first-child{color:var(--text);font-weight:700;display:block;margin-bottom:6px;font-size:16.5px;letter-spacing:-.005em}
+.steps li > strong:first-child a{color:var(--text);border-bottom-color:rgba(255,255,255,0.25)}
+.steps li span{display:block;font-size:15px;color:#E2E8F0;line-height:1.65}
+.steps li span strong{color:var(--text);font-weight:600}
+.steps li span em{color:var(--text);font-style:italic}
+.steps li a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.35);transition:border-color .2s}
+.steps li a:hover{border-bottom-color:var(--arc1)}
+.steps li a:visited{color:var(--arc1)}
+
+.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(167,139,250,0.10),rgba(255,255,255,0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
+.cta-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
+.cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(167,139,250,0.16);border:1px solid rgba(167,139,250,0.42);color:var(--agent);transition:all .2s;margin:0 4px}
+.cta-card a:hover{background:rgba(167,139,250,0.24);border-color:var(--agent)}
+.cta-card a.alt{background:rgba(77,214,219,0.12);border-color:rgba(77,214,219,0.36);color:var(--arc1)}
+.cta-card a.alt:hover{background:rgba(77,214,219,0.2);border-color:var(--arc1)}
+
+.foot{margin-top:60px;padding-top:28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
+.foot a{color:var(--muted);text-decoration:none}
+.foot a:hover{color:var(--arc1)}
+
+@media(max-width:768px){.wrap{padding:100px 18px 60px}.nav-links{display:none}h1.title{font-size:32px}article h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<nav>
+  <a class="nav-logo" href="/">
+    <img class="logo-img" src="/assets/logos/wordmark-arcswap.png?v=2" alt="ArcSwap" width="129" height="28"/>
+    <span class="logo-tag">Blog</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/trade">Trade</a>
+    <a class="nav-link" href="/balance">Balance</a>
+    <a class="nav-link" href="/agent">Agent</a>
+    <a class="nav-link" href="/token">Create Token</a>
+    <a class="nav-link active" href="/blog">Blog</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn-ghost" href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    <a class="btn-primary" href="/agent">Try Agent ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; Meet the Auto-Replenish Agent</div>
+  <div class="eyebrow">Product Launch · Preview</div>
+  <h1 class="title">Meet the <span class="grad">Auto-Replenish Agent</span></h1>
+  <p class="lead">Sign once. Your agent keeps a wallet topped up when it runs low, or sends USDC on a fixed schedule — across eight chains, to as many target wallets as you want. Powered by Circle Programmable Wallets, CCTP V2 for cross-chain delivery, and Paymaster-sponsored gas. Available today in preview on Arc Testnet.</p>
+
+  <div class="byline">
+    <span class="byline-author">ArcSwap Team</span>
+    <span class="byline-sep">·</span>
+    <span>May 20, 2026</span>
+    <span class="byline-sep">·</span>
+    <span>6 min read</span>
+    <span class="byline-sep">·</span>
+    <span class="byline-pill"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--agent)"></span>Preview</span>
+  </div>
+
+  <img class="banner" src="/assets/social/blog-agent-banner.svg" alt="ArcSwap Auto-Replenish Agent — preview launch"/>
+
+  <article>
+
+    <p>Stablecoins are great at sitting still. They are bad at moving themselves. <strong>Today that changes</strong>: the <a href="/agent">Auto-Replenish Agent</a> is live in preview at <a href="https://arcswap.net/agent">arcswap.net/agent</a>. One signature, one rule — your USDC starts moving itself, across chains, on your terms.</p>
+
+    <div class="callout">
+      <div class="callout-title">TL;DR</div>
+      <div class="callout-body">
+        Two modes — <strong>Auto Top-Up</strong> (refill a wallet when it dips under a floor) and <strong>Scheduled Send</strong> (recurring USDC transfers, daily / weekly / monthly). Eight supported chains via <strong>Circle CCTP V2</strong> with ~30s fast finality. <strong>Circle Paymaster</strong> sponsors gas. A daily safety cap, a 30-day rule expiry, and one-click revoke are non-negotiable defaults. Preview on Arc Testnet — Discord is the fastest way to break it.
+      </div>
+    </div>
+
+    <h2>What it does, in one sentence per mode</h2>
+
+    <div class="modes-grid">
+      <div class="mode-card c-topup">
+        <span class="mcard-icon">⚡</span>
+        <span class="mcard-tag">// Auto Top-Up</span>
+        <div class="mcard-name">Refill on dip</div>
+        <p class="mcard-desc">When a target wallet's USDC falls below your floor, the agent tops it back up to your refill amount. Bounded by a daily safety cap you sign on-chain.</p>
+        <div class="mcard-meta">Floor · Refill · Daily Cap</div>
+      </div>
+      <div class="mode-card c-sched">
+        <span class="mcard-icon">⏱</span>
+        <span class="mcard-tag">// Scheduled Send</span>
+        <div class="mcard-name">Send on a clock</div>
+        <p class="mcard-desc">Send USDC once, daily, weekly, or monthly to one or many wallets. Choose a time of day, a start date, and whether the amount goes <em>to each</em> or is <em>split between</em> them.</p>
+        <div class="mcard-meta">Once · Daily · Weekly · Monthly</div>
+      </div>
+    </div>
+
+    <p>Both modes share the same source-and-target shape. <strong>Sources</strong> are chains you've pre-authorised the agent to pull USDC from. <strong>Targets</strong> are destination wallets — each with its own destination chain. If source and destination differ, the agent routes the transfer through CCTP V2 burn-and-mint automatically. Same chain? Straight transfer, no bridge.</p>
+
+    <h2>How it actually works</h2>
+
+    <p>Three signatures, then nothing else from you until you want to change something. Here's the whole loop:</p>
+
+    <ol class="steps">
+      <li><strong>You sign once (well, twice).</strong> <span>One EIP-712 <em>agent rule</em> defines the policy — mode, sources, targets, floor / amount / cap, expiry. Then one <strong>EIP-2612 USDC permit</strong> per source chain authorises a Circle Programmable Wallet to pull USDC from your EOA up to a bounded headroom (10× your daily cap or send amount, capped). Both signatures live in your wallet's typed-data popup, no transaction needed.</span></li>
+      <li><strong>Agent watches.</strong> <span>A <strong>Cloudflare Worker</strong> runs the cron loop every minute, scanning active rules. For top-up: it polls the target wallet's USDC balance against your floor. For schedule: it just waits for the next firing time.</span></li>
+      <li><strong>Funds move.</strong> <span>When a rule fires, the agent's smart account assembles a userOp: USDC pull from your EOA via the permit → optional CCTP V2 burn-and-mint to the destination chain (~30s on fast-finality pairs) → final delivery to the target wallet. <strong>Gas is sponsored by Circle Paymaster</strong> — you pay nothing in the gas token.</span></li>
+      <li><strong>You stay in control.</strong> <span>Pause, resume, run-now, or revoke any agent from the drawer. Revoke is the killswitch — it invalidates the signature server-side and stops every future execution.</span></li>
+    </ol>
+
+    <div class="callout info">
+      <div class="callout-title">Why "preview", not "v1"</div>
+      <div class="callout-body">This is the first time most of the integrations run together — CCTP V2 fast-finality on testnet, Programmable Wallet provisioning per source chain, Paymaster-sponsored userOps. We want real users hitting real edge cases before we call it stable. If your agent gets stuck, the drawer surfaces it with a retry CTA, and there's a "force complete" admin button on CCTP transfers that hang.</div>
+    </div>
+
+    <h2>Safety rails (the non-negotiables)</h2>
+
+    <p>The agent moves money on your behalf. That's a serious primitive, and the design assumes things will go wrong in production. Five rails:</p>
+
+    <ul>
+      <li><strong>Daily cap, signed on-chain.</strong> Top-up mode requires a <code>dailyCap</code>. The agent will never exceed it in any rolling 24-hour window — enforced twice, server-side <em>and</em> at the smart-account level.</li>
+      <li><strong>Bounded permit headroom.</strong> Your EIP-2612 permit doesn't authorise <em>unlimited</em> USDC; it caps the spender's allowance at 10× your daily cap (or 10× send-amount × target-count for scheduled sends). Bounded blast radius, even in a worst-case server compromise.</li>
+      <li><strong>30-day expiry on everything.</strong> Both the agent rule and the USDC permit carry a 30-day <code>expiresAt</code>. Forget about a running agent for a month and it stops on its own.</li>
+      <li><strong>Auto-pause after 5 failed runs.</strong> If five consecutive cron executions fail (RPC outage, target wallet drained, permit revoked elsewhere), the agent auto-pauses and shows a red banner explaining why. You fix the underlying issue and resume manually.</li>
+      <li><strong>Revoke is a real on-chain operation.</strong> Hit <em>Revoke</em> and the permit is invalidated server-side; the executor smart account literally cannot pull a single USDC unit afterward. No "trust us, we stopped" — the chain proves it.</li>
+    </ul>
+
+    <h2>Chain coverage</h2>
+
+    <p>Eight testnets, every pair routable via CCTP V2. The chip selector covers:</p>
+
+    <table class="t">
+      <tr><th>Chain</th><th>Role</th><th>Notes</th></tr>
+      <tr><td><strong>Arc Testnet</strong></td><td>Source · Destination</td><td>Home chain. USDC is native gas, finality is sub-second.</td></tr>
+      <tr><td>Base Sepolia</td><td>Source · Destination</td><td>Default source — Coinbase-friendly faucet.</td></tr>
+      <tr><td>Ethereum Sepolia</td><td>Source · Destination</td><td>Slowest finality (~13 min) when source.</td></tr>
+      <tr><td>Avalanche Fuji</td><td>Source · Destination</td><td>Fastest finality from source — ~30s end-to-end.</td></tr>
+      <tr><td>Arbitrum Sepolia</td><td>Source · Destination</td><td>L2 finality.</td></tr>
+      <tr><td>OP Sepolia</td><td>Source · Destination</td><td>L2 finality.</td></tr>
+      <tr><td>Polygon Amoy</td><td>Source · Destination</td><td>Polygon's PoS testnet.</td></tr>
+      <tr><td>Unichain Sepolia</td><td>Source · Destination</td><td>Newest in the lineup.</td></tr>
+    </table>
+
+    <p>You can mix and match freely: pull from Base + Fuji + Arc as sources, fan out to four target wallets each on a different chain, with one agent.</p>
+
+    <h2>What's actually in the preview</h2>
+
+    <p>The agent has been on a rapid iteration cycle for two months. Highlights of what shipped:</p>
+
+    <ul>
+      <li><strong>CCTP V2 cross-chain delivery.</strong> Per-target destination chain selection — the agent burns on source and mints on destination automatically. ~30s fast-finality where Circle supports it.</li>
+      <li><strong>EIP-2612 permits as the primary funding flow.</strong> No pre-funding the executor wallet — the agent pulls from your wallet at runtime. Arc is a first-class permit source now.</li>
+      <li><strong>Cloudflare Workers cron.</strong> Moved off GitHub Actions to a proper Worker — sub-minute scheduling, no minute-jitter, no Actions queue.</li>
+      <li><strong>Auto-pause + diagnostic surface.</strong> Five failures auto-pause with a tailored retry CTA; an admin endpoint exposes the failure log for debugging.</li>
+      <li><strong>Bounded ERC-20 approvals.</strong> Recent security pass capped permit headroom at 10× — no more "infinite approval" footgun.</li>
+      <li><strong>Per-target chain selection + custom AM/PM time picker.</strong> Locale-safe scheduling UI.</li>
+      <li><strong>Drawer with run-now, retry-failed-provision, force-complete.</strong> The "everything stuck for 5 min" recovery paths are surfaced in the UI, not hidden in admin.</li>
+    </ul>
+
+    <h2>Why this design</h2>
+
+    <p>We could have built a "ArcSwap-managed wallet that holds your USDC and sends it on a schedule". We didn't. Custody-style scheduled-send products already exist; <strong>they require trusting the operator</strong>. ArcSwap is non-custodial by construction, and the agent had to stay that way.</p>
+
+    <p>The shape that emerged: <strong>your EOA stays your EOA</strong>. The agent's smart account holds no balance you didn't permit. The permit caps the blast radius. The cron Worker can be compromised tomorrow and the worst case is bounded by what you signed — not "all your USDC drained".</p>
+
+    <p>That trade has costs. You sign twice the first time (rule + permit). You re-sign when you change the rule. The agent can't move funds you didn't pre-authorise, ever. We think that's the right trade for a primitive this powerful.</p>
+
+    <h2>How to try it</h2>
+
+    <ol class="steps">
+      <li><strong>Get testnet USDC.</strong> <span><a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">faucet.circle.com</a> on Arc Testnet or any of the seven other supported chains. The same USDC works as both the agent's funding source and Arc's gas token.</span></li>
+      <li><strong>Open <a href="/agent">arcswap.net/agent</a>.</strong> <span>Connect a wallet. Pick a mode — Auto Top-Up or Scheduled Send. Pick at least one source chain and at least one target wallet.</span></li>
+      <li><strong>Set the rule.</strong> <span>Top-Up: floor + refill amount + daily cap. Scheduled: amount + frequency + start time. The summary card on the right shows you the policy in plain English before you sign.</span></li>
+      <li><strong>Deploy.</strong> <span>Two signatures (rule + permit per source chain), one server registration call, done. The agent appears in your list with a live status pill. First execution lands on the next cron tick if a rule is satisfied immediately.</span></li>
+      <li><strong>Watch the receipts.</strong> <span>Every execution shows up in the agent drawer with state machine, burn-tx explorer link, and final mint hash. The <a href="/history">History</a> page surfaces them in your unified activity feed too.</span></li>
+    </ol>
+
+    <div class="callout warn">
+      <div class="callout-title">Testnet only — no real money</div>
+      <div class="callout-body">Everything on the agent today runs on <strong>Arc Testnet</strong> and seven other Circle-supported testnets. USDC is testnet USDC. <strong>Never send mainnet USDC to a testnet address</strong> — it's unrecoverable.</div>
+    </div>
+
+    <h2>What's next</h2>
+
+    <p>The agent is the first ArcSwap product where reliability matters more than features. The next few weeks are reliability work:</p>
+
+    <ol>
+      <li><strong>Observability.</strong> Per-execution traces, public uptime dashboard for the cron worker, alerting on the failure-rate KPI.</li>
+      <li><strong>Edge cases.</strong> What happens when CCTP fast-finality is degraded? When a target wallet sits behind a smart contract that reverts? When the user's permit gets revoked outside our UI? We're surfacing all of those clearly.</li>
+      <li><strong>Mobile signing.</strong> WalletConnect / Reown AppKit so you can sign from a phone — the agent itself runs server-side, so mobile is purely a signing flow.</li>
+      <li><strong>More rule shapes.</strong> Conditional rules ("if A's balance &gt; X, send to B"), webhooks for inbound triggers, and B2B memo references on every transfer.</li>
+    </ol>
+
+    <p>Past that, mainnet — we ship on Arc Mainnet shortly after Arc Foundation launches it, with the same non-custodial, permit-bounded design.</p>
+
+    <h2>Try it, break it, tell us</h2>
+
+    <p>Open <a href="https://arcswap.net/agent">arcswap.net/agent</a>, sign a rule, and watch USDC move itself. If it does something weird, ping us in <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a> with the agent ID — we're triaging preview reports in real time.</p>
+
+    <div class="cta-card">
+      <h3>Let your USDC do the boring work.</h3>
+      <p>Auto-Replenish Agent · Preview on Arc Testnet · Eight chains · One signature.</p>
+      <a href="/agent">Open Agent</a>
+      <a class="alt" href="/docs#agent">Read the docs</a>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>ArcSwap is a non-custodial frontend currently on Arc Testnet. The Auto-Replenish Agent is in preview — expect rough edges and report them. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+
+  </article>
+
+  <div class="foot">
+    <span>© 2026 ArcSwap · Built on Arc Testnet</span>
+    <div>
+      <a href="/blog">← Back to blog</a> &nbsp;·&nbsp;
+      <a href="https://x.com/arc_swap" target="_blank" rel="noopener noreferrer">X</a> &nbsp;·&nbsp;
+      <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

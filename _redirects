@@ -33,6 +33,7 @@
 # Old flat URLs → 301 sang URL mới
 /blog-launch        /blog/launch-arc-testnet      301
 /blog-arcswap       /blog/what-is-arcswap         301
+/blog-agent         /blog/launch-agent            301
 
 # ─── Defense-in-depth: block direct access to source/internal files ──────────
 # These should never exist in a deploy, but if a future `wrangler pages deploy`
