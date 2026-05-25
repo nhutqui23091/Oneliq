@@ -280,6 +280,15 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
 .picker-search{width:100%;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;outline:none;margin-bottom:10px}
 .picker-search:focus{border-color:var(--arc2)}
 .picker-list{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow:auto}
+.token-badge{font-size:9.5px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:5px;text-transform:uppercase;vertical-align:middle;margin-left:5px}
+.token-badge.unverified{background:rgba(255,180,84,.12);color:#FFB454;border:1px solid rgba(255,180,84,.3)}
+.import-card{padding:14px 16px;background:rgba(255,180,84,.06);border:1px solid rgba(255,180,84,.25);border-radius:12px;margin-top:4px}
+.import-warn{font-size:12px;font-weight:700;color:#FFB454;margin-bottom:10px}
+.import-meta{font-size:14px;font-weight:600;margin-bottom:4px}
+.import-addr{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:12px}
+.import-btns{display:flex;gap:8px}
+.import-btn{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:var(--surface2);color:var(--muted)}
+.import-btn.confirm{background:rgba(255,180,84,.15);color:#FFB454;border-color:rgba(255,180,84,.35)}
 
 /* Progress modal */
 .progress-steps{display:flex;flex-direction:column;gap:12px;margin:12px 0}
@@ -518,6 +527,32 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
   const ALL_CHAINS = Object.keys(CHAINS);
   // Chains where App Kit swap (USDC↔EURC etc.) works
   const SWAP_CHAINS = ['arc'];
+
+  // ── CUSTOM TOKENS ────────────────────────────────────
+  // Per-chain user-imported tokens stored in localStorage so they persist
+  // across sessions. Merged into TOKENS[chainKey] at startup and after import.
+  const CUSTOM_LS_KEY = 'arcswap:customTokens';
+  function loadCustomTokens(chainKey) {
+    try { return JSON.parse(localStorage.getItem(CUSTOM_LS_KEY) || '{}')[chainKey] || []; } catch { return []; }
+  }
+  function saveCustomToken(chainKey, tok) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CUSTOM_LS_KEY) || '{}');
+      if (!saved[chainKey]) saved[chainKey] = [];
+      if (!saved[chainKey].find(t => t.address.toLowerCase() === tok.address.toLowerCase()))
+        saved[chainKey].push(tok);
+      localStorage.setItem(CUSTOM_LS_KEY, JSON.stringify(saved));
+    } catch {}
+  }
+  function mergeCustomTokens() {
+    for (const chainKey of ALL_CHAINS) {
+      loadCustomTokens(chainKey).forEach(tok => {
+        if (!TOKENS[chainKey]) TOKENS[chainKey] = {};
+        TOKENS[chainKey][tok.symbol] = tok;
+      });
+    }
+  }
+  mergeCustomTokens();
 
   // shorthand helpers
   function chainShort(k) { return CHAINS[k]?.short || k; }
@@ -839,11 +874,49 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       onOpen: () => {
         const list = document.getElementById('pick-list');
         async function render(q = '') {
+          // If the search query is a valid contract address, trigger import flow
+          if (isAddress(q.trim())) {
+            list.innerHTML = `<div style="padding:10px 0;color:var(--muted);font-size:13px">Looking up contract…</div>`;
+            try {
+              const addr = getAddress(q.trim());
+              const c = new Contract(addr, ABIS.erc20, rpcProvider(chainKey));
+              const [sym, name, dec] = await Promise.all([c.symbol(), c.name(), c.decimals()]);
+              const tok = { symbol: sym, name, address: addr, decimals: Number(dec), custom: true };
+              const already = tokens.find(t => t.address.toLowerCase() === addr.toLowerCase());
+              list.innerHTML = `<div class="import-card">
+                <div class="import-warn">⚠ Unverified token — trade at your own risk</div>
+                <div class="import-meta">${sym} — ${name}</div>
+                <div class="import-addr">${addr}</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Decimals: ${Number(dec)} · Chain: ${CHAINS[chainKey].short}</div>
+                <div class="import-btns">
+                  <button class="import-btn confirm" id="import-confirm">${already ? 'Select' : 'Import & select'}</button>
+                  <button class="import-btn cancel" id="import-cancel">Cancel</button>
+                </div>
+              </div>`;
+              document.getElementById('import-confirm').onclick = () => {
+                if (!already) {
+                  saveCustomToken(chainKey, tok);
+                  if (!TOKENS[chainKey]) TOKENS[chainKey] = {};
+                  TOKENS[chainKey][sym] = tok;
+                  tokens = Object.values(TOKENS[chainKey] || {});
+                  if (isGatewaySource) tokens = tokens.filter(t => t.symbol === 'USDC');
+                }
+                state[side + 'Token'] = already || tok;
+                renderPickBtn(side);
+                ArcUI.closeModal();
+                updateBalances(); triggerQuote();
+              };
+              document.getElementById('import-cancel').onclick = () => render('');
+            } catch {
+              list.innerHTML = `<div style="padding:10px 0;color:var(--danger,#ff7a7a);font-size:13px">Contract not found or not a valid ERC-20 on ${CHAINS[chainKey].short}.</div>`;
+            }
+            return;
+          }
           const filtered = tokens.filter(t => !q || t.symbol.toLowerCase().includes(q.toLowerCase()) || t.name.toLowerCase().includes(q.toLowerCase()) || t.address.toLowerCase() === q.toLowerCase());
           list.innerHTML = filtered.map(t => `
             <div class="token-row" data-addr="${t.address}">
               <div class="token-ico">${t.icon ? `<img src="${t.icon}" onerror="this.replaceWith(document.createTextNode('${t.symbol[0]}'))"/>` : t.symbol[0]}</div>
-              <div class="token-meta"><div class="token-sym">${t.symbol}</div><div class="token-name">${t.name}</div></div>
+              <div class="token-meta"><div class="token-sym">${t.symbol}${t.custom ? '<span class="token-badge unverified">unverified</span>' : ''}</div><div class="token-name">${t.name}</div></div>
               <div class="token-bal" data-bal="${t.address}">—</div>
             </div>`).join('');
           list.querySelectorAll('.token-row').forEach(r => r.onclick = () => {
@@ -1234,6 +1307,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     if (token.symbol === 'USDC') return s.toFixed(2);
     if (token.symbol === 'EURC') return (s * 1.08).toFixed(2);
     if (token.symbol === 'ETH') return (s * 2400).toFixed(2);
+    if (token.custom) return '';
     return s.toFixed(2);
   }
 
