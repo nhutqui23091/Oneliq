@@ -203,6 +203,13 @@
         decimals: 6,
         icon: 'https://assets.coingecko.com/coins/images/26045/small/euro.png',
       },
+      cirBTC: {
+        symbol: 'cirBTC',
+        name: 'Circle Bitcoin',
+        address: '0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF',
+        decimals: 8,
+        icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+      },
     },
     sepolia: {
       USDC: {
@@ -219,6 +226,13 @@
         decimals: 18,
         isGas: true,
         icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+      },
+      cirBTC: {
+        symbol: 'cirBTC',
+        name: 'Circle Bitcoin',
+        address: '0x3a3fe695F684Bf9b9e43CF43C2b895Ea5e392bB3',
+        decimals: 8,
+        icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
       },
     },
     baseSepolia: {
