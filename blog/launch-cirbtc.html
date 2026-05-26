@@ -190,36 +190,24 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 
     <p>One clarification on scope. cirBTC on ArcSwap today is a hold-and-trade asset. <strong>CCTP V2 bridging and Circle Gateway spend flows are not yet supported for cirBTC.</strong> Both depend on Circle adding the token to their cross-chain infrastructure, which is part of the multichain roadmap Circle has published for cirBTC. The contract addresses above are the canonical testnet references for any team building on Arc or Ethereum Sepolia.</p>
 
-    <h2>Use cases: Bitcoin as productive capital</h2>
+    <h2>What cirBTC enables on Arc</h2>
 
-    <p>Bitcoin holds the largest market capitalization of any digital asset, yet that capital has historically been inactive within decentralized finance. The Bitcoin network's absence of native smart contract support is the primary reason. cirBTC removes that constraint by making BTC holdings addressable within EVM protocols.</p>
-
-    <p>Circle's documentation identifies the foundational use case: a holder can post cirBTC as collateral in a lending protocol to borrow USDC and access dollar liquidity without closing the underlying Bitcoin position. The design space beyond that is substantial.</p>
+    <p>cirBTC is the foundation for the BTC use cases Circle has identified for the Arc ecosystem. These are the patterns the asset is designed to support as the network and its protocol ecosystem develop.</p>
 
     <div class="usecase-grid">
       <div class="uc-card">
         <span class="uc-tag">// Lending</span>
-        <div class="uc-name">Collateral for USDC</div>
-        <p class="uc-desc">Post cirBTC as collateral and borrow USDC against it. The position maintains BTC exposure while releasing dollar liquidity. Circle identifies this as the primary institutional use case for the token.</p>
+        <div class="uc-name">BTC-collateralized USDC borrowing</div>
+        <p class="uc-desc">Lending protocols deploying on Arc can accept cirBTC as collateral, letting holders unlock USDC liquidity without selling the underlying Bitcoin position. Circle identifies this as the primary institutional use case for the token.</p>
       </div>
       <div class="uc-card">
         <span class="uc-tag">// DEX</span>
-        <div class="uc-name">BTC / USDC Trading</div>
-        <p class="uc-desc">Trade cirBTC against USDC on Arc's Uniswap V2 deployment. USDC is the native gas token on Arc, so BTC positions can be managed with dollar-denominated transaction costs and no ETH requirement.</p>
-      </div>
-      <div class="uc-card">
-        <span class="uc-tag">// Liquidity</span>
-        <div class="uc-name">LP Yield on BTC</div>
-        <p class="uc-desc">Provide liquidity to a cirBTC/USDC pool and earn trading fees on each swap. A static Bitcoin holding becomes a fee-generating position within the Circle ecosystem, without external custody.</p>
-      </div>
-      <div class="uc-card">
-        <span class="uc-tag">// Treasury</span>
-        <div class="uc-name">Institutional BTC Treasury</div>
-        <p class="uc-desc">Hold BTC exposure in EVM-compatible form and integrate with Circle's full stack, including Programmable Wallets, Gateway, and CCTP, without placing raw Bitcoin in a third-party exchange's custody.</p>
+        <div class="uc-name">Native BTC trading pairs</div>
+        <p class="uc-desc">DEXes on Arc can list cirBTC alongside USDC and EURC, with stablecoins as the quote currency. USDC is the native gas token on Arc, so BTC positions carry USD-denominated transaction costs with no ETH requirement.</p>
       </div>
     </div>
 
-    <p>Three of these four use cases are testable on Arc's existing infrastructure today. The Arc Foundation has deployed Uniswap V2 on Arc Testnet. A cirBTC/USDC liquidity pool can be seeded and trading can start. Liquidity provision and fee accrual follow from there. The institutional treasury scenario requires no protocol at all: holding testnet cirBTC and exercising the token mechanics is itself a validation exercise before Circle's mainnet deployment.</p>
+    <p>These integrations are part of the Arc ecosystem roadmap. ArcSwap will surface them as protocols ship.</p>
 
     <h2>The neutral issuer design</h2>
 
