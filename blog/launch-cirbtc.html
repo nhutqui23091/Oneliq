@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/icon-arcswap.png?v=1"/>
+<link rel="apple-touch-icon" href="/assets/logos/icon-arcswap.png?v=1"/>
+<meta name="description" content="cirBTC — Circle's 1:1 BTC-backed token — is now live in the ArcSwap trade picker on Arc Testnet and Ethereum Sepolia. Bitcoin as productive capital in the Circle ecosystem."/>
+<link rel="canonical" href="https://arcswap.net/blog/launch-cirbtc"/>
+<meta property="og:title" content="Bitcoin meets the Circle ecosystem — cirBTC is now on ArcSwap"/>
+<meta property="og:description" content="Circle Wrapped Bitcoin is live in the ArcSwap trade picker on Arc Testnet and Sepolia. 1:1 BTC-backed, neutral issuer, EVM-native. The foundation for BTC DeFi in the Circle stack."/>
+<meta property="og:image" content="https://arcswap.net/assets/social/blog-cirbtc-banner.svg"/>
+<meta property="og:url" content="https://arcswap.net/blog/launch-cirbtc"/>
+<meta property="og:type" content="article"/>
+<title>Bitcoin meets the Circle ecosystem — cirBTC is now on ArcSwap | ArcSwap Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A1628;--bg2:#0F1E36;
+  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
+  --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
+  --btc:#F7B731;
+  --warn:#FFB454;--danger:#FF7A7A;
+  --display:'Space Grotesk','Inter',system-ui,sans-serif; --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.7}
+.aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  background:radial-gradient(ellipse 100% 40% at 50% 0%,rgba(247,183,49,0.09) 0%,transparent 60%),
+  linear-gradient(180deg,#0A1628 0%,#0E1F39 60%,#0A1628 100%)}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .nav-logo{justify-self:start}
+nav .nav-links{justify-self:center}
+nav .nav-right{justify-self:end}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-img{height:28px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
+.logo-tag{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);font-family:var(--mono);text-transform:uppercase;border-left:1px solid var(--border);padding-left:10px;margin-left:4px}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:8px 16px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;text-decoration:none}
+.nav-link:hover{color:var(--text);background:var(--surface)}
+.nav-link.active{color:var(--text);background:var(--surface)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(255,255,255,0.14)}
+
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:120px 24px 80px}
+.crumb{font-size:12px;font-family:var(--mono);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px}
+.crumb a{color:var(--muted);text-decoration:none}
+.crumb a:hover{color:var(--text)}
+.eyebrow{font-size:12px;font-family:var(--mono);color:var(--btc);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+h1.title{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin-bottom:18px}
+h1.title .grad{background:linear-gradient(90deg,var(--btc),var(--arc3),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lead{font-size:19px;color:#C8D1E0;line-height:1.6;margin-bottom:28px;font-weight:400}
+.byline{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.byline-author{font-weight:600;color:var(--text)}
+.byline-sep{color:var(--border2)}
+.banner{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:48px;background:#0A1628}
+
+article{font-size:17px;line-height:1.78}
+article p{color:#D8DFEA;margin-bottom:22px}
+article p strong{color:var(--text);font-weight:600}
+article p em{color:var(--text);font-style:italic;background:rgba(247,183,49,0.08);padding:1px 4px;border-radius:3px}
+article a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.3);transition:border-color .2s}
+article a:hover{border-bottom-color:var(--arc1)}
+article a:visited{color:var(--arc1)}
+article h2{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:72px 0 20px;line-height:1.2;color:var(--text)}
+article h2:first-of-type{margin-top:12px}
+article h3{font-size:22px;font-weight:600;margin:44px 0 14px;letter-spacing:-.01em;color:var(--text)}
+article ul,article ol{padding-left:24px;margin-bottom:24px}
+article li{color:#D8DFEA;margin-bottom:8px}
+article li::marker{color:var(--btc)}
+
+code{font-family:var(--mono);font-size:14px;background:rgba(247,183,49,0.08);border:1px solid rgba(247,183,49,0.18);padding:1px 6px;border-radius:5px;color:var(--btc)}
+
+.callout{border-left:3px solid var(--btc);background:rgba(247,183,49,0.06);padding:16px 20px;border-radius:0 10px 10px 0;margin:28px 0}
+.callout.info{border-left-color:var(--arc1);background:rgba(77,214,219,0.06)}
+.callout.warn{border-left-color:var(--warn);background:rgba(255,180,84,0.06)}
+.callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--btc)}
+.callout.info .callout-title{color:var(--arc1)}
+.callout.warn .callout-title{color:var(--warn)}
+.callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
+
+table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.t th,.t td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.t th{background:rgba(255,255,255,0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.t td{color:#C8D1E0}
+.t tr:last-child td{border-bottom:none}
+
+.usecase-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:36px 0 44px}
+.uc-card{padding:22px 22px 24px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));position:relative;overflow:hidden;transition:border-color .2s}
+.uc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(180deg,rgba(247,183,49,0.10) 0%,transparent 100%);pointer-events:none}
+.uc-card:hover{border-color:var(--border2)}
+.uc-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--btc);margin-bottom:10px;display:block;position:relative}
+.uc-name{font-size:19px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.015em;line-height:1.25;position:relative}
+.uc-desc{font-size:14.5px;color:#D8DFEA;line-height:1.55;position:relative}
+@media(max-width:720px){.usecase-grid{grid-template-columns:1fr}}
+
+.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(247,183,49,0.08),rgba(255,255,255,0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
+.cta-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
+.cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(247,183,49,0.14);border:1px solid rgba(247,183,49,0.42);color:var(--btc);transition:all .2s;margin:0 4px}
+.cta-card a:hover{background:rgba(247,183,49,0.24);border-color:var(--btc)}
+.cta-card a.alt{background:rgba(77,214,219,0.12);border-color:rgba(77,214,219,0.36);color:var(--arc1)}
+.cta-card a.alt:hover{background:rgba(77,214,219,0.2);border-color:var(--arc1)}
+
+.foot{margin-top:60px;padding-top:28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
+.foot a{color:var(--muted);text-decoration:none}
+.foot a:hover{color:var(--arc1)}
+
+@media(max-width:768px){.wrap{padding:100px 18px 60px}.nav-links{display:none}h1.title{font-size:32px}article h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<nav>
+  <a class="nav-logo" href="/">
+    <img class="logo-img" src="/assets/logos/wordmark-arcswap.png?v=2" alt="ArcSwap" width="129" height="28"/>
+    <span class="logo-tag">Blog</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/trade">Trade</a>
+    <a class="nav-link" href="/balance">Balance</a>
+    <a class="nav-link" href="/agent">Agent</a>
+    <a class="nav-link" href="/token">Create Token</a>
+    <a class="nav-link active" href="/blog">Blog</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn-ghost" href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    <a class="btn-primary" href="/trade">Try Trade ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; cirBTC is now on ArcSwap</div>
+  <div class="eyebrow">Asset Integration · Arc Testnet</div>
+  <h1 class="title">Bitcoin meets the Circle ecosystem — <span class="grad">cirBTC is now on ArcSwap</span></h1>
+  <p class="lead">Circle Wrapped Bitcoin is live in the ArcSwap trade picker on Arc Testnet and Ethereum Sepolia. 1:1 backed by native BTC, issued by Circle as a neutral party — the first BTC-backed asset in ArcSwap's token list.</p>
+
+  <div class="byline">
+    <span class="byline-author">ArcSwap Team</span>
+    <span class="byline-sep">·</span>
+    <span>May 26, 2026</span>
+    <span class="byline-sep">·</span>
+    <span>5 min read</span>
+  </div>
+
+  <img class="banner" src="/assets/social/blog-cirbtc-banner.svg" alt="cirBTC is now on ArcSwap — Bitcoin meets the Circle ecosystem"/>
+
+  <article>
+
+    <p>cirBTC is now in the ArcSwap token picker. That puts Circle Wrapped Bitcoin — a 1:1 BTC-backed token issued by Circle — in the same venue as USDC, EURC, and the rest of the Circle stack on Arc Testnet and Ethereum Sepolia. It is the first BTC-backed asset in ArcSwap's token list, and the logic for why it belongs here is straightforward: cirBTC is a Circle-issued token on Circle-deployed infrastructure. It fits.</p>
+
+    <div class="callout">
+      <div class="callout-title">TL;DR</div>
+      <div class="callout-body">
+        cirBTC is live in the ArcSwap trade picker on <strong>Arc Testnet</strong> and <strong>Ethereum Sepolia</strong>. Each token is 1:1 backed by native BTC, issued by Circle as a neutral party with no competing exchange or lending book. <strong>CCTP bridging and Gateway support for cirBTC are not yet available</strong> — those require Circle to extend their cross-chain infrastructure to the token, which is part of their published multichain roadmap. What's live now: select it in the picker, hold testnet cirBTC, and use it in any protocol on Arc or Sepolia that supports the contracts.
+      </div>
+    </div>
+
+    <h2>What is cirBTC</h2>
+
+    <p>Circle Wrapped Bitcoin (cirBTC) is a tokenized representation of Bitcoin issued by Circle. Each cirBTC is 1:1 backed by native BTC held by a regulated Circle entity, kept separate from Circle's corporate holdings and reserved exclusively for the benefit of cirBTC holders. Every token is redeemable for the underlying Bitcoin.</p>
+
+    <p>The reason to wrap Bitcoin is structural. The Bitcoin network does not support smart contracts natively, which means raw BTC cannot participate in lending protocols, AMM pools, or cross-chain payment flows without a wrapping step. cirBTC addresses this by creating a smart-contract-native token on EVM chains — in Circle's words, it <em>transforms idle Bitcoin into productive capital</em>.</p>
+
+    <h2>cirBTC on ArcSwap today</h2>
+
+    <p>From today, cirBTC appears in the ArcSwap trade token picker on two networks. The token is pre-listed — no manual import needed:</p>
+
+    <table class="t">
+      <tr><th>Chain</th><th>Contract Address</th><th>Decimals</th></tr>
+      <tr><td><strong>Arc Testnet</strong></td><td><code>0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF</code></td><td>8</td></tr>
+      <tr><td>Ethereum Sepolia</td><td><code>0x3a3fe695F684Bf9b9e43CF43C2b895Ea5e392bB3</code></td><td>8</td></tr>
+    </table>
+
+    <p>A few things to be precise about. cirBTC on ArcSwap today is a hold-and-trade asset. <strong>CCTP V2 bridging and Circle Gateway spend flows are not yet available for cirBTC</strong> — both require Circle to include the token in their cross-chain infrastructure, which is part of their published multichain roadmap. What's live: balances load correctly in the picker, the token is recognised natively on both networks, and it is ready for any protocol on Arc or Sepolia that supports the contract addresses above.</p>
+
+    <h2>Use cases: Bitcoin as productive capital</h2>
+
+    <p>Bitcoin's value proposition in DeFi flows from a single structural observation: BTC is the most widely held digital asset, but raw Bitcoin can't interact with smart contracts. It can't be collateral, it can't earn LP fees, and it can't move cross-chain without a third party in the path. cirBTC changes that. Circle's own documentation leads with one specific use case — <strong>posting cirBTC as collateral to borrow USDC</strong> and access liquidity without selling the underlying Bitcoin position. The design space from there is wider:</p>
+
+    <div class="usecase-grid">
+      <div class="uc-card">
+        <span class="uc-tag">// Lending</span>
+        <div class="uc-name">Collateral for USDC</div>
+        <p class="uc-desc">Post cirBTC as collateral in a lending protocol and borrow USDC — accessing dollar liquidity without selling the underlying Bitcoin position. Circle documents this as the primary institutional use case.</p>
+      </div>
+      <div class="uc-card">
+        <span class="uc-tag">// DEX</span>
+        <div class="uc-name">BTC / USDC Trading</div>
+        <p class="uc-desc">Trade cirBTC against USDC directly on Arc's Uniswap V2 deployment. USDC is the native gas token on Arc — BTC DeFi with USD-denominated transaction costs, no ETH required.</p>
+      </div>
+      <div class="uc-card">
+        <span class="uc-tag">// Liquidity</span>
+        <div class="uc-name">LP Yield on BTC</div>
+        <p class="uc-desc">Provide cirBTC/USDC liquidity to an AMM pool and earn trading fees — turning a static Bitcoin position into a yield-generating one within the Circle ecosystem.</p>
+      </div>
+      <div class="uc-card">
+        <span class="uc-tag">// Treasury</span>
+        <div class="uc-name">Institutional BTC Treasury</div>
+        <p class="uc-desc">Institutions can hold BTC exposure in EVM-compatible form and integrate with Circle's full stack — Programmable Wallets, Gateway, CCTP — without custodying raw Bitcoin on a third-party exchange.</p>
+      </div>
+    </div>
+
+    <p>Three of these four use cases are testable on Arc's existing infrastructure today. The Arc Foundation has deployed Uniswap V2 — a cirBTC/USDC pool can be seeded on Arc Testnet. LP yield and DEX trading follow from there. The institutional treasury workflow doesn't require a protocol at all: it's the act of holding testnet cirBTC and validating Circle's token mechanics and custody model before their mainnet launch.</p>
+
+    <h2>The neutral issuer advantage</h2>
+
+    <p>A detail worth pausing on: <strong>Circle does not operate a competing exchange or lending book</strong>. This matters specifically for wrapped tokens.</p>
+
+    <p>When an exchange issues wrapped BTC, the issuer has privileged mint/burn access to the token while simultaneously running a business that competes with the lending and trading protocols built on top of it. That is a structural conflict of interest. It also concentrates custody risk — wrapped BTC is only as reliable as the exchange that issued it.</p>
+
+    <p>cirBTC is built on the same model as USDC and EURC: neutral issuer, reserves segregated from corporate assets, redeemable 1:1 for the underlying asset. Circle has operated under that model at scale for years. On Arc specifically, there is one additional layer: USDC is the native gas token. Doing BTC-denominated DeFi on Arc means paying transaction fees in dollars, not ETH. <strong>USD-denominated costs, BTC-denominated exposure.</strong></p>
+
+    <h2>What's next</h2>
+
+    <p>Circle's cirBTC roadmap explicitly includes multichain mobility — expanding to more chains as part of the same model they have used for USDC. ArcSwap already has CCTP V2 infrastructure deployed across eight testnets. When Circle extends cirBTC to those chains, the routing on our side is ready.</p>
+
+    <p>On the protocol side, as lending markets come to Arc, cirBTC is a natural first-class collateral asset. The token mechanics are live and testable on Arc Testnet today — any team building a lending protocol on Arc can start integrating against the contract now.</p>
+
+    <h2>Try it</h2>
+
+    <p>Open <a href="https://arcswap.net/trade">arcswap.net/trade</a>, connect a wallet, and find cirBTC in the token selector. Switch to <strong>Arc Testnet</strong> or <strong>Ethereum Sepolia</strong> — the token shows up automatically, no import required. If you are building a protocol on Arc that wants to integrate cirBTC, the contract addresses in the table above are the canonical testnet references.</p>
+
+    <div class="cta-card">
+      <h3>Bitcoin in the Circle ecosystem.</h3>
+      <p>cirBTC is live on ArcSwap — Arc Testnet and Ethereum Sepolia. No import needed.</p>
+      <a href="/trade">Open Trade</a>
+      <a class="alt" href="/docs">Read the docs</a>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Testnet only — no real money</div>
+      <div class="callout-body">Everything on ArcSwap today runs on <strong>Arc Testnet</strong>. cirBTC here is a testnet token — not real Bitcoin. <strong>Never send mainnet BTC or USDC to a testnet address</strong> — it is unrecoverable.</div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>ArcSwap is a non-custodial frontend currently on Arc Testnet. cirBTC is Circle's testnet token. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+
+  </article>
+
+  <div class="foot">
+    <span>© 2026 ArcSwap · Built on Arc Testnet</span>
+    <div>
+      <a href="/blog">← Back to blog</a> &nbsp;·&nbsp;
+      <a href="https://x.com/arc_swap" target="_blank" rel="noopener noreferrer">X</a> &nbsp;·&nbsp;
+      <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
