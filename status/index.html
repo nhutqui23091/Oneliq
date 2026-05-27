@@ -368,6 +368,7 @@ async function renderFeed() {
           amount: e.amount != null ? Number(e.amount).toFixed(2) : null,
           chainKey: e.chain, chainLabel,
           hash: e.txHash, ago: Date.now() - e.ts,
+          sources: Array.isArray(e.sources) && e.sources.length > 1 ? e.sources : null,
         };
       });
       document.getElementById('feed-card').innerHTML = items.map(it => `
@@ -376,6 +377,7 @@ async function renderFeed() {
           <div class="feed-main">
             <div class="feed-title">${it.label}</div>
             <div class="feed-sub">${it.hash ? A.shortHash(it.hash) : 'no on-chain hash'} · ${it.chainLabel}</div>
+            ${it.sources ? `<div class="feed-sub" style="margin-top:2px;font-size:10px;color:var(--muted)">From: ${it.sources.map(s => chainShortLabel(s.chainKey) + (s.amount ? ' ' + s.amount : '')).join(' · ')}</div>` : ''}
           </div>
           <div class="feed-amt">${it.amount != null ? it.amount + ' USDC' : '—'}</div>
           <div class="feed-chain">${chainShortLabel(it.chainKey)}</div>

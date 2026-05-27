@@ -718,13 +718,15 @@
   //
   // Never throws, never blocks. `keepalive: true` lets the request finish
   // even if the user navigates away immediately after.
-  async function track(event, chain, amount = null, txHash = null, surface = null) {
+  async function track(event, chain, amount = null, txHash = null, surface = null, extra = null) {
     try {
+      const payload = { event, chain, amount, txHash, surface };
+      if (extra && typeof extra === 'object') Object.assign(payload, extra);
       await fetch('/api/metrics/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         keepalive: true,
-        body: JSON.stringify({ event, chain, amount, txHash, surface }),
+        body: JSON.stringify(payload),
       });
     } catch (e) {
       // Best-effort only — never surface to the user.
@@ -748,7 +750,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.6.4',
+    version: '9.6.5',
   };
 
   // ───────── CHAIN ICONS ─────────

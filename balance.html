@@ -336,7 +336,7 @@ html{scroll-behavior:smooth}
         integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM"
         crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
-<script src="/assets/arc-core.js?v=9.6.4"></script>
+<script src="/assets/arc-core.js?v=9.6.5"></script>
 <script src="/assets/arc-gateway.js?v=9.6.2"></script>
 <script src="/assets/arc-ui.js?v=9.7.6"></script>
 <script>
@@ -1130,7 +1130,12 @@ html{scroll-behavior:smooth}
       pushToHistory('bridge', dst, mintHash, `Cross-chain spend ${amtStr} USDC → ${chainName(dst)}`);
       // Real-metrics telemetry — mint tx hash on destination chain so the
       // status page can deep-link to dst chain's explorer.
-      try { ARC.track('spend', dst, Number(amtStr), mintHash, 'balance'); } catch {}
+      try {
+        const sourcesPayload = spentSources && spentSources.length > 1
+          ? { sources: spentSources.map(s => ({ chainKey: s.chainKey, amount: fmtBig(s.valueCanonical) })) }
+          : null;
+        ARC.track('spend', dst, Number(amtStr), mintHash, 'balance', sourcesPayload);
+      } catch {}
       setTimeout(() => closeModal('modal-spend'), 2500);
       refreshAll();
     } catch (e) {

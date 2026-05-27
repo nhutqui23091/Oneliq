@@ -398,10 +398,21 @@ export async function onRequest(context) {
                  : null;
     if (txHash && !/^0x[0-9a-fA-F]{1,128}$/.test(txHash)) return bad('invalid_tx_hash', origin);
 
+    // Optional per-source breakdown for cross-chain spend events.
+    // Stored verbatim in the ring buffer; ignored by rollup counters.
+    let sources = null;
+    if (Array.isArray(body.sources) && body.sources.length > 0) {
+      sources = body.sources
+        .filter(s => s && typeof s === 'object' && typeof s.chainKey === 'string')
+        .map(s => ({ chainKey: String(s.chainKey).slice(0, 32), amount: s.amount != null ? String(s.amount).slice(0, 20) : null }))
+        .slice(0, 20);
+      if (!sources.length) sources = null;
+    }
+
     const day = utcDate(ts);
     const rand = Math.random().toString(36).slice(2, 10);
     const eventKey = `metric:event:${ts}:${rand}`;
-    const eventData = { event, chain, amount, txHash, surface, ts };
+    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}) };
     const fp = await fingerprint(request);
 
     // Raw audit-trail writes — kept for reconciliation. Best-effort, parallel.
