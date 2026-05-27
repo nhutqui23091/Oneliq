@@ -410,6 +410,13 @@ html{scroll-behavior:smooth}
     });
     if (changed) saveTxPending();
   }
+  function pushToHistory(kind, chainKey, hash, text) {
+    try {
+      const xs = JSON.parse(localStorage.getItem('arc.trade.activity.v1') || '[]');
+      xs.unshift({ kind, chain: chainKey, hash: hash || '', status: 'done', text, at: Date.now() });
+      localStorage.setItem('arc.trade.activity.v1', JSON.stringify(xs.slice(0, 30)));
+    } catch {}
+  }
 
   const chainKeys = ARC.gateway.gatewayChains();
 
@@ -610,8 +617,9 @@ html{scroll-behavior:smooth}
         const btn = e.target;
         btn.disabled = true; btn.textContent = 'Finalizing…';
         try {
-          await ARC.gateway.finalizeWithdrawal(p.chainKey);
+          const finResult = await ARC.gateway.finalizeWithdrawal(p.chainKey);
           ArcUI.toast('success', 'Withdrawal finalized', 'Funds returned to your wallet.');
+          pushToHistory('bridge', p.chainKey, finResult?.tx?.hash || null, `Finalize withdrawal ${human(p.withdrawing, tok.decimals)} USDC on ${chainName(p.chainKey)}`);
           refreshAll();
         } catch (err) {
           alert('Failed: ' + ARC.explainError(err));
@@ -747,6 +755,7 @@ html{scroll-behavior:smooth}
       pendingEntry.txHash = result?.tx?.hash || null;
       saveTxPending();
       setStatus('deposit-status', 'ok', '✅ Deposit confirmed');
+      pushToHistory('bridge', k, result?.tx?.hash || null, `Deposit ${amtStr} USDC on ${chainName(k)}`);
       // Real-metrics telemetry — pass tx hash so the status page can deep-link
       // to the source chain's explorer ("view ↗" in Latest Activity).
       try { ARC.track('deposit', k, Number(amtStr), result?.tx?.hash || null, 'balance'); } catch {}
@@ -1118,6 +1127,7 @@ html{scroll-behavior:smooth}
         saveTxPending();
         renderTable();
       }
+      pushToHistory('bridge', dst, mintHash, `Cross-chain spend ${amtStr} USDC → ${chainName(dst)}`);
       // Real-metrics telemetry — mint tx hash on destination chain so the
       // status page can deep-link to dst chain's explorer.
       try { ARC.track('spend', dst, Number(amtStr), mintHash, 'balance'); } catch {}
