@@ -96,7 +96,7 @@ html{scroll-behavior:smooth}
 .gw-modal-bg{position:fixed;inset:0;background:rgba(5,12,24,.7);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:fade .2s ease-out}
 .gw-modal-bg.show{display:flex}
 @keyframes fade{from{opacity:0}to{opacity:1}}
-.gw-modal{width:100%;max-width:460px;background:linear-gradient(180deg,#101F36 0%,#0B1729 100%);border:1px solid var(--border2);border-radius:18px;padding:24px;animation:slide .25s ease-out}
+.gw-modal{width:100%;max-width:460px;max-height:90vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg,#101F36 0%,#0B1729 100%);border:1px solid var(--border2);border-radius:18px;padding:24px;animation:slide .25s ease-out}
 @keyframes slide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .gw-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .gw-modal-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
