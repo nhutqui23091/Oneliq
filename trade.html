@@ -475,7 +475,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       + '<span>App Kit unavailable — using Uniswap V2 fallback (testnet pools may be thin).</span>';
   }
   try {
-    APPKIT = await import('/assets/arc-appkit.js?v=9.1.21');
+    APPKIT = await import('/assets/arc-appkit.js?v=9.1.22');
     if (!APPKIT.isAppKitReady()) {
       console.warn('[arcswap] App Kit config missing or placeholder — same-chain swaps will fall back to Uniswap (likely empty pools).');
       APPKIT = null;
@@ -1510,7 +1510,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       let label;
       if (s.type === 'gateway-spend')      label = `Gateway burn · ${chainShort(s.src)} → ${chainShort(s.dst)}`;
       else if (s.type === 'cctp-burn')     label = `CCTP burn · ${chainShort(s.src)} → ${chainShort(s.dst)}`;
-      else if (s.type === 'swap')          label = `Swap ${s.fromSym}→${s.toSym} on ${chainShort(s.chain)}`;
+      else if (s.type === 'swap')          label = `Swap ${s.tIn}→${s.tOut} on ${chainShort(s.chain)}`;
       else                                 label = `${s.type} on ${chainShort(s.chain || s.src)}`;
       return `<div class="row"><span class="k">Step ${n}</span><span class="v">${label}</span></div>`;
     }).join('');

@@ -108,14 +108,18 @@ export async function initAppKit() {
   if (!window.ARC_APPKIT_CONFIG || !window.ARC_APPKIT_CONFIG.kitKey) {
     throw new Error('App Kit config missing — load /assets/arc-appkit-config.js before this module');
   }
-  if (!window.ethereum) {
-    throw new Error('No wallet provider found (window.ethereum). Connect MetaMask/Rabby first.');
+  // Prefer the provider from Reown AppKit (the wallet the user actually
+  // connected to). window.ethereum may be a different extension entirely
+  // when multiple wallets are installed (e.g. MetaMask + OKX).
+  const provider = (typeof ARC !== 'undefined' && ARC.wallet?._eth) || window.ethereum;
+  if (!provider) {
+    throw new Error('No wallet provider found. Please connect a wallet first.');
   }
 
   // Lazy-load SDK (with detailed error if CDN fails)
   const { AppKit, createEthersAdapterFromProvider } = await loadSdk();
 
-  adapter = await createEthersAdapterFromProvider({ provider: window.ethereum });
+  adapter = await createEthersAdapterFromProvider({ provider });
   kit = new AppKit();
 
   return { kit, adapter };
