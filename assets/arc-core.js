@@ -555,9 +555,26 @@
     },
 
     disconnect() {
+      // Tell AppKit to send WC session_delete to the relay / wallet app
       if (this._appkitReady) {
         try { this._appkit.disconnect().catch(() => {}); } catch {}
       }
+      // Wipe all WC v2 + AppKit session keys from localStorage so the NEXT
+      // connect() always starts a fresh session. Without this, a stale
+      // wc@2:client:* entry causes MetaMask to report "previous request
+      // still active" when the user tries to reconnect.
+      try {
+        const toRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('wc@2:') || k.startsWith('wagmi.') ||
+                    k.startsWith('appkit.') || k.startsWith('@walletconnect') ||
+                    k.includes('WALLETCONNECT'))) {
+            toRemove.push(k);
+          }
+        }
+        toRemove.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+      } catch {}
       this._appkitManaging = false;
       this.provider = null; this.signer = null; this.address = null; this.chainKey = null; this._eth = null;
       try { localStorage.removeItem('arc.wallet.autoconnect'); } catch {}
@@ -802,7 +819,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.7.5',
+    version: '9.7.6',
   };
 
   // ───────── CHAIN ICONS ─────────
