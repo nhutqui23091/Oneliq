@@ -802,7 +802,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.7.4',
+    version: '9.7.5',
   };
 
   // ───────── CHAIN ICONS ─────────
@@ -857,7 +857,20 @@
         icons: ['https://arcswap.net/assets/logos/arclogo.png'],
       },
       defaultNetwork: networks[0],
-      features: { analytics: false, swaps: false, onramp: false },
+      features: {
+        analytics: false,
+        swaps: false,
+        onramp: false,
+        email: false,
+        emailShowWallets: false,
+        socials: false,
+      },
+      featuredWalletIds: [
+        'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+        '971e689d0a5be527bac79629b4ee9b925e82208e5168b733496a09c0faed0709', // OKX Wallet
+        '38f5d18bd8522c244bdd70cb4a68e0e718865155811c043f052fb9f1c51de662', // Bitget Wallet
+        'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa', // Coinbase Wallet
+      ],
       enableReconnect: true,
     });
 
