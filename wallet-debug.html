@@ -38,8 +38,6 @@ try {
   window._appkit = appkit;
   document.getElementById('connect').onclick = async () => {
     log('--- click Connect ---');
-    try { await appkit.disconnect(); log('disconnect ok'); } catch(e) { log('disconnect err: ' + e.message); }
-    await new Promise(r => setTimeout(r, 300));
     try { await appkit.open(); log('open ok'); } catch(e) { log('open err: ' + e.message); }
   };
   document.getElementById('disconnect').onclick = async () => {

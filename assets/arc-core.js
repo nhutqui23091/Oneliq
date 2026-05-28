@@ -819,7 +819,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.7.9',
+    version: '9.7.10',
   };
 
   // ───────── CHAIN ICONS ─────────
@@ -888,7 +888,7 @@
         '38f5d18bd8522c244bdd70cb4a68e0e718865155811c043f052fb9f1c51de662', // Bitget Wallet
         'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa', // Coinbase Wallet
       ],
-      enableReconnect: false,
+      enableReconnect: true,
     });
 
     wallet._appkit = appkit;
