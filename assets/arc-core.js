@@ -528,25 +528,12 @@
 
       if (this.address) return this.snapshot();
 
-      // Wait for AppKit to finish its init/auto-reconnect cycle before opening
-      // the modal. Without this wait, enableReconnect:true sends an in-flight
-      // WC session_proposal to MetaMask; a second proposal from appkit.open()
-      // causes MetaMask to reject both with "previous request still active".
-      const currentState = this._appkit.getState();
-      if (!currentState.initialized) {
-        await new Promise((resolve) => {
-          const timer = setTimeout(resolve, 2000);
-          const unsub = this._appkit.subscribeState(({ initialized }) => {
-            if (initialized) { clearTimeout(timer); unsub(); resolve(); }
-          });
-        });
-      }
-
-      // Auto-reconnect may have succeeded during the wait
-      if (this.address) return this.snapshot();
-
-      // Wipe any stale WC session so the modal always starts a fresh session
+      // Cancel any lingering WC session or in-flight proposal before opening
+      // a fresh modal. appkit.disconnect() sends session_delete to the relay,
+      // which clears the pending proposal on the wallet app side.
+      try { await this._appkit.disconnect(); } catch {}
       this._clearWCStorage();
+      await new Promise(r => setTimeout(r, 300));
 
       // Open AppKit modal; resolve/reject when the modal closes
       return new Promise((resolve, reject) => {
@@ -839,7 +826,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.7.7',
+    version: '9.7.8',
   };
 
   // ───────── CHAIN ICONS ─────────
@@ -908,7 +895,7 @@
         '38f5d18bd8522c244bdd70cb4a68e0e718865155811c043f052fb9f1c51de662', // Bitget Wallet
         'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa', // Coinbase Wallet
       ],
-      enableReconnect: true,
+      enableReconnect: false,
     });
 
     wallet._appkit = appkit;
