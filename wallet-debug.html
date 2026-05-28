@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><title>Wallet Debug</title><style>body{font-family:monospace;padding:16px;background:#000;color:#0f0}button{padding:12px 24px;font-size:16px;margin:8px 4px}pre{white-space:pre-wrap;word-break:break-all;font-size:11px;background:#111;padding:12px;border:1px solid #333;max-height:60vh;overflow:auto}</style></head>
+<body>
+<h2>Wallet Debug</h2>
+<button id="connect">Connect</button>
+<button id="disconnect">Disconnect</button>
+<button id="clear">Clear localStorage WC</button>
+<pre id="log"></pre>
+<script src="/assets/appkit.bundle.js"></script>
+<script>
+const log = (m, o) => {
+  const t = new Date().toISOString().slice(11,19);
+  const obj = o !== undefined ? ' ' + JSON.stringify(o) : '';
+  document.getElementById('log').textContent = t + ' ' + m + obj + '\n' + document.getElementById('log').textContent;
+};
+log('Boot, ReownAppKit=' + (typeof window.ReownAppKit));
+try {
+  const { createAppKit, EthersAdapter, defineChain } = window.ReownAppKit;
+  const arc = defineChain({
+    id: 5042002,
+    name: 'Arc Testnet',
+    nativeCurrency: { name:'USDC', symbol:'USDC', decimals:18 },
+    rpcUrls: { default: { http: ['https://rpc.testnet.arc.network'] } }
+  });
+  const appkit = createAppKit({
+    projectId: '28193c7e36d0ebbd3cdf183a53d17697',
+    networks: [arc],
+    adapters: [new EthersAdapter()],
+    metadata: { name: 'ArcSwap Debug', description: 'Wallet debug', url: window.location.origin, icons: [] },
+    enableReconnect: false,
+    features: { email: false, socials: false }
+  });
+  log('appkit created');
+  appkit.subscribeAccount(s => log('subscribeAccount', s));
+  appkit.subscribeState(s => log('subscribeState', s));
+  try { appkit.subscribeEvents(e => log('event: ' + e.data.event, { type: e.data.type, properties: e.data.properties })); } catch {}
+  window._appkit = appkit;
+  document.getElementById('connect').onclick = async () => {
+    log('--- click Connect ---');
+    try { await appkit.disconnect(); log('disconnect ok'); } catch(e) { log('disconnect err: ' + e.message); }
+    await new Promise(r => setTimeout(r, 300));
+    try { await appkit.open(); log('open ok'); } catch(e) { log('open err: ' + e.message); }
+  };
+  document.getElementById('disconnect').onclick = async () => {
+    log('--- click Disconnect ---');
+    try { await appkit.disconnect(); log('disconnect ok'); } catch(e) { log('disconnect err: ' + e.message); }
+  };
+  document.getElementById('clear').onclick = () => {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('wc@2:') || k.startsWith('wagmi.') || k.startsWith('appkit.') || k.startsWith('@walletconnect') || k.includes('WALLETCONNECT'))) keys.push(k);
+    }
+    log('cleared ' + keys.length + ' keys', keys);
+    keys.forEach(k => localStorage.removeItem(k));
+  };
+} catch (e) {
+  log('init err: ' + e.message);
+}
+</script>
+</body>
+</html>
