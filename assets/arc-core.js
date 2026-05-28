@@ -401,6 +401,7 @@
     _appkitReady: false,
     _appkitNetworks: null,
     _appkitManaging: false, // true when AppKit is managing the current session
+    _appkitInitPromise: null, // resolves when AppKit is ready or has failed
 
     /**
      * Returns all detected wallets, sorted by EVM priority (MetaMask → OKX → ...).
@@ -516,7 +517,23 @@
     async connect(rdns) {
       // Named RDNS → EIP-6963 picker path (legacy wallets / desktop extensions)
       if (rdns) return this._connectLegacy(rdns);
-      if (!this._appkitReady) return this._connectLegacy();
+
+      // Wait for AppKit to finish loading from esm.sh (up to 15s) before deciding path
+      if (!this._appkitReady && this._appkitInitPromise) {
+        await Promise.race([
+          this._appkitInitPromise,
+          new Promise(r => setTimeout(r, 15000)),
+        ]);
+      }
+
+      if (!this._appkitReady) {
+        // AppKit failed to load or timed out — fall back gracefully
+        if (/Mobile|Android|iPhone|iPad/i.test(navigator.userAgent || '')) {
+          throw new Error('Wallet modal failed to load. Try refreshing the page, or open ArcSwap inside MetaMask\'s in-app browser.');
+        }
+        return this._connectLegacy();
+      }
+
       if (this.address) return this.snapshot();
 
       // Open AppKit modal; resolve/reject when the modal closes
@@ -793,7 +810,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.7.0',
+    version: '9.7.1',
   };
 
   // ───────── CHAIN ICONS ─────────
@@ -817,7 +834,7 @@
   // ── REOWN APPKIT ASYNC INIT ──────────────────────────────────────────────
   // Loads Reown AppKit from esm.sh to enable WalletConnect + mobile deep-link
   // connections. Falls back gracefully to EIP-6963 only if loading fails.
-  (async () => {
+  wallet._appkitInitPromise = (async () => {
     try {
       const [{ createAppKit, defineChain }, { EthersAdapter }] = await Promise.all([
         import('https://esm.sh/@reown/appkit@1.8.20'),
@@ -886,5 +903,5 @@
     } catch (e) {
       console.warn('[arc-core] AppKit init failed, using EIP-6963 only:', e?.message);
     }
-  })();
+  })(); // promise stored in wallet._appkitInitPromise so connect() can await it
 })(window);
