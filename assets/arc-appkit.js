@@ -170,7 +170,9 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {})
       amount: amountBaseUnits,
     });
     console.log('[arc-appkit] estimateSwap via GET /quote:', { tokenIn, tokenOut, amountBaseUnits, chainName });
-    const resp = await fetch(`${PROXY_PREFIX}/v1/stablecoinKits/quote?${qs}`);
+    const resp = await fetch(`${PROXY_PREFIX}/v1/stablecoinKits/quote?${qs}`, {
+      signal: AbortSignal.timeout(8000),
+    });
     const json = await resp.json();
     if (!resp.ok) throw new Error(`Circle quote ${resp.status}: ${json.message || JSON.stringify(json)}`);
     const q = json?.quote;
