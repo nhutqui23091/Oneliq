@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A1628"/>
+      <stop offset=".5" stop-color="#0E1F39"/>
+      <stop offset="1" stop-color="#081828"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset=".5" stop-color="#4DD6DB"/>
+      <stop offset="1" stop-color="#7BE495"/>
+    </linearGradient>
+    <linearGradient id="spoke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38BDF8" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="orb1" cx=".15" cy=".2" r=".55">
+      <stop offset="0" stop-color="#38BDF8" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb2" cx=".85" cy=".15" r=".5">
+      <stop offset="0" stop-color="#4DD6DB" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#4DD6DB" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb3" cx=".5" cy="1" r=".65">
+      <stop offset="0" stop-color="#7BE495" stop-opacity=".10"/>
+      <stop offset="1" stop-color="#7BE495" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hub" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#38BDF8" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <rect width="1200" height="600" fill="url(#grid)"/>
+  <rect width="1200" height="600" fill="url(#orb1)"/>
+  <rect width="1200" height="600" fill="url(#orb2)"/>
+  <rect width="1200" height="600" fill="url(#orb3)"/>
+
+  <!-- Gateway network diagram (right side) -->
+  <!-- Hub glow -->
+  <circle cx="960" cy="295" r="110" fill="url(#hub)"/>
+
+  <!-- Spokes from 8 chain nodes to hub -->
+  <!-- Node positions around hub at r=190 -->
+  <!-- Top: 960,105 -->
+  <line x1="960" y1="125" x2="960" y2="225" stroke="rgba(56,189,248,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Top-right: 1094,160 -->
+  <line x1="1080" y1="170" x2="1020" y2="248" stroke="rgba(56,189,248,0.28)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Right: 1150,295 -->
+  <line x1="1130" y1="295" x2="1040" y2="295" stroke="rgba(56,189,248,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Bottom-right: 1094,430 -->
+  <line x1="1080" y1="420" x2="1020" y2="342" stroke="rgba(56,189,248,0.28)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Bottom: 960,485 -->
+  <line x1="960" y1="465" x2="960" y2="365" stroke="rgba(56,189,248,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Bottom-left: 826,430 -->
+  <line x1="840" y1="420" x2="900" y2="342" stroke="rgba(56,189,248,0.28)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Left: 770,295 -->
+  <line x1="790" y1="295" x2="880" y2="295" stroke="rgba(56,189,248,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <!-- Top-left: 826,160 -->
+  <line x1="840" y1="170" x2="900" y2="248" stroke="rgba(56,189,248,0.28)" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <!-- Chain nodes -->
+  <!-- Top -->
+  <circle cx="960" cy="108" r="22" fill="#0E1F39" stroke="#38BDF8" stroke-width="1.5" opacity=".85"/>
+  <text x="960" y="114" font-family="DM Mono, monospace" font-size="11" fill="#38BDF8" text-anchor="middle" font-weight="700">ARC</text>
+  <!-- Top-right -->
+  <circle cx="1090" cy="158" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="1090" y="163" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">ETH</text>
+  <!-- Right -->
+  <circle cx="1148" cy="295" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="1148" y="300" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">BASE</text>
+  <!-- Bottom-right -->
+  <circle cx="1090" cy="432" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="1090" y="437" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">ARB</text>
+  <!-- Bottom -->
+  <circle cx="960" cy="482" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="960" y="487" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">OPT</text>
+  <!-- Bottom-left -->
+  <circle cx="830" cy="432" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="830" y="437" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">AVAX</text>
+  <!-- Left -->
+  <circle cx="772" cy="295" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="772" y="300" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">POL</text>
+  <!-- Top-left -->
+  <circle cx="830" cy="158" r="20" fill="#0E1F39" stroke="rgba(56,189,248,.55)" stroke-width="1.5"/>
+  <text x="830" y="163" font-family="DM Mono, monospace" font-size="10" fill="#8CA0BD" text-anchor="middle">UNI</text>
+
+  <!-- Hub: central pool -->
+  <circle cx="960" cy="295" r="66" fill="rgba(10,22,40,0.92)" stroke="#38BDF8" stroke-width="2" filter="url(#glow)"/>
+  <circle cx="960" cy="295" r="50" fill="none" stroke="rgba(56,189,248,.25)" stroke-width="1"/>
+  <text x="960" y="285" font-family="DM Mono, monospace" font-size="13" fill="#38BDF8" text-anchor="middle" font-weight="700" letter-spacing="1">USDC</text>
+  <text x="960" y="305" font-family="Inter, sans-serif" font-size="11" fill="rgba(56,189,248,.65)" text-anchor="middle">UNIFIED</text>
+
+  <!-- Pill label -->
+  <g transform="translate(80 96)">
+    <rect width="200" height="48" rx="24" fill="rgba(56,189,248,0.12)" stroke="rgba(56,189,248,0.50)"/>
+    <circle cx="28" cy="24" r="6" fill="#38BDF8">
+      <animate attributeName="opacity" values="1;.35;1" dur="1.6s" repeatCount="indefinite"/>
+    </circle>
+    <text x="48" y="30" font-family="DM Mono, monospace" font-size="14" font-weight="700" fill="#38BDF8" letter-spacing="2">NEW FEATURE</text>
+  </g>
+
+  <!-- Headline -->
+  <g transform="translate(80 200)">
+    <text x="0" y="0" font-family="DM Mono, monospace" font-size="14" font-weight="600" fill="#38BDF8" letter-spacing="3">// CIRCLE GATEWAY</text>
+    <text x="0" y="84" font-family="Inter, sans-serif" font-size="80" font-weight="900" fill="#F5F7FB" letter-spacing="-3">Unified</text>
+    <text x="0" y="168" font-family="Inter, sans-serif" font-size="80" font-weight="900" fill="url(#brand)" letter-spacing="-3">Balance.</text>
+    <text x="0" y="228" font-family="Inter, sans-serif" font-size="21" font-weight="400" fill="#8CA0BD">One USDC pool. Eight chains. Three ways to spend.</text>
+  </g>
+
+  <!-- Brand bottom -->
+  <g transform="translate(80 540)">
+    <text x="0" y="0" font-family="Inter, sans-serif" font-size="20" font-weight="900" fill="#F5F7FB" letter-spacing="-.5">ArcSwap</text>
+    <text x="100" y="0" font-family="DM Mono, monospace" font-size="13" fill="#8CA0BD" letter-spacing="2">// arcswap.net/balance  ·  May 28, 2026</text>
+  </g>
+</svg>
