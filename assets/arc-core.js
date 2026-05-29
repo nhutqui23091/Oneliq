@@ -585,6 +585,11 @@
       try {
         if (localStorage.getItem('arc.wallet.autoconnect') !== '1') return null;
       } catch {}
+      // When AppKit is ready, enableReconnect:true restores the session silently via
+      // subscribeAccount. Calling connect() here would open the modal before AppKit
+      // has a chance to restore state, causing the modal to auto-pop on every load.
+      if (this._appkitReady) return null;
+      // Legacy path: direct injected wallet without AppKit
       const eth = this.eip1193(); if (!eth) return null;
       try {
         const accs = await eth.request({ method: 'eth_accounts' });
