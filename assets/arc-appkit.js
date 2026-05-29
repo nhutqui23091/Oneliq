@@ -141,9 +141,52 @@ export async function prefetchSdk() {
  * @param {string} tokenIn  e.g. 'USDC'
  * @param {string} tokenOut e.g. 'EURC'
  * @param {string} amountIn human-readable decimal string e.g. '1.00'
- * @returns {Promise<{estimatedOutput: string}>}
+ * @param {{ tokenInAddress?: string, tokenOutAddress?: string, chain?: string }} [opts]
+ * @returns {Promise<object>}
  */
-export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn) {
+export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {}) {
+  // Circle SDK v1.4.1 token registry lacks EURC on Arc_Testnet, so
+  // kit.estimateSwap() builds a malformed body and Circle returns 331001.
+  // Use GET /quote with explicit on-chain addresses instead.
+  if (opts.tokenInAddress && opts.tokenOutAddress) {
+    const chainName = opts.chain || window.ARC_APPKIT_CONFIG?.network || 'Arc_Testnet';
+    let userAddress;
+    if (window.ethereum) {
+      try {
+        const accs = await window.ethereum.request({ method: 'eth_accounts' });
+        userAddress = accs && accs[0];
+      } catch {}
+    }
+    const addr = userAddress || '0x0000000000000000000000000000000000000001';
+    // Circle API amounts are always 6-decimal base units for USDC/EURC stablecoins
+    const amountBaseUnits = Math.round(parseFloat(amountIn) * 1e6).toString();
+    const qs = new URLSearchParams({
+      tokenInAddress: opts.tokenInAddress,
+      tokenInChain: chainName,
+      tokenOutAddress: opts.tokenOutAddress,
+      tokenOutChain: chainName,
+      fromAddress: addr,
+      toAddress: addr,
+      amount: amountBaseUnits,
+    });
+    console.log('[arc-appkit] estimateSwap via GET /quote:', { tokenIn, tokenOut, amountBaseUnits, chainName });
+    const resp = await fetch(`${PROXY_PREFIX}/v1/stablecoinKits/quote?${qs}`);
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(`Circle quote ${resp.status}: ${json.message || JSON.stringify(json)}`);
+    const q = json?.quote;
+    if (!q || !q.estimatedAmount) throw new Error(`No route: ${JSON.stringify(json)}`);
+    // Convert base units (6 decimals) to human-readable for extractEstimatedOutput
+    const humanOut = (parseInt(q.estimatedAmount, 10) / 1e6).toFixed(6);
+    const humanMin = q.minAmount ? (parseInt(q.minAmount, 10) / 1e6).toFixed(6) : undefined;
+    console.log('[arc-appkit] quote result:', { estimatedAmount: q.estimatedAmount, humanOut, humanMin });
+    return {
+      estimatedOutput: { amount: humanOut, token: tokenOut },
+      stopLimit: humanMin ? { amount: humanMin, token: tokenOut } : undefined,
+      fees: q.fees || [],
+    };
+  }
+
+  // Fallback: use kit.estimateSwap() (SDK-based, may fail if token not in registry)
   await initAppKit();
   const params = {
     from: { adapter, chain: window.ARC_APPKIT_CONFIG.network },
@@ -152,23 +195,9 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn) {
     amountIn,
     config: { kitKey: window.ARC_APPKIT_CONFIG.kitKey }
   };
-  console.log('[arc-appkit] estimateSwap params:', { ...params, config: { kitKey: '***' } });
-  let res;
-  try {
-    res = await kit.estimateSwap(params);
-  } catch (err) {
-    console.error('[arc-appkit] estimateSwap THREW:', err);
-    throw err;
-  }
-  // Diagnostic: log multiple ways so something is always visible (object refs need expanding in console)
-  console.log('[arc-appkit] estimateSwap raw response (object):', res);
-  console.log('[arc-appkit] estimateSwap raw response (typeof):', typeof res, '· isNull:', res === null);
-  try {
-    console.log('[arc-appkit] estimateSwap raw response (JSON):', JSON.stringify(res));
-    console.log('[arc-appkit] estimateSwap raw response (keys):', res && typeof res === 'object' ? Object.keys(res) : '(not object)');
-  } catch (e) {
-    console.log('[arc-appkit] estimateSwap stringify failed:', e?.message);
-  }
+  console.log('[arc-appkit] estimateSwap via SDK:', { ...params, config: { kitKey: '***' } });
+  const res = await kit.estimateSwap(params);
+  console.log('[arc-appkit] estimateSwap SDK response:', JSON.stringify(res));
   return res;
 }
 

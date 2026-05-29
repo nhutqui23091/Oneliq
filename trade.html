@@ -1340,7 +1340,10 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     if (appKitSupports(chainKey, tIn, tOut)) {
       const amountInStr = formatAmt(amtIn, tIn.decimals);
       try {
-        const est = await APPKIT.estimateAppKitSwap(tIn.symbol, tOut.symbol, amountInStr);
+        const est = await APPKIT.estimateAppKitSwap(tIn.symbol, tOut.symbol, amountInStr, {
+          tokenInAddress: tIn.address,
+          tokenOutAddress: tOut.address,
+        });
         const outStr = APPKIT.extractEstimatedOutput(est);
         const outFloat = parseFloat(outStr || '0');
         if (outFloat <= 0) throw new Error('App Kit returned zero output');
