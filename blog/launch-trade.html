@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/icon-arcswap.png?v=1"/>
+<link rel="apple-touch-icon" href="/assets/logos/icon-arcswap.png?v=1"/>
+<meta name="description" content="ArcSwap Trade routes USDC, EURC, and cirBTC across eight testnets. Three settlement engines: Circle App Kit swap, CCTP V2 bridge, and Circle Gateway spend. One form, three routing pipelines."/>
+<link rel="canonical" href="https://arcswap.net/blog/launch-trade"/>
+<meta property="og:title" content="Trade: One Interface, Three Settlement Routes"/>
+<meta property="og:description" content="USDC/EURC swap via Circle App Kit, USDC bridge across 8 chains via CCTP V2, and spend from Gateway deposits. One trade form, three routing engines."/>
+<meta property="og:image" content="https://arcswap.net/assets/social/blog-trade-banner.svg"/>
+<meta property="og:url" content="https://arcswap.net/blog/launch-trade"/>
+<meta property="og:type" content="article"/>
+<title>Trade: One Interface, Three Settlement Routes | ArcSwap Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A1628;--bg2:#0F1E36;
+  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
+  --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
+  --trade:#FF6F61;
+  --warn:#FFB454;--danger:#FF7A7A;
+  --display:'Space Grotesk','Inter',system-ui,sans-serif; --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.7}
+.aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  background:radial-gradient(ellipse 100% 40% at 50% 0%,rgba(255,111,97,0.09) 0%,transparent 60%),
+  linear-gradient(180deg,#0A1628 0%,#0E1F39 60%,#0A1628 100%)}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .nav-logo{justify-self:start}
+nav .nav-links{justify-self:center}
+nav .nav-right{justify-self:end}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-img{height:28px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
+.logo-tag{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);font-family:var(--mono);text-transform:uppercase;border-left:1px solid var(--border);padding-left:10px;margin-left:4px}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:8px 16px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;text-decoration:none}
+.nav-link:hover{color:var(--text);background:var(--surface)}
+.nav-link.active{color:var(--text);background:var(--surface)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(255,255,255,0.14)}
+
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:120px 24px 80px}
+.crumb{font-size:12px;font-family:var(--mono);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px}
+.crumb a{color:var(--muted);text-decoration:none}
+.crumb a:hover{color:var(--text)}
+.eyebrow{font-size:12px;font-family:var(--mono);color:var(--trade);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+h1.title{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin-bottom:18px}
+h1.title .grad{background:linear-gradient(90deg,#FF6F61,#FB923C,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lead{font-size:19px;color:#C8D1E0;line-height:1.6;margin-bottom:28px;font-weight:400}
+.byline{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.byline-author{font-weight:600;color:var(--text)}
+.byline-sep{color:var(--border2)}
+.banner{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:48px;background:#0A1628}
+
+article{font-size:17px;line-height:1.78}
+article p{color:#D8DFEA;margin-bottom:22px}
+article p strong{color:var(--text);font-weight:600}
+article p em{color:var(--text);font-style:italic;background:rgba(255,111,97,0.08);padding:1px 4px;border-radius:3px}
+article a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.3);transition:border-color .2s}
+article a:hover{border-bottom-color:var(--arc1)}
+article a:visited{color:var(--arc1)}
+article h2{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:72px 0 20px;line-height:1.2;color:var(--text)}
+article h2:first-of-type{margin-top:12px}
+article h3{font-size:22px;font-weight:600;margin:44px 0 14px;letter-spacing:-.01em;color:var(--text)}
+article ul,article ol{padding-left:24px;margin-bottom:24px}
+article li{color:#D8DFEA;margin-bottom:8px}
+article li::marker{color:var(--trade)}
+
+code{font-family:var(--mono);font-size:14px;background:rgba(255,111,97,0.08);border:1px solid rgba(255,111,97,0.18);padding:1px 6px;border-radius:5px;color:var(--trade)}
+
+.callout{border-left:3px solid var(--trade);background:rgba(255,111,97,0.06);padding:16px 20px;border-radius:0 10px 10px 0;margin:28px 0}
+.callout.warn{border-left-color:var(--warn);background:rgba(255,180,84,0.06)}
+.callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--trade)}
+.callout.warn .callout-title{color:var(--warn)}
+.callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
+
+table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.t th,.t td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.t th{background:rgba(255,255,255,0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.t td{color:#C8D1E0}
+.t tr:last-child td{border-bottom:none}
+
+.route-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:36px 0 44px}
+.rt-card{padding:22px 22px 24px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));position:relative;overflow:hidden;transition:border-color .2s}
+.rt-card:hover{border-color:var(--border2)}
+.rt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;pointer-events:none}
+.rt-card.swap::before{background:linear-gradient(180deg,rgba(255,111,97,0.12) 0%,transparent 100%)}
+.rt-card.bridge::before{background:linear-gradient(180deg,rgba(77,214,219,0.10) 0%,transparent 100%)}
+.rt-card.spend::before{background:linear-gradient(180deg,rgba(244,200,154,0.10) 0%,transparent 100%)}
+.rt-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px;display:block;position:relative}
+.rt-card.swap .rt-tag{color:#FF6F61}
+.rt-card.bridge .rt-tag{color:#4DD6DB}
+.rt-card.spend .rt-tag{color:#F4C89A}
+.rt-name{font-size:18px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.015em;line-height:1.25;position:relative}
+.rt-desc{font-size:14px;color:#D8DFEA;line-height:1.55;position:relative}
+.rt-meta{font-family:var(--mono);font-size:11px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);position:relative;line-height:1.5}
+.rt-card.swap .rt-meta{color:#FF6F61}
+.rt-card.bridge .rt-meta{color:#4DD6DB}
+.rt-card.spend .rt-meta{color:#F4C89A}
+@media(max-width:720px){.route-grid{grid-template-columns:1fr}}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0 36px}
+.cmp-card{padding:18px 20px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.025)}
+.cmp-head{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.cmp-body{font-size:14px;color:#D8DFEA;line-height:1.65}
+@media(max-width:600px){.compare{grid-template-columns:1fr}}
+
+.walkthrough{margin:32px 0 44px;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.wt-step{display:flex;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border);align-items:flex-start}
+.wt-step:last-child{border-bottom:none}
+.wt-num{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--trade);background:rgba(255,111,97,0.10);border:1px solid rgba(255,111,97,0.20);border-radius:6px;min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.wt-body{font-size:15px;color:#D8DFEA;line-height:1.65}
+.wt-body strong{color:var(--text)}
+
+.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(255,111,97,0.08),rgba(255,255,255,0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
+.cta-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
+.cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(255,111,97,0.14);border:1px solid rgba(255,111,97,0.42);color:var(--trade);transition:all .2s;margin:0 4px}
+.cta-card a:hover{background:rgba(255,111,97,0.24);border-color:var(--trade)}
+.cta-card a.alt{background:rgba(77,214,219,0.12);border-color:rgba(77,214,219,0.36);color:var(--arc1)}
+.cta-card a.alt:hover{background:rgba(77,214,219,0.2);border-color:var(--arc1)}
+
+.foot{margin-top:60px;padding-top:28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
+.foot a{color:var(--muted);text-decoration:none}
+.foot a:hover{color:var(--arc1)}
+
+@media(max-width:768px){.wrap{padding:100px 18px 60px}.nav-links{display:none}h1.title{font-size:32px}article h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<nav>
+  <a class="nav-logo" href="/">
+    <img class="logo-img" src="/assets/logos/wordmark-arcswap.png?v=2" alt="ArcSwap" width="129" height="28"/>
+    <span class="logo-tag">Blog</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/trade">Trade</a>
+    <a class="nav-link" href="/balance">Balance</a>
+    <a class="nav-link" href="/agent">Agent</a>
+    <a class="nav-link" href="/token">Create Token</a>
+    <a class="nav-link active" href="/blog">Blog</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn-ghost" href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    <a class="btn-primary" href="/trade">Try Trade ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; Trade</div>
+  <div class="eyebrow">ArcSwap Trade · Feature Deep Dive</div>
+  <h1 class="title"><span class="grad">Trade:</span> One Interface, Three Settlement Routes</h1>
+  <p class="lead">USDC, EURC, and cirBTC across eight testnets from a single form. The route planner builds the step pipeline automatically and shows it before you confirm.</p>
+
+  <div class="byline">
+    <span class="byline-author">ArcSwap Team</span>
+    <span class="byline-sep">·</span>
+    <span>May 28, 2026</span>
+    <span class="byline-sep">·</span>
+    <span>6 min read</span>
+  </div>
+
+  <img class="banner" src="/assets/social/blog-trade-banner.svg" alt="Trade: One Interface, Three Settlement Routes"/>
+
+  <article>
+
+    <p><a href="/trade">Trade</a> is ArcSwap's interface for swapping, bridging, and spending USDC, EURC, and <a href="/blog/launch-cirbtc">cirBTC</a> across eight testnets. Enter a source token, a destination token and chain, and an amount. The route planner determines which settlement steps are needed and assembles them into a pipeline. You review the route before anything is signed.</p>
+
+    <div class="callout">
+      <div class="callout-title">TL;DR</div>
+      <div class="callout-body">
+        Pick any supported token on any of eight testnets and choose a destination. <strong>Trade's route planner builds the steps automatically</strong>: a same-chain swap via Circle App Kit, a cross-chain bridge via CCTP V2, a Circle Gateway spend, or a combination. Source your funds from a wallet balance on any chain or from USDC pre-deposited in Circle's GatewayWallet.
+      </div>
+    </div>
+
+    <h2>What you can trade</h2>
+
+    <p>Three tokens ship with the built-in token list. Any ERC-20 can be added by contract address.</p>
+
+    <table class="t">
+      <tr><th>Network</th><th>Built-in tokens</th></tr>
+      <tr><td><strong>Arc Testnet</strong></td><td>USDC (native gas token), EURC, cirBTC</td></tr>
+      <tr><td>Ethereum Sepolia</td><td>USDC, ETH, cirBTC</td></tr>
+      <tr><td>Base Sepolia</td><td>USDC</td></tr>
+      <tr><td>Avalanche Fuji</td><td>USDC</td></tr>
+      <tr><td>Arbitrum Sepolia</td><td>USDC</td></tr>
+      <tr><td>Optimism Sepolia</td><td>USDC</td></tr>
+      <tr><td>Polygon Amoy</td><td>USDC</td></tr>
+      <tr><td>Unichain Sepolia</td><td>USDC</td></tr>
+    </table>
+
+    <p>On Arc Testnet, USDC is the native gas token: every transaction on the network settles fees in USDC. EURC and <a href="/blog/launch-cirbtc">cirBTC</a> are ERC-20 contracts deployed alongside it. cirBTC is available in the token picker on Arc and Sepolia. Swap pairs involving cirBTC on Arc route through Uniswap V2, which operates separately from Circle App Kit. Uniswap V2 pool depth for cirBTC pairs on Arc Testnet depends on available liquidity.</p>
+
+    <h2>Three settlement routes</h2>
+
+    <p>When you configure a trade, the route planner builds a step pipeline based on the source token, source chain, destination token, and destination chain. Three step types are available, and a single trade can chain more than one.</p>
+
+    <div class="route-grid">
+      <div class="rt-card swap">
+        <span class="rt-tag">// Swap</span>
+        <div class="rt-name">Circle App Kit</div>
+        <p class="rt-desc">USDC and EURC are swapped on Arc Testnet through Circle App Kit. The exchange rate is fetched live from Circle's aggregator at quote time. Not a static formula. Slippage is configurable.</p>
+        <div class="rt-meta">Arc Testnet · USDC / EURC · ~5s</div>
+      </div>
+      <div class="rt-card bridge">
+        <span class="rt-tag">// Bridge</span>
+        <div class="rt-name">CCTP V2</div>
+        <p class="rt-desc">USDC moves between any two of the eight supported testnets via Circle's Cross-Chain Transfer Protocol. Burned on source, minted 1:1 on destination. No wrapped tokens. Fast or Standard mode.</p>
+        <div class="rt-meta">8 chains · Fast ~20s (fee) · Standard ~13-19 min (free)</div>
+      </div>
+      <div class="rt-card spend">
+        <span class="rt-tag">// Spend</span>
+        <div class="rt-name">Circle Gateway</div>
+        <p class="rt-desc">USDC pre-deposited in Circle's GatewayWallet contract is spent cross-chain via an EIP-712 BurnIntent signature. Circle processes the intent and mints USDC at the destination. Supports Unified Balance multi-source.</p>
+        <div class="rt-meta">8 chains · EIP-712 BurnIntent · ~30s</div>
+      </div>
+    </div>
+
+    <p>A single <a href="/trade">trade</a> can combine more than one route. If you hold EURC on Arc and want USDC on Base Sepolia, Trade builds a two-step pipeline: an App Kit swap from EURC to USDC on Arc, followed by a CCTP V2 bridge to Base Sepolia. The route preview panel shows the full pipeline before you confirm anything. A CCTP Fast/Standard toggle appears below the form whenever the route includes a bridge step.</p>
+
+    <h2>The source picker</h2>
+
+    <p>Clicking the source button on the <a href="/trade">Trade page</a> opens a two-column panel: Wallet on the left, Gateway on the right. Each column lists the chains where you hold that kind of USDC balance.</p>
+
+    <div class="compare">
+      <div class="cmp-card">
+        <div class="cmp-head">💼 Wallet</div>
+        <div class="cmp-body">Your on-chain USDC (and other tokens) per chain, fetched live from each chain's RPC. Cross-chain trades from a wallet source use CCTP V2 to bridge. Standard CCTP confirmation times apply.</div>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-head">⚡ Gateway</div>
+        <div class="cmp-body">USDC you have pre-deposited into Circle's GatewayWallet contract. Spend cross-chain via EIP-712 BurnIntent. No separate bridge transaction required. Available on all eight supported chains.</div>
+      </div>
+    </div>
+
+    <p>When you hold Gateway deposits on two or more chains, a <strong>Unified Balance</strong> row appears at the top of the Gateway column. Selecting it draws from all funded chains, starting with the largest deposit first, and generates one signed intent per source chain. Circle processes all intents and mints once on the destination chain. See the <a href="/blog/launch-balance">Unified Balance post</a> for a full walkthrough of Gateway deposits and spend modes.</p>
+
+    <p>When the Gateway source is selected, the token picker on the source side is locked to USDC. Gateway deposits are always denominated in USDC; other tokens cannot be sourced from Gateway directly.</p>
+
+    <h2>Importing custom tokens</h2>
+
+    <p>In the token search field, paste any ERC-20 contract address starting with <code>0x</code>. The <a href="/trade">Trade page</a> queries the on-chain contract for its symbol, name, and decimal count. A confirmation card shows those details along with an Unverified warning before the token is added.</p>
+
+    <p>Confirmed imports are saved to your browser's localStorage per chain and persist across sessions. Imported tokens carry an <strong>Unverified</strong> badge throughout the interface. If a custom token is later added to ArcSwap's built-in token list with the same contract address, the imported copy is cleaned up automatically to avoid duplicates.</p>
+
+    <h2>Walkthrough: 50 EURC on Arc to USDC on Base Sepolia</h2>
+
+    <p>Starting state: 50 EURC in a wallet on Arc Testnet. Goal: receive USDC on Base Sepolia. This route uses two steps: an App Kit swap on Arc, then a CCTP V2 bridge to Base Sepolia.</p>
+
+    <div class="walkthrough">
+      <div class="wt-step">
+        <div class="wt-num">1</div>
+        <div class="wt-body">Open <a href="/trade">arcswap.net/trade</a> and connect your wallet on Arc Testnet.</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">2</div>
+        <div class="wt-body">Click the source button. In the Wallet column, select <strong>Arc Testnet</strong>. Open the token picker and choose <strong>EURC</strong>. Enter <strong>50</strong> as the amount.</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">3</div>
+        <div class="wt-body">In the destination row, select <strong>Base Sepolia</strong> from the chain dropdown. The token auto-selects <strong>USDC</strong> (the only token on Base Sepolia).</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">4</div>
+        <div class="wt-body">The route preview renders: <strong>EURC (Arc) → Swap EURC→USDC on Arc → CCTP Arc→Base → USDC (Base)</strong>. The CCTP speed toggle appears below the form.</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">5</div>
+        <div class="wt-body">Select <strong>Fast</strong> CCTP mode (~20s, small Circle fee). The quote panel shows the live rate from Circle App Kit, a fee breakdown for both steps, and an estimated time of ~30s.</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">6</div>
+        <div class="wt-body">Click <strong>Execute</strong>. The progress modal opens with two steps listed. <strong>Step 1 (Swap):</strong> your wallet shows the App Kit swap transaction. Confirm it. EURC is exchanged for USDC on Arc in ~5s.</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">7</div>
+        <div class="wt-body"><strong>Step 2 (Bridge):</strong> your wallet shows the CCTP V2 burn transaction on Arc. Confirm it. Circle's Fast Transfer service processes the attestation in ~20s, then mints USDC on Base Sepolia.</div>
+      </div>
+      <div class="wt-step">
+        <div class="wt-num">8</div>
+        <div class="wt-body">USDC arrives on Base Sepolia. The Activity log on the right rail shows both steps as completed. Two wallet confirmations total: one for the swap, one for the bridge.</div>
+      </div>
+    </div>
+
+    <p>The same pattern applies in reverse and across other token pairs. USDC on Base Sepolia to EURC on Arc would route as: CCTP bridge Base to Arc, then App Kit swap USDC to EURC on Arc. Trade always moves the cross-chain hop before the swap when the destination token is non-USDC.</p>
+
+    <div class="cta-card">
+      <h3>One form. Three routes. Eight chains.</h3>
+      <p>Connect a wallet and open Trade to try it. The route planner handles the rest.</p>
+      <a href="/trade">Open Trade</a>
+      <a class="alt" href="/blog/launch-balance">Read Unified Balance post</a>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Testnet only. No real money.</div>
+      <div class="callout-body">Everything on ArcSwap today runs on <strong>testnets</strong>. USDC and EURC here are testnet tokens with no monetary value. <strong>Never send mainnet assets to a testnet address.</strong> Funds sent to a testnet address are unrecoverable.</div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>ArcSwap is a non-custodial frontend currently on testnet networks. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+
+  </article>
+
+  <div class="foot">
+    <span>© 2026 ArcSwap · Built on Arc Testnet</span>
+    <div>
+      <a href="/blog">← Back to blog</a> &nbsp;·&nbsp;
+      <a href="https://x.com/arc_swap" target="_blank" rel="noopener noreferrer">X</a> &nbsp;·&nbsp;
+      <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
