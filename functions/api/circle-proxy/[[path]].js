@@ -93,15 +93,38 @@ export async function onRequest(context) {
   const ua = request.headers.get('User-Agent');
   if (ua) upstreamHeaders.set('User-Agent', ua);
 
+  // Build request body — for JSON POST/PUT, replace placeholder kitKey with the
+  // real server-side key before forwarding. The Circle SDK embeds kitKey in the
+  // body (not just headers), and Circle uses that body field to look up the kit
+  // configuration (routes, tokens, fees). Sending the placeholder causes a 404.
+  let requestBody;
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    const rawBody = await request.text();
+    const ct = request.headers.get('Content-Type') || '';
+    if (ct.includes('application/json') && rawBody) {
+      try {
+        const parsed = JSON.parse(rawBody);
+        if (parsed.kitKey !== undefined) {
+          parsed.kitKey = env.KIT_KEY;
+          requestBody = JSON.stringify(parsed);
+        } else {
+          requestBody = rawBody;
+        }
+      } catch {
+        requestBody = rawBody;
+      }
+    } else {
+      requestBody = rawBody;
+    }
+  }
+
   // Forward the request
   let upstreamResponse;
   try {
     upstreamResponse = await fetch(targetUrl, {
       method: request.method,
       headers: upstreamHeaders,
-      body: request.method !== 'GET' && request.method !== 'HEAD'
-        ? await request.text()
-        : undefined,
+      body: requestBody,
     });
   } catch (e) {
     console.error('[circle-proxy] upstream fetch failed:', e?.message);
