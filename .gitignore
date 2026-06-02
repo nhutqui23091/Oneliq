@@ -79,3 +79,6 @@ INVESTOR-DECK.md
 INVESTOR-DECK.pptx
 scripts/build_deck.py
 .backup-secret.local
+
+.preview-oneliq.png
+logo-preview.html
