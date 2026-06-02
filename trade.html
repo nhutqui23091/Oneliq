@@ -33,8 +33,10 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
 .leg-bal b{color:var(--text);cursor:pointer}
 .leg-bal b:hover{color:var(--arc2)}
 
-.max-btn{padding:2px 8px;border-radius:4px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.3);color:var(--arc1);font-size:11px;font-weight:700;font-family:var(--mono);cursor:pointer;letter-spacing:.04em;transition:all .15s;line-height:1.4}
-.max-btn:hover{background:rgba(77,214,219,.22);border-color:rgba(77,214,219,.55)}
+.pct-btn{padding:2px 7px;border-radius:4px;background:rgba(77,214,219,.06);border:1px solid rgba(77,214,219,.18);color:var(--muted);font-size:10px;font-weight:700;font-family:var(--mono);cursor:pointer;letter-spacing:.03em;transition:all .15s;line-height:1.4}
+.pct-btn:hover{background:rgba(77,214,219,.14);border-color:rgba(77,214,219,.38);color:var(--arc1)}
+.max-btn{background:linear-gradient(135deg,rgba(77,214,219,.22),rgba(74,123,236,.18));border-color:rgba(77,214,219,.45);color:var(--arc1);font-size:11px;padding:2px 8px}
+.max-btn:hover{background:linear-gradient(135deg,rgba(77,214,219,.32),rgba(74,123,236,.28));border-color:rgba(77,214,219,.65)}
 
 .leg-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
 .amt-in{font-family:var(--mono);font-size:32px;font-weight:600;background:none;border:none;outline:none;color:var(--text);width:100%;min-width:0}
@@ -250,6 +252,29 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
 .slip-btn.active{color:var(--text);border-color:var(--arc2);background:rgba(77,214,219,.1)}
 .slip-btn input{background:none;border:none;outline:none;width:42px;color:inherit;font-family:inherit;font-size:inherit}
 
+/* Slippage summary row — always visible, click to edit */
+.slip-summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;margin-top:14px}
+.slip-summary-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.slip-summary-pill:hover,.slip-summary-pill.open{border-color:var(--arc2);background:rgba(77,214,219,.08)}
+.slip-pill-caret{color:var(--muted);font-size:10px;transition:transform .15s}
+.slip-summary-pill.open .slip-pill-caret{transform:rotate(180deg)}
+.slip-dropdown{display:none;padding:6px 2px 2px}
+.slip-dropdown.open{display:block}
+
+/* Info summary line (collapsed) + expandable details */
+.info-summary{display:flex;justify-content:space-between;align-items:center;padding:4px 2px;margin-top:4px}
+.info-summary-line{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);font-family:var(--mono);flex:1;min-width:0;flex-wrap:wrap;line-height:1.6}
+.info-dot{opacity:.35;margin:0 1px}
+.info-chevron-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 7px;border-radius:6px;transition:all .15s;flex-shrink:0;line-height:1}
+.info-chevron-btn:hover{color:var(--text);background:var(--surface2)}
+.info-details{overflow:hidden;transition:max-height .25s ease;max-height:0}
+.info-details.open{max-height:500px}
+
+/* Send to another wallet toggle */
+.send-other-wrap{padding:8px 2px 0}
+.send-other-btn{background:none;border:none;color:var(--arc2);font-size:12px;font-weight:600;cursor:pointer;padding:2px 0;transition:opacity .15s;font-family:var(--font)}
+.send-other-btn:hover{opacity:.7}
+
 /* Execute */
 .exec-btn{width:100%;padding:16px;border-radius:14px;font-size:15px;font-weight:700;border:1px solid rgba(255,255,255,0.22);cursor:pointer;transition:all .2s;margin-top:14px;background:rgba(255,255,255,0.1);color:var(--text);letter-spacing:.02em}
 .exec-btn:hover:not(:disabled){background:rgba(255,255,255,0.16);border-color:rgba(255,255,255,0.35);transform:translateY(-1px)}
@@ -334,9 +359,11 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       <div class="leg" id="from-leg">
         <div class="leg-head">
           <span class="leg-lbl">You pay · Source</span>
-          <div style="display:flex;align-items:center;gap:6px">
+          <div style="display:flex;align-items:center;gap:5px">
             <span class="leg-bal" id="from-bal">Balance: —</span>
-            <button class="max-btn" id="max-btn" type="button">MAX</button>
+            <button class="pct-btn" id="pct-20-btn" type="button">20%</button>
+            <button class="pct-btn" id="pct-50-btn" type="button">50%</button>
+            <button class="pct-btn max-btn" id="max-btn" type="button">MAX</button>
           </div>
         </div>
         <div class="src-picker" id="from-source-wrap">
@@ -386,10 +413,13 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
           </button>
         </div>
 
-        <div class="recipient-row" id="recipient-row">
+        <div class="recipient-row" id="recipient-row" style="display:none">
           <span style="font-size:12px;color:var(--muted)">To address:</span>
           <input id="recipient-input" placeholder="0x… (same as sender)" spellcheck="false"/>
           <span class="recipient-toggle" id="use-self">Use mine</span>
+        </div>
+        <div class="send-other-wrap">
+          <button class="send-other-btn" id="send-other-btn" type="button">+ Send to another wallet</button>
         </div>
       </div>
 
@@ -411,20 +441,39 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
         </button>
       </div>
 
-      <!-- Metrics -->
-      <div style="margin-top:14px;padding:10px 2px">
+      <!-- Slippage summary (always visible) -->
+      <div class="slip-summary-row">
+        <span class="lbl">Max Slippage</span>
+        <button class="slip-summary-pill" id="slip-summary-pill" type="button">
+          <span id="slip-pill-val">0.5%</span>
+          <span class="slip-pill-caret">▾</span>
+        </button>
+      </div>
+      <div class="slip-dropdown" id="slip-dropdown">
+        <div class="slippage-row">
+          <button class="slip-btn" data-s="0.1">0.1%</button>
+          <button class="slip-btn active" data-s="0.5">0.5%</button>
+          <button class="slip-btn" data-s="1">1%</button>
+          <button class="slip-btn" data-s="custom"><input id="slip-custom" type="number" step="0.1" min="0.05" max="50" placeholder="…"/>%</button>
+        </div>
+      </div>
+
+      <!-- Info summary + expandable details -->
+      <div class="info-summary">
+        <div class="info-summary-line">
+          <span id="m-rate-inline">—</span>
+          <span class="info-dot">·</span>
+          <span>🕐</span><span id="m-time-inline"> —</span>
+          <span class="info-dot">·</span>
+          <span>⛽</span><span id="m-fee-inline"> —</span>
+        </div>
+        <button class="info-chevron-btn" id="info-chevron-btn" type="button" aria-label="Toggle details">▾</button>
+      </div>
+      <div class="info-details" id="info-details">
         <div class="metric-row"><span class="lbl">Rate</span><span class="val" id="m-rate">—</span></div>
         <div class="metric-row"><span class="lbl">Price impact</span><span class="val" id="m-impact">—</span></div>
         <div class="metric-row"><span class="lbl">Network fee</span><span class="val" id="m-netfee">—</span></div>
         <div class="metric-row"><span class="lbl">Min received</span><span class="val" id="m-min">—</span></div>
-        <div class="metric-row"><span class="lbl">Slippage</span>
-          <span class="val slippage-row">
-            <button class="slip-btn" data-s="0.1">0.1%</button>
-            <button class="slip-btn active" data-s="0.5">0.5%</button>
-            <button class="slip-btn" data-s="1">1%</button>
-            <button class="slip-btn" data-s="custom"><input id="slip-custom" type="number" step="0.1" min="0.05" max="50" placeholder="…"/>%</button>
-          </span>
-        </div>
         <div class="metric-row"><span class="lbl">Estimated time</span><span class="val" id="m-time">—</span></div>
       </div>
 
@@ -1004,6 +1053,18 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       };
       const maxBtn = document.getElementById('max-btn');
       if (maxBtn) maxBtn.onclick = document.getElementById('from-bal-b').onclick;
+      const pct20Btn = document.getElementById('pct-20-btn');
+      if (pct20Btn) pct20Btn.onclick = () => {
+        const amt = formatAmt((fb * 20n) / 100n, state.fromToken.decimals, state.fromToken.decimals);
+        document.getElementById('amount-in').value = amt;
+        state.amountIn = amt; triggerQuote();
+      };
+      const pct50Btn = document.getElementById('pct-50-btn');
+      if (pct50Btn) pct50Btn.onclick = () => {
+        const amt = formatAmt((fb * 50n) / 100n, state.fromToken.decimals, state.fromToken.decimals);
+        document.getElementById('amount-in').value = amt;
+        state.amountIn = amt; triggerQuote();
+      };
     } catch (e) {
       fromBal.textContent = 'Balance: error';
       toBal.textContent = 'Balance: error';
@@ -1011,11 +1072,25 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
   }
 
   // ── SLIPPAGE ─────────────────────────────────────────
-  document.querySelectorAll('.slip-btn').forEach(b => b.onclick = (e) => {
+  function updateSlippagePill() {
+    const bps = state.slippageBps;
+    const pct = (bps % 100 === 0) ? (bps / 100).toFixed(1) : (bps / 100).toFixed(2);
+    const el = document.getElementById('slip-pill-val');
+    if (el) el.textContent = pct + '%';
+  }
+
+  function closeSlipDropdown() {
+    document.getElementById('slip-dropdown')?.classList.remove('open');
+    document.getElementById('slip-summary-pill')?.classList.remove('open');
+  }
+
+  document.querySelectorAll('.slip-btn').forEach(b => b.onclick = () => {
     if (b.dataset.s === 'custom') return;
     document.querySelectorAll('.slip-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     state.slippageBps = Math.round(parseFloat(b.dataset.s) * 100);
+    updateSlippagePill();
+    closeSlipDropdown();
     triggerQuote();
   });
   document.getElementById('slip-custom').oninput = (e) => {
@@ -1024,9 +1099,50 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       document.querySelectorAll('.slip-btn').forEach(x => x.classList.remove('active'));
       e.target.closest('.slip-btn').classList.add('active');
       state.slippageBps = Math.round(v * 100);
+      updateSlippagePill();
       triggerQuote();
     }
   };
+
+  document.getElementById('slip-summary-pill').onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = document.getElementById('slip-dropdown').classList.contains('open');
+    document.getElementById('slip-dropdown').classList.toggle('open', !isOpen);
+    document.getElementById('slip-summary-pill').classList.toggle('open', !isOpen);
+  };
+
+  // ── INFO COLLAPSE/EXPAND ──────────────────────────────
+  let infoExpanded = false;
+  document.getElementById('info-chevron-btn').onclick = () => {
+    infoExpanded = !infoExpanded;
+    document.getElementById('info-details').classList.toggle('open', infoExpanded);
+    document.getElementById('info-chevron-btn').textContent = infoExpanded ? '▴' : '▾';
+  };
+
+  // ── SEND TO ANOTHER WALLET ────────────────────────────
+  document.getElementById('send-other-btn').onclick = () => {
+    const row = document.getElementById('recipient-row');
+    const btn = document.getElementById('send-other-btn');
+    const isHidden = row.style.display === 'none' || row.style.display === '';
+    if (isHidden) {
+      row.style.display = 'flex';
+      btn.textContent = '← Use my wallet';
+      recInput.focus();
+    } else {
+      row.style.display = 'none';
+      btn.textContent = '+ Send to another wallet';
+    }
+  };
+
+  // Close slip dropdown on outside click or Escape
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#slip-summary-pill') && !e.target.closest('#slip-dropdown')) {
+      closeSlipDropdown();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSlipDropdown();
+  });
 
   // ── CCTP MODE ────────────────────────────────────────
   document.querySelectorAll('#fast-toggle .fast-opt').forEach(b => b.onclick = () => {
@@ -1062,6 +1178,9 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
   document.getElementById('use-self').onclick = () => {
     state.recipient = ''; state.useSelfRecipient = true;
     syncRecipientDisplay();
+    document.getElementById('recipient-row').style.display = 'none';
+    const sendBtn = document.getElementById('send-other-btn');
+    if (sendBtn) sendBtn.textContent = '+ Send to another wallet';
     refreshExec();
   };
 
@@ -1344,6 +1463,13 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     document.getElementById('m-netfee').innerHTML = m.fee;
     document.getElementById('m-min').innerHTML = m.min;
     document.getElementById('m-time').innerHTML = m.time;
+    // Sync collapsed summary line
+    const rI = document.getElementById('m-rate-inline');
+    if (rI) rI.innerHTML = m.rate;
+    const tI = document.getElementById('m-time-inline');
+    if (tI) tI.textContent = ' ' + m.time;
+    const fI = document.getElementById('m-fee-inline');
+    if (fI) fI.textContent = ' ' + m.fee;
   }
 
   function estimateUSD(amount, token) {
