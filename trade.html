@@ -1112,11 +1112,16 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
   };
 
   // ── INFO COLLAPSE/EXPAND ──────────────────────────────
+  const infoDet = document.getElementById('info-details');
+  const infoChevron = document.getElementById('info-chevron-btn');
   let infoExpanded = false;
-  document.getElementById('info-chevron-btn').onclick = () => {
+  infoChevron.onclick = () => {
     infoExpanded = !infoExpanded;
-    document.getElementById('info-details').classList.toggle('open', infoExpanded);
-    document.getElementById('info-chevron-btn').textContent = infoExpanded ? '▴' : '▾';
+    // Use scrollHeight for reliable height across all browsers/mobile.
+    // Inline style takes precedence over the CSS class approach.
+    infoDet.style.maxHeight = infoExpanded ? infoDet.scrollHeight + 'px' : '0';
+    infoChevron.textContent = infoExpanded ? '▴' : '▾';
+    infoChevron.style.padding = '6px 7px'; // keep touch target consistent
   };
 
   // ── SEND TO ANOTHER WALLET ────────────────────────────
