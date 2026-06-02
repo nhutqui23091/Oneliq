@@ -56,17 +56,19 @@
   }
 
   function refreshWalletBtn() {
-    const btn = document.getElementById('arc-wallet-btn'); if (!btn) return;
     const s = ARC.wallet.snapshot();
-    if (s.connected) {
-      btn.classList.remove('disconnected');
-      btn.innerHTML = `<span class="dot"></span>${ARC.shortAddr(s.address)}`;
-      btn.title = s.address;
-    } else {
-      btn.classList.add('disconnected');
-      btn.textContent = 'Connect Wallet';
-      btn.title = '';
-    }
+    ['arc-wallet-btn', 'arc-wallet-btn-mob'].forEach(id => {
+      const btn = document.getElementById(id); if (!btn) return;
+      if (s.connected) {
+        btn.classList.remove('disconnected');
+        btn.innerHTML = `<span class="dot"></span>${ARC.shortAddr(s.address)}`;
+        btn.title = s.address;
+      } else {
+        btn.classList.add('disconnected');
+        btn.textContent = 'Connect Wallet';
+        btn.title = '';
+      }
+    });
   }
 
   async function onWalletClick() {
@@ -314,6 +316,17 @@
       hamb.innerHTML = '<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="M1 1h14M1 6h14M1 11h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
       hamb.addEventListener('click', () => document.body.classList.add('arc-side-open'));
       document.body.appendChild(hamb);
+    }
+
+    // Mobile wallet CTA (top-right, mirrors hamburger — always visible on mobile)
+    if (!document.getElementById('arc-wallet-btn-mob')) {
+      const mobW = document.createElement('button');
+      mobW.type = 'button';
+      mobW.id = 'arc-wallet-btn-mob';
+      mobW.className = 'wallet-btn disconnected arc-mob-wallet';
+      mobW.textContent = 'Connect Wallet';
+      mobW.onclick = onWalletClick;
+      document.body.appendChild(mobW);
     }
 
     const paint = () => {
