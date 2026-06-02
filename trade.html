@@ -10,7 +10,7 @@
 <title>Trade · Swap & Bridge — Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.8.2"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.8.3"/>
 <style>
 main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;padding:44px 28px 80px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px}
 @media(max-width:960px){main.trade-wrap{grid-template-columns:1fr;padding:40px 20px 80px}}
@@ -506,7 +506,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.0"></script>
 <script src="/assets/arc-core.js?v=9.7.10"></script>
-<script src="/assets/arc-ui.js?v=9.8.2"></script>
+<script src="/assets/arc-ui.js?v=9.8.3"></script>
 <script src="/assets/arc-gateway.js?v=9.6.2"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
@@ -846,7 +846,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
     if (state.src.kind === 'unified') {
       const gwFunded = [...state.sources.values()].filter(s => s.kind === 'gateway' && s.canonical > 0n);
       const total = gwFunded.reduce((acc, s) => acc + s.canonical, 0n);
-      fromCurrentEl.textContent = `⚡ Unified Balance — ${ARC.formatAmt(total, 6, 4)} USDC across ${gwFunded.length} chains`;
+      fromCurrentEl.textContent = `Unified Balance · ${ARC.formatAmt(total, 6, 4)} USDC across ${gwFunded.length} chains`;
       return;
     }
     const cur = state.sources.get(`${state.src.chainKey}:${state.src.kind}`);
@@ -854,8 +854,8 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       fromCurrentEl.textContent = wallet.address ? 'Pick a source…' : 'Connect wallet…';
       return;
     }
-    const kindIcon = cur.kind === 'gateway' ? '⚡ Gateway' : '💼 Wallet';
-    fromCurrentEl.textContent = `${chainName(cur.chainKey)} · ${kindIcon} — ${cur.display} USDC`;
+    const kindLabel = cur.kind === 'gateway' ? 'Gateway' : 'Wallet';
+    fromCurrentEl.textContent = `${chainName(cur.chainKey)} · ${kindLabel} · ${cur.display} USDC`;
   }
 
   function openSourcePanel() {
