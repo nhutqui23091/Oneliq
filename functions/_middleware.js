@@ -17,7 +17,7 @@
 // Note on logout: HTTP Basic Auth has no real logout. Close the browser /
 // use an incognito window if you need to clear credentials.
 
-const REALM = 'OneSet — Private';
+const REALM = 'Oneliq — Private';
 
 function isProtected(pathname) {
   return (

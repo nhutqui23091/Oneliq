@@ -1,4 +1,4 @@
-# RFC 9116 — security.txt for OneSet
+# RFC 9116 — security.txt for Oneliq
 # https://www.rfc-editor.org/rfc/rfc9116
 
 Contact: mailto:security@arcswap.net

@@ -1,7 +1,7 @@
 /**
  * Circle Programmable Wallet integration — LIVE.
  *
- * Implements the Developer-Controlled Wallets API needed for the OneSet
+ * Implements the Developer-Controlled Wallets API needed for the Oneliq
  * agent backend:
  *   - Generate per-request `entitySecretCiphertext` via Web Crypto (RSA-OAEP-SHA256)
  *   - Create wallet sets + wallets on supported testnet chains

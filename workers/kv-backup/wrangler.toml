@@ -1,4 +1,4 @@
-# OneSet KV Backup — Cloudflare Worker.
+# Oneliq KV Backup — Cloudflare Worker.
 #
 # Daily snapshot of AGENT_KV → R2 bucket. Defends against:
 #   - Accidental KV namespace deletion

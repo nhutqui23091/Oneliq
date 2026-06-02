@@ -1,6 +1,6 @@
-# Security Policy — OneSet
+# Security Policy — Oneliq
 
-OneSet is the Yield Terminal for stablecoins on **Arc Testnet**. We take security
+Oneliq is the Yield Terminal for stablecoins on **Arc Testnet**. We take security
 seriously and welcome responsible disclosure from researchers.
 
 ---

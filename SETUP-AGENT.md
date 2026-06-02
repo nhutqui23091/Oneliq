@@ -20,7 +20,7 @@ The agent API stores rules and executions in Cloudflare KV.
 
 ### Bind it to the Pages project
 
-1. Cloudflare dashboard → **Pages** → your OneSet project → **Settings** →
+1. Cloudflare dashboard → **Pages** → your Oneliq project → **Settings** →
    **Functions** → **KV namespace bindings** → **Add binding**
 2. Variable name: `AGENT_KV` *(must be exactly this — it's hard-coded in the API)*
 3. Namespace: select the one created above
@@ -54,7 +54,7 @@ returns simulated executions.
 
 ### Set env vars
 
-Cloudflare dashboard → **Pages** → OneSet project → **Settings** →
+Cloudflare dashboard → **Pages** → Oneliq project → **Settings** →
 **Environment variables** → **Production** → **Add variable** (type: **Encrypt**)
 
 | Variable name              | Value                                                          |

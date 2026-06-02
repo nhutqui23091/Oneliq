@@ -1,5 +1,5 @@
 /**
- * OneSet metrics — Cloudflare Pages Function.
+ * Oneliq metrics — Cloudflare Pages Function.
  *
  * Endpoints (all under /api/metrics/*):
  *   POST /track       Increment counters + store event in ring buffer.

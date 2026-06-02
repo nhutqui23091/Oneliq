@@ -1,5 +1,5 @@
 /**
- * OneSet KV Backup Worker.
+ * Oneliq KV Backup Worker.
  *
  * Trigger paths:
  *   1. Cron — env.AGENT_KV → JSON → env.BACKUPS (R2). Fires daily per wrangler.toml.

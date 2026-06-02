@@ -1,5 +1,5 @@
 /**
- * OneSet Agent Cron — Cloudflare Worker.
+ * Oneliq Agent Cron — Cloudflare Worker.
  *
  * Runs once per minute (configured in wrangler.toml). Calls the
  * /api/agent/cron-tick endpoint on the arcswap Pages project via a
