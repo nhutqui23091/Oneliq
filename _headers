@@ -27,3 +27,9 @@
   # Cross-origin isolation (lets future SharedArrayBuffer / WASM features work safely)
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Resource-Policy: same-site
+
+/*.html
+  Content-Type: text/html; charset=utf-8
+
+/blog/*.html
+  Content-Type: text/html; charset=utf-8

@@ -29,6 +29,9 @@
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Resource-Policy: same-site
 
+/*.html
+  Content-Type: text/html; charset=utf-8
+
 # Override Cache-Control for JS/CSS so users never get stuck on stale logic
 # after a deploy. Cloudflare Pages default is max-age=14400 (4h) which means
 # a tab loaded before a deploy keeps the old JS for up to 4 hours. For a
