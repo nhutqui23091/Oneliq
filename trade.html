@@ -33,6 +33,9 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
 .leg-bal b{color:var(--text);cursor:pointer}
 .leg-bal b:hover{color:var(--arc2)}
 
+.max-btn{padding:2px 8px;border-radius:4px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.3);color:var(--arc1);font-size:11px;font-weight:700;font-family:var(--mono);cursor:pointer;letter-spacing:.04em;transition:all .15s;line-height:1.4}
+.max-btn:hover{background:rgba(77,214,219,.22);border-color:rgba(77,214,219,.55)}
+
 .leg-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
 .amt-in{font-family:var(--mono);font-size:32px;font-weight:600;background:none;border:none;outline:none;color:var(--text);width:100%;min-width:0}
 .amt-in::placeholder{color:rgba(139,126,170,.4)}
@@ -240,7 +243,7 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
    for the Rate row, so users learn WHY there's a 1-2s wait (real RFQ-style
    quote, not a static FX feed). */
 .metric-row .val .quoting-msg{font-family:var(--mono);font-size:11px;font-style:italic;font-weight:500;color:var(--muted);opacity:.9;letter-spacing:.01em}
-.metric-row .val .quoting-msg::after{content:'';display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--arc1);animation:pulse-dot 1s infinite;vertical-align:middle}
+.metric-row .val .quoting-msg::after{content:'';display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--arc1);vertical-align:middle}
 
 .slippage-row{display:flex;gap:6px;align-items:center}
 .slip-btn{padding:4px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--mono)}
@@ -331,7 +334,10 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
       <div class="leg" id="from-leg">
         <div class="leg-head">
           <span class="leg-lbl">You pay · Source</span>
-          <span class="leg-bal" id="from-bal">Balance: —</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="leg-bal" id="from-bal">Balance: —</span>
+            <button class="max-btn" id="max-btn" type="button">MAX</button>
+          </div>
         </div>
         <div class="src-picker" id="from-source-wrap">
           <button class="src-trigger" id="from-source-btn" type="button">
@@ -996,6 +1002,8 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
         document.getElementById('amount-in').value = max;
         state.amountIn = max; triggerQuote();
       };
+      const maxBtn = document.getElementById('max-btn');
+      if (maxBtn) maxBtn.onclick = document.getElementById('from-bal-b').onclick;
     } catch (e) {
       fromBal.textContent = 'Balance: error';
       toBal.textContent = 'Balance: error';
@@ -1030,13 +1038,31 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
 
   // ── RECIPIENT ────────────────────────────────────────
   const recInput = document.getElementById('recipient-input');
+
+  // Pre-fill the recipient field with the connected wallet address (muted style =
+  // auto-filled, not user-typed). state.recipient stays empty so execute() still
+  // routes to wallet.address. User can override by typing a different address.
+  function syncRecipientDisplay() {
+    if (!recInput) return;
+    if (wallet.address && state.useSelfRecipient) {
+      recInput.value = wallet.address;
+      recInput.style.color = 'var(--muted)';
+    } else if (!wallet.address) {
+      recInput.value = '';
+      recInput.style.color = '';
+    }
+  }
+
   recInput.oninput = () => {
+    recInput.style.color = '';
     state.recipient = recInput.value.trim();
     state.useSelfRecipient = !state.recipient;
     refreshExec();
   };
   document.getElementById('use-self').onclick = () => {
-    state.recipient = ''; recInput.value = ''; state.useSelfRecipient = true; refreshExec();
+    state.recipient = ''; state.useSelfRecipient = true;
+    syncRecipientDisplay();
+    refreshExec();
   };
 
   // ── FLIP ─────────────────────────────────────────────
@@ -1797,10 +1823,12 @@ main.trade-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;paddi
   ARC.wallet.on(async () => {
     await loadAllSources().catch(() => null);
     updateBalances(); refreshExec(); renderActivity();
+    syncRecipientDisplay();
   });
   // Initial load — fires after autoConnect resolves (ArcUI.boot already awaited it).
   loadAllSources().catch(() => null).then(() => {
     updateBalances(); refreshExec();
+    syncRecipientDisplay();
   });
 
   // Auto-refresh sources every 15s while page is visible. Circle's operator
