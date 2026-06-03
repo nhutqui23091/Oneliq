@@ -307,6 +307,12 @@
       backdrop.addEventListener('click', () => document.body.classList.remove('arc-side-open'));
       document.body.appendChild(backdrop);
     }
+    if (!window._arcEscAdded) {
+      window._arcEscAdded = true;
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') document.body.classList.remove('arc-side-open');
+      });
+    }
 
     // Mobile hamburger trigger (top-left, only visible <900px)
     let hamb = document.querySelector('.arc-side-hamb');
@@ -316,7 +322,7 @@
       hamb.className = 'arc-side-hamb';
       hamb.setAttribute('aria-label', 'Open menu');
       hamb.innerHTML = '<svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="M1 1h14M1 6h14M1 11h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-      hamb.addEventListener('click', () => document.body.classList.add('arc-side-open'));
+      hamb.addEventListener('click', () => document.body.classList.toggle('arc-side-open'));
       document.body.appendChild(hamb);
     }
 
@@ -364,12 +370,19 @@
               <path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
+          <button class="arc-side-close" type="button" aria-label="Close menu">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
         </div>
         <nav class="arc-side-nav">${sectionsHtml}</nav>
         <div class="arc-side-foot">
           <div class="arc-side-chain" title="Arc Testnet"><span class="dot"></span><span class="arc-side-chain-label">Arc Testnet</span></div>
           <button id="arc-wallet-btn" class="wallet-btn disconnected" title="Connect Wallet">Connect Wallet</button>
         </div>`;
+
+      // Mobile close button
+      const closeBtn = side.querySelector('.arc-side-close');
+      if (closeBtn) closeBtn.addEventListener('click', () => document.body.classList.remove('arc-side-open'));
 
       // Toggle (desktop collapse / expand)
       side.querySelector('.arc-side-toggle').addEventListener('click', () => {

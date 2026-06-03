@@ -210,6 +210,8 @@ body.arc-side-collapsed .arc-side-head{justify-content:center;padding:20px 0 18p
 .arc-side-toggle:hover{color:var(--text);background:var(--surface2);border-color:var(--border2)}
 .arc-side-toggle svg{transition:transform .25s cubic-bezier(.2,.9,.3,1.1)}
 body.arc-side-collapsed .arc-side-toggle svg{transform:rotate(180deg)}
+.arc-side-close{display:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;transition:all .18s}
+.arc-side-close:hover{color:var(--text);background:var(--surface2);border-color:var(--border2)}
 
 /* Sidebar NAV */
 .arc-side-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 12px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
@@ -286,4 +288,7 @@ body.arc-side-open .arc-side-backdrop{opacity:1;pointer-events:auto}
   body.arc-side-collapsed .arc-side-foot .wallet-btn::after{display:none}
   /* Toggle button can hide on mobile — drawer just slides */
   .arc-side-toggle{display:none}
+  /* Show X close button in sidebar header; hide hamburger while sidebar is open */
+  .arc-side-close{display:flex}
+  body.arc-side-open .arc-side-hamb{display:none}
 }
