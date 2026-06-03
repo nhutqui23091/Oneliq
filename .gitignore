@@ -70,6 +70,7 @@ scratch/
 
 # ─── Generated social previews (raster exports — keep SVG sources only) ──────
 assets/social/*.png
+!assets/social/blog-rebrand-banner.png
 assets/social/*.jpg
 
 # ─── Investor / business-sensitive content ───────────────────────────────────
