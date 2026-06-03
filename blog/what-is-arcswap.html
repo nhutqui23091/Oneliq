@@ -7,14 +7,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<meta name="description" content="What is Oneliq? The stablecoin command center on Arc — Unified Balance, native Trade, instant token creation. The design thesis."/>
+<meta name="description" content="What is Oneliq? Five products for managing, moving, and automating USDC on Arc Testnet. Built on Circle's stablecoin infrastructure: App Kit Swap, CCTP V2, Gateway, and Programmable Wallets."/>
 <link rel="canonical" href="https://oneliq.xyz/blog/what-is-arcswap"/>
-<meta property="og:title" content="What is Oneliq?"/>
-<meta property="og:description" content="The stablecoin command center on Arc — Unified Balance via Circle Gateway, native Trade, and one-click token creation. The design thesis."/>
+<meta property="og:title" content="Oneliq: One Interface for All Stablecoin Flows"/>
+<meta property="og:description" content="Five products on Arc Testnet: Trade, Balance, Agent (preview), History, and Token. Built on Circle App Kit Swap, CCTP V2, Gateway, and Programmable Wallets."/>
 <meta property="og:image" content="https://oneliq.xyz/assets/social/blog-arcswap-banner.svg"/>
 <meta property="og:url" content="https://oneliq.xyz/blog/what-is-arcswap"/>
 <meta property="og:type" content="article"/>
-<title>What is Oneliq? — Oneliq Blog</title>
+<title>Oneliq: One Interface for All Stablecoin Flows | Oneliq Blog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
@@ -83,7 +83,9 @@ article li::marker{color:var(--arc1)}
 code{font-family:var(--mono);font-size:14px;background:rgba(77,214,219,0.08);border:1px solid rgba(77,214,219,0.16);padding:1px 6px;border-radius:5px;color:var(--arc1)}
 
 .callout{border-left:3px solid var(--arc1);background:rgba(77,214,219,0.05);padding:16px 20px;border-radius:0 10px 10px 0;margin:28px 0}
+.callout.warn{border-left-color:var(--warn);background:rgba(255,180,84,0.06)}
 .callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--arc1)}
+.callout.warn .callout-title{color:var(--warn)}
 .callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
 
 table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
@@ -99,6 +101,7 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 .fcard-tag.c2{color:var(--arc2)}
 .fcard-tag.c3{color:var(--arc3)}
 .fcard-tag.c4{color:var(--arc4)}
+.fcard-tag.cmuted{color:var(--muted)}
 .fcard-name{font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px}
 .fcard-desc{font-size:13.5px;color:var(--muted);line-height:1.5}
 
@@ -107,6 +110,8 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 .cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
 .cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(77,214,219,0.14);border:1px solid rgba(77,214,219,0.4);color:var(--arc1);transition:all .2s;margin:0 4px}
 .cta-card a:hover{background:rgba(77,214,219,0.2);border-color:var(--arc1)}
+.cta-card a.alt{background:rgba(74,123,236,0.12);border-color:rgba(74,123,236,0.36);color:var(--arc2)}
+.cta-card a.alt:hover{background:rgba(74,123,236,0.2);border-color:var(--arc2)}
 
 .foot{margin-top:60px;padding-top:28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
 .foot a{color:var(--muted);text-decoration:none}
@@ -140,133 +145,143 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 <div class="wrap">
 
   <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; What is Oneliq?</div>
-  <div class="eyebrow">Product Note</div>
-  <h1 class="title">What is <span class="grad">Oneliq</span>?</h1>
-  <p class="lead">The stablecoin command center on Arc — spend USDC from any chain, trade and bridge native, and ship a token in one click. Here's the design thesis.</p>
+  <div class="eyebrow">Product Overview · Arc Testnet</div>
+  <h1 class="title"><span class="grad">Oneliq:</span> One Interface for All Stablecoin Flows</h1>
+  <p class="lead">Five integrated products for managing, moving, and automating USDC on Arc Testnet. The protocols are Circle's. The interface is ours.</p>
 
   <div class="byline">
     <span class="byline-author">Oneliq Team</span>
     <span class="byline-sep">·</span>
-    <span>May 10, 2026</span>
+    <span>June 3, 2026</span>
     <span class="byline-sep">·</span>
-    <span>6 min read</span>
+    <span>7 min read</span>
   </div>
 
-  <img class="banner" src="/assets/social/blog-arcswap-banner.svg?v=2" alt="What is Oneliq"/>
+  <img class="banner" src="/assets/social/blog-arcswap-banner.svg" alt="Oneliq: One Interface for All Stablecoin Flows"/>
 
   <article>
 
-    <p>Oneliq is a <strong>non-custodial DeFi frontend</strong> on the <a href="https://arc.network" target="_blank" rel="noopener noreferrer">Arc</a> Layer 1 blockchain. The pitch in one sentence: <em>spend stablecoins on Arc as if they were already there, no matter which chain they actually live on.</em></p>
+    <p>Oneliq is a non-custodial interface for Circle's stablecoin infrastructure on <a href="https://arc.network" target="_blank" rel="noopener noreferrer">Arc Testnet</a>. It does not custody funds, run its own bridge, or operate its own AMM. Every settlement operation calls into a Circle contract: App Kit Swap, CCTP V2, Circle Gateway, or Circle Programmable Wallets. Oneliq is the form, the route planner, and the transaction history. Circle is the settlement layer.</p>
 
-    <p>That's still vague. Let me be specific.</p>
+    <div class="callout">
+      <div class="callout-title">TL;DR</div>
+      <div class="callout-body">
+        Five products on Arc Testnet today. <strong>Trade</strong> handles swap, bridge, and Gateway spend from one form across eight chains. <strong>Balance</strong> surfaces Circle Unified Balance with three spend modes. <strong>Agent</strong> automates top-ups and scheduled sends via Programmable Wallets (in preview). <strong>History</strong> tracks every operation across all eight chains. <strong>Token</strong> deploys ERC-20s on Arc without a deploy script. All testnet, all non-custodial, all faucet USDC.
+      </div>
+    </div>
 
-    <h2>The problem we noticed</h2>
+    <h2>The infrastructure it surfaces</h2>
 
-    <p>If you hold $10,000 USDC across Ethereum, Base, and Arbitrum today and want to do anything productive with it on a <em>new</em> chain, your day looks like this:</p>
-    <ul>
-      <li>Open <strong>Stargate / Across / CCTP</strong> to bridge — pick a route, wait for source finality, pay a fee.</li>
-      <li>Open <strong>Uniswap</strong> on the destination chain to swap into a different stablecoin.</li>
-      <li>Open <strong>Etherscan</strong> three times to track approvals.</li>
-      <li>Open a <strong>token launcher</strong> if you actually want to deploy something.</li>
-      <li>Realize you forgot gas on the destination chain. Bridge again.</li>
-    </ul>
+    <p>Before looking at the products individually, it helps to know what Circle technology each one calls. Oneliq is a thin UX layer; the interesting engineering is in the protocols underneath.</p>
 
-    <p>Five tabs, five wallet popups, five fee experiences, five mental models. And after all that, your USDC is fragmented across three protocols, two chains, and four token wrappers.</p>
+    <p><strong>Circle App Kit Swap</strong> handles the USDC-to-EURC exchange on Arc Testnet. The exchange rate is fetched live from Circle's aggregator at quote time. Oneliq presents the quote, shows slippage, and submits the transaction when you confirm. The swap contract is Circle's.</p>
 
-    <p>This is fine for crypto-native users who enjoy the friction. <strong>It's terrible for capital efficiency</strong> and even worse for new users.</p>
+    <p><strong>CCTP V2</strong> is the burn-and-mint bridge that moves USDC between chains without wrapping. When Trade routes a cross-chain transfer, it submits a burn transaction on the source chain, then Circle's attestation service authorizes a mint on the destination. Fast mode settles in roughly 20 seconds with a small Circle fee. Standard mode settles in 13 to 19 minutes with no fee. Oneliq calls the same CCTP V2 contracts deployed across all eight supported chains.</p>
 
-    <h2>The thesis: one balance, one venue</h2>
+    <p><strong>Circle Gateway</strong> is the escrow contract that powers Unified Balance. Depositing USDC into Gateway locks it in escrow on the source chain and increases your chain-agnostic balance. Spending from Gateway instructs Circle to release USDC from the appropriate source chain escrow and mint it at a destination of your choice. The spend authorization is an EIP-712 <code>BurnIntent</code> signature, not a separate on-chain transaction per source chain.</p>
 
-    <p>What if your USDC just <em>worked</em>? Whatever chain it's sitting on, you can spend it on Arc — instantly. Whatever stablecoin you need, you can swap into it. Whatever token you want to launch, you ship it without a deploy script. One interface, one balance, one mental model.</p>
+    <p><strong>Circle Programmable Wallets</strong> is the contract infrastructure behind Agent. The auto top-up and scheduled send flows create and execute recurring transfer policies via Programmable Wallets. Agent is the first Oneliq product where Circle's wallet automation layer is directly exposed to end users.</p>
 
-    <p>That's Oneliq today. Three public products plus an Auto-Replenish Agent in preview, all tightly integrated:</p>
+    <h2>What ships today</h2>
 
     <div class="feature-grid">
       <div class="fcard">
-        <span class="fcard-tag c2">BALANCE</span>
+        <span class="fcard-tag c2">Trade</span>
+        <div class="fcard-name">Swap · Bridge · Spend</div>
+        <div class="fcard-desc">USDC, EURC, and cirBTC across eight chains. One form, three settlement engines. Route preview before every confirm.</div>
+      </div>
+      <div class="fcard">
+        <span class="fcard-tag c1">Balance</span>
         <div class="fcard-name">Unified Balance</div>
-        <div class="fcard-desc">Powered by Circle Gateway. Spend USDC on Arc using funds sitting on Ethereum, Base, Arbitrum, Avalanche, Optimism, Polygon, Unichain — no manual bridge.</div>
+        <div class="fcard-desc">Circle Gateway pool across eight chains. Deposit from any. Spend with Auto, Single, or Manual allocation.</div>
       </div>
       <div class="fcard">
-        <span class="fcard-tag c1">TRADE</span>
-        <div class="fcard-name">Native Swap + CCTP</div>
-        <div class="fcard-desc">Convert USDC ↔ EURC instantly via Circle App Kit Swap on Arc, plus burn-and-mint CCTP V2 bridging in the same surface.</div>
+        <span class="fcard-tag c3">Agent</span>
+        <div class="fcard-name">Automation (preview)</div>
+        <div class="fcard-desc">Auto top-up when a wallet drops below threshold. Scheduled recurring sends. Powered by Circle Programmable Wallets.</div>
       </div>
       <div class="fcard">
-        <span class="fcard-tag c3">CREATE</span>
-        <div class="fcard-name">Token Launcher</div>
-        <div class="fcard-desc">Deploy an ERC-20 on Arc with a wallet click. No Hardhat, no Foundry, no Solidity. Pay gas in USDC, mint on confirmation.</div>
+        <span class="fcard-tag c4">History</span>
+        <div class="fcard-name">Activity Tracker</div>
+        <div class="fcard-desc">Real-time log of swaps, bridges, Gateway spends, deposits, and agent executions across all eight chains.</div>
+      </div>
+      <div class="fcard">
+        <span class="fcard-tag cmuted">Token</span>
+        <div class="fcard-name">ERC-20 Launcher</div>
+        <div class="fcard-desc">Deploy a token on Arc Testnet from a web form. No Hardhat, no Foundry, no Solidity. Pay gas in USDC.</div>
       </div>
     </div>
 
-    <p style="font-size:14.5px;color:var(--muted);font-style:italic">The <strong>Auto-Replenish Agent</strong> is in preview — sign once, your agent keeps any wallet topped up via Circle Programmable Wallets. Daily safety cap, revocable anytime. See <em>What's coming</em> below.</p>
+    <h2>Trade: three settlement routes from one form</h2>
 
-    <h2>Why <em>Arc</em>, specifically</h2>
+    <p><a href="/trade">Trade</a> is Oneliq's primary interface for moving value across chains. The form takes a source token, a destination token, a destination chain, and an amount. The route planner determines whether the operation requires a swap, a bridge, a Gateway spend, or some combination of the three. The assembled route is shown as a step pipeline before any signature is requested.</p>
 
-    <p>We picked Arc as the home chain because of three structural decisions Circle made when designing it:</p>
+    <p>A swap on Arc Testnet uses Circle App Kit and settles in roughly five seconds. A bridge between any two of the eight supported chains uses CCTP V2. A Gateway spend uses a <code>BurnIntent</code> signature and settles in roughly 30 seconds. Complex routes chain these steps. Converting EURC on Arc to USDC on Base Sepolia, for example, runs as a two-step pipeline: App Kit swap on Arc, then CCTP V2 bridge to Base Sepolia. The source picker separates wallet balances from Gateway deposits in a two-column panel, and a Unified Balance row aggregates Gateway deposits across multiple chains when more than one is funded. Read the <a href="/blog/launch-trade">Trade deep-dive</a> for a full walkthrough of each routing path.</p>
 
-    <ol>
-      <li><strong>USDC as native gas.</strong> No more "I need to bridge in some ETH first to pay gas". Your USDC is the spending money <em>and</em> the gas. Predictable USD-denominated transaction costs.</li>
-      <li><strong>Sub-second deterministic finality.</strong> No reorgs, no "wait 12 blocks". Tx confirmed = tx done. Critical for cross-chain UX where the bridge waits for source-chain finality.</li>
-      <li><strong>EVM compatible.</strong> Solidity, Hardhat, Foundry, Viem all work. Circle already deployed CCTP V2 and Gateway. Uniswap V2 router was deployed by the foundation. The infra was waiting.</li>
-    </ol>
+    <h2>Balance: one USDC pool across eight chains</h2>
 
-    <p>We didn't have to build any of the protocols Oneliq surfaces. They all exist on Arc. <strong>Oneliq is a UX layer, not a protocol</strong> — and that's deliberate.</p>
+    <p><a href="/balance">Balance</a> surfaces Circle's Unified Balance API through three deposit operations and three spend modes. Depositing USDC from any of the eight supported chains puts it into Circle Gateway's escrow on that source chain. From that point the balance is chain-agnostic. The underlying USDC is held wherever you deposited it. What increases is an accounting entry in Circle's system, redeemable on any chain where Gateway is deployed.</p>
 
-    <h2>What we are NOT</h2>
+    <p>When spending, you choose how the source funds are allocated. Auto mode lets Circle Gateway route from whichever chains hold enough balance, minimizing the number of source chains involved. Single mode draws the full amount from one chain you select. Manual mode lets you specify a custom per-chain split. All three modes deliver standard USDC to the recipient address on the chosen destination chain. The recipient does not need a Unified Balance account. See the <a href="/blog/launch-balance">Balance post</a> for the full deposit-and-spend walkthrough.</p>
 
-    <p>To set expectations clearly:</p>
+    <h2>Agent: automated USDC transfers (preview)</h2>
 
-    <ul>
-      <li><strong>We don't custody funds.</strong> Your wallet is your wallet. Oneliq can't pause, freeze, or move anything you own.</li>
-      <li><strong>We don't have our own token.</strong> No ASWP. No airdrop campaign. No governance vote. Anyone telling you otherwise is running a scam.</li>
-      <li><strong>We don't run our own bridge or AMM contracts.</strong> We call into Circle (CCTP, Gateway) and the Arc Foundation's Uniswap deployment. They run the infra; we run the UI.</li>
-      <li><strong>We don't take fees</strong> on swaps, bridges, or Gateway flows (current testnet stage). The fees you see come from the underlying protocols (Uniswap LP fee, CCTP relayer, etc.).</li>
-    </ul>
+    <p><a href="/agent">Agent</a> is in public preview. It exposes two automation modes built on Circle Programmable Wallets. Auto top-up monitors a wallet balance on a selected chain and issues a USDC transfer when the balance drops below a configured threshold. Scheduled send issues recurring transfers on a fixed interval: once, daily, weekly, or monthly. Both modes store the policy parameters on-chain via the Programmable Wallets contract. A daily safety cap limits total outflow. Policies can be paused or revoked at any time from the same interface.</p>
 
-    <h2>Why this design choice</h2>
+    <p>The key design constraint is that Agent can only automate flows between wallets you control. The recipient address for both modes is set at policy creation time and cannot be changed without revoking and recreating the policy. This is not a limitation of Oneliq's interface; it reflects the access model of Circle Programmable Wallets, which requires explicit ownership proof before modifying any policy.</p>
 
-    <p>"Non-custodial frontend that doesn't run its own contracts" sounds boring. It is. <strong>Boring is a feature</strong> when real money is involved.</p>
+    <h2>History: cross-chain activity in one view</h2>
 
-    <p>Look at the largest DeFi exploits of the last three years. The vast majority were not "the smart contract had a bug". They were:</p>
-    <ul>
-      <li><strong>Frontend supply-chain compromise</strong> (malicious JS pushed to a CDN)</li>
-      <li><strong>Multi-sig key compromise</strong> (admin was a single hot wallet)</li>
-      <li><strong>Bridge hack</strong> (custom messaging protocol with 1-of-N validators)</li>
-    </ul>
+    <p><a href="/history">History</a> collects and displays completed operations across all eight chains in a single feed: swaps, CCTP bridges, Gateway spends, Gateway deposits, and agent executions. Each entry links to the transaction on the relevant chain explorer. The feed updates in real time as the connected wallet's operations confirm.</p>
 
-    <p>By <em>not</em> running our own bridge or AMM, we eliminate an entire class of risk — the kind that comes from rolling our own messaging or our own pricing math. By being non-custodial, we eliminate the "founder runs off with the funds" risk. By using IPFS-pinnable static HTML, we minimize the supply-chain attack surface.</p>
+    <p>History is read-only. It queries each chain's RPC and Arc's event logs. There is no centralized indexer behind it. If a chain's RPC is unreachable, entries for that chain may lag until the connection recovers.</p>
 
-    <p>The cost: we're <em>opinionated</em> about what we surface. We pick CCTP and Gateway over LayerZero. We pick Uniswap V2 over a fork. These choices simplify the UX but constrain it.</p>
+    <h2>The network: Arc Testnet</h2>
 
-    <p>That's the trade we're making. <strong>Less optionality, less risk, less complexity.</strong> For users who want every bridge and every AMM in one place, there are aggregators. We're not that.</p>
+    <p>All five products run on Arc Testnet as their home chain. Arc is an EVM-compatible Layer 1 developed by Circle with two properties that matter structurally for Oneliq.</p>
 
-    <h2>What's coming</h2>
+    <p>First, USDC is the native gas token. Every transaction on the network settles fees in USDC rather than a separate gas token. This means there is no "need ETH for gas" bootstrapping problem. USDC from your wallet or Gateway deposit is the same asset you use to pay for the transaction that moves it. This simplifies the balance model across all five products.</p>
 
-    <p>The roadmap, in plain language:</p>
+    <p>Second, Arc has deterministic sub-second finality. There are no reorgs on Arc. When a transaction confirms, it is confirmed. This matters for CCTP V2 because the bridge waits for source-chain finality before the attestation service processes the burn. Faster finality on Arc means faster bridge confirmation when Arc is the source chain.</p>
 
     <table class="t">
-      <tr><th>When</th><th>What</th></tr>
-      <tr><td>Q2 2026 · now</td><td>Balance · Agent · Trade — UX deepening. Polish the three live surfaces. Intent / approval / revoke flows, quote &amp; route polish. No new product surfaces.</td></tr>
-      <tr><td>Q3 2026</td><td>Dashboard GA — operator control center moves from <em>soon</em> to public. Audit kickoff. Mainnet candidate build.</td></tr>
-      <tr><td>Q4 2026</td><td>Circle Wallets + Mobile — Programmable Wallets onboarding for non-crypto users. WalletConnect / Reown for mobile. Audit completion.</td></tr>
-      <tr><td>2027+</td><td>StableFX (RFQ-driven USDC ⇄ EURC ⇄ USDP via Arc <code>FxEscrow</code>) + Nanopayments + Agent SDK + Treasury API + <strong>mainnet</strong></td></tr>
+      <tr><th>Parameter</th><th>Value</th></tr>
+      <tr><td>Chain ID</td><td><code>5042002</code></td></tr>
+      <tr><td>Native gas token</td><td>USDC</td></tr>
+      <tr><td>EVM compatibility</td><td>Yes, Solidity / Viem / Hardhat</td></tr>
+      <tr><td>RPC</td><td><code>rpc.testnet.arc.network</code></td></tr>
+      <tr><td>Explorer</td><td><code>testnet.arcscan.app</code></td></tr>
+      <tr><td>EURC</td><td>ERC-20 on Arc</td></tr>
+      <tr><td>CCTP V2</td><td>Deployed on Arc</td></tr>
+      <tr><td>Circle Gateway</td><td>Deployed on Arc</td></tr>
+      <tr><td>Uniswap V2</td><td>Deployed by Arc Foundation</td></tr>
     </table>
 
-    <p>If even half of this ships, Oneliq becomes the default place to hold, move, and automate USDC on Arc. That's the bet.</p>
+    <p>The seven other chains Oneliq connects to are standard EVM testnets: Ethereum Sepolia, Base Sepolia, Avalanche Fuji, Arbitrum Sepolia, Optimism Sepolia, Polygon Amoy, and Unichain Sepolia. CCTP V2 and Circle Gateway are deployed on all eight.</p>
 
-    <h2>Try it</h2>
+    <h2>What Oneliq is not</h2>
 
-    <p>It's testnet. Nothing is real money. Get USDC from <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">Circle's faucet</a>, connect your wallet to <a href="https://oneliq.xyz">oneliq.xyz</a>, and play with the three public surfaces. Tell us what breaks.</p>
+    <p>Oneliq does not custody funds. The interface submits transactions to contracts that Circle or the Arc Foundation deployed. Your wallet signs each transaction. Oneliq cannot pause, block, or redirect your assets at any point in the flow.</p>
+
+    <p>Oneliq does not run its own AMM, bridge, or Gateway contract. The contracts that execute each operation belong to Circle or the Arc Foundation. If those protocols have a bug, that bug exists regardless of whether Oneliq surfaces them or not. Oneliq's trust assumptions are the same as the trust assumptions of the underlying Circle products.</p>
+
+    <p>Oneliq does not have its own token. There is no governance token, no airdrop, no points program. Anyone claiming otherwise is running a scam.</p>
+
+    <p>Oneliq does not charge fees on swaps, bridges, or Gateway flows in the current testnet stage. The fees shown in the Trade form come from the underlying protocols: the Circle App Kit swap spreads, the CCTP V2 Fast Transfer fee, and the Gateway BurnIntent processing fee. These are Circle's fees, not Oneliq's.</p>
 
     <div class="cta-card">
-      <h3>One balance. One venue. Three surfaces.</h3>
-      <p>Open the app on Arc Testnet — free testnet USDC from faucet.circle.com.</p>
-      <a href="/balance">Open Balance</a>
-      <a href="/trade">Trade &amp; Bridge</a>
+      <h3>Five products. One interface. Arc Testnet.</h3>
+      <p>Get testnet USDC from <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer" style="border-bottom:none">faucet.circle.com</a> and open the app at oneliq.xyz.</p>
+      <a href="/trade">Open Trade</a>
+      <a class="alt" href="/balance">Open Balance</a>
     </div>
 
-    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend currently on Arc Testnet. Figures are indicative — not financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+    <div class="callout warn">
+      <div class="callout-title">Testnet only. No real money.</div>
+      <div class="callout-body">All operations on Oneliq run on testnets. USDC and EURC here are testnet tokens with no monetary value. <strong>Never send mainnet assets to a testnet address.</strong> Funds sent to a testnet address are unrecoverable.</div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend currently on Arc Testnet. Nothing here is financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
 
   </article>
 
