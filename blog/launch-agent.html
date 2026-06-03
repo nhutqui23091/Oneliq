@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<meta name="description" content="Oneliq launches the Auto-Replenish Agent in preview — sign once, your agent keeps any wallet topped up or runs scheduled USDC transfers across 8 chains via Circle Programmable Wallets and CCTP V2."/>
+<meta name="description" content="Oneliq launches the Auto-Replenish Agent in preview. Sign once, your agent keeps any wallet topped up or runs scheduled USDC transfers across 8 chains via Circle Programmable Wallets and CCTP V2."/>
 <link rel="canonical" href="https://oneliq.xyz/blog/launch-agent"/>
-<meta property="og:title" content="Meet the Auto-Replenish Agent — USDC moves itself now"/>
+<meta property="og:title" content="Meet the Auto-Replenish Agent: USDC moves itself now"/>
 <meta property="og:description" content="Sign once. Your agent keeps wallets topped up or sends USDC on a schedule across 8 chains. Powered by Circle Programmable Wallets, CCTP V2 fast finality, and Paymaster-sponsored gas. Preview on Arc Testnet."/>
 <meta property="og:image" content="https://oneliq.xyz/assets/social/blog-agent-banner.svg"/>
 <meta property="og:url" content="https://oneliq.xyz/blog/launch-agent"/>
@@ -167,7 +167,7 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
   <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; Meet the Auto-Replenish Agent</div>
   <div class="eyebrow">Product Launch · Preview</div>
   <h1 class="title">Meet the <span class="grad">Auto-Replenish Agent</span></h1>
-  <p class="lead">Sign once. Your agent keeps a wallet topped up when it runs low, or sends USDC on a fixed schedule — across eight chains, to as many target wallets as you want. Powered by Circle Programmable Wallets, CCTP V2 for cross-chain delivery, and Paymaster-sponsored gas. Available today in preview on Arc Testnet.</p>
+  <p class="lead">Sign once. Your agent keeps a wallet topped up when it runs low, or sends USDC on a fixed schedule - across eight chains, to as many target wallets as you want. Powered by Circle Programmable Wallets, CCTP V2 for cross-chain delivery, and Paymaster-sponsored gas. Available today in preview on Arc Testnet.</p>
 
   <div class="byline">
     <span class="byline-author">Oneliq Team</span>
@@ -179,16 +179,16 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
     <span class="byline-pill"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--agent)"></span>Preview</span>
   </div>
 
-  <img class="banner" src="/assets/social/blog-agent-banner.svg" alt="Oneliq Auto-Replenish Agent — preview launch"/>
+  <img class="banner" src="/assets/social/blog-agent-banner.svg" alt="Oneliq Auto-Replenish Agent - preview launch"/>
 
   <article>
 
-    <p>Stablecoins are great at sitting still. They are bad at moving themselves. <strong>Today that changes</strong>: the <a href="/agent">Auto-Replenish Agent</a> is live in preview at <a href="https://oneliq.xyz/agent">oneliq.xyz/agent</a>. One signature, one rule — your USDC starts moving itself, across chains, on your terms.</p>
+    <p>Stablecoins are great at sitting still. They are bad at moving themselves. <strong>Today that changes</strong>: the <a href="/agent">Auto-Replenish Agent</a> is live in preview at <a href="https://oneliq.xyz/agent">oneliq.xyz/agent</a>. One signature, one rule - your USDC starts moving itself, across chains, on your terms.</p>
 
     <div class="callout">
       <div class="callout-title">TL;DR</div>
       <div class="callout-body">
-        Two modes — <strong>Auto Top-Up</strong> (refill a wallet when it dips under a floor) and <strong>Scheduled Send</strong> (recurring USDC transfers, daily / weekly / monthly). Eight supported chains via <strong>Circle CCTP V2</strong> with ~30s fast finality. <strong>Circle Paymaster</strong> sponsors gas. A daily safety cap, a 30-day rule expiry, and one-click revoke are non-negotiable defaults. Preview on Arc Testnet — Discord is the fastest way to break it.
+        Two modes - <strong>Auto Top-Up</strong> (refill a wallet when it dips under a floor) and <strong>Scheduled Send</strong> (recurring USDC transfers, daily / weekly / monthly). Eight supported chains via <strong>Circle CCTP V2</strong> with ~30s fast finality. <strong>Circle Paymaster</strong> sponsors gas. A daily safety cap, a 30-day rule expiry, and one-click revoke are non-negotiable defaults. Preview on Arc Testnet - Discord is the fastest way to break it.
       </div>
     </div>
 
@@ -211,22 +211,22 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
       </div>
     </div>
 
-    <p>Both modes share the same source-and-target shape. <strong>Sources</strong> are chains you've pre-authorised the agent to pull USDC from. <strong>Targets</strong> are destination wallets — each with its own destination chain. If source and destination differ, the agent routes the transfer through CCTP V2 burn-and-mint automatically. Same chain? Straight transfer, no bridge.</p>
+    <p>Both modes share the same source-and-target shape. <strong>Sources</strong> are chains you've pre-authorised the agent to pull USDC from. <strong>Targets</strong> are destination wallets - each with its own destination chain. If source and destination differ, the agent routes the transfer through CCTP V2 burn-and-mint automatically. Same chain? Straight transfer, no bridge.</p>
 
     <h2>How it actually works</h2>
 
     <p>Three signatures, then nothing else from you until you want to change something. Here's the whole loop:</p>
 
     <ol class="steps">
-      <li><strong>You sign once (well, twice).</strong> <span>One EIP-712 <em>agent rule</em> defines the policy — mode, sources, targets, floor / amount / cap, expiry. Then one <strong>EIP-2612 USDC permit</strong> per source chain authorises a Circle Programmable Wallet to pull USDC from your EOA up to a bounded headroom (10× your daily cap or send amount, capped). Both signatures live in your wallet's typed-data popup, no transaction needed.</span></li>
+      <li><strong>You sign once (well, twice).</strong> <span>One EIP-712 <em>agent rule</em> defines the policy - mode, sources, targets, floor / amount / cap, expiry. Then one <strong>EIP-2612 USDC permit</strong> per source chain authorises a Circle Programmable Wallet to pull USDC from your EOA up to a bounded headroom (10× your daily cap or send amount, capped). Both signatures live in your wallet's typed-data popup, no transaction needed.</span></li>
       <li><strong>Agent watches.</strong> <span>A <strong>Cloudflare Worker</strong> runs the cron loop every minute, scanning active rules. For top-up: it polls the target wallet's USDC balance against your floor. For schedule: it just waits for the next firing time.</span></li>
-      <li><strong>Funds move.</strong> <span>When a rule fires, the agent's smart account assembles a userOp: USDC pull from your EOA via the permit → optional CCTP V2 burn-and-mint to the destination chain (~30s on fast-finality pairs) → final delivery to the target wallet. <strong>Gas is sponsored by Circle Paymaster</strong> — you pay nothing in the gas token.</span></li>
-      <li><strong>You stay in control.</strong> <span>Pause, resume, run-now, or revoke any agent from the drawer. Revoke is the killswitch — it invalidates the signature server-side and stops every future execution.</span></li>
+      <li><strong>Funds move.</strong> <span>When a rule fires, the agent's smart account assembles a userOp: USDC pull from your EOA via the permit → optional CCTP V2 burn-and-mint to the destination chain (~30s on fast-finality pairs) → final delivery to the target wallet. <strong>Gas is sponsored by Circle Paymaster</strong> - you pay nothing in the gas token.</span></li>
+      <li><strong>You stay in control.</strong> <span>Pause, resume, run-now, or revoke any agent from the drawer. Revoke is the killswitch - it invalidates the signature server-side and stops every future execution.</span></li>
     </ol>
 
     <div class="callout info">
       <div class="callout-title">Why "preview", not "v1"</div>
-      <div class="callout-body">This is the first time most of the integrations run together — CCTP V2 fast-finality on testnet, Programmable Wallet provisioning per source chain, Paymaster-sponsored userOps. We want real users hitting real edge cases before we call it stable. If your agent gets stuck, the drawer surfaces it with a retry CTA, and there's a "force complete" admin button on CCTP transfers that hang.</div>
+      <div class="callout-body">This is the first time most of the integrations run together - CCTP V2 fast-finality on testnet, Programmable Wallet provisioning per source chain, Paymaster-sponsored userOps. We want real users hitting real edge cases before we call it stable. If your agent gets stuck, the drawer surfaces it with a retry CTA, and there's a "force complete" admin button on CCTP transfers that hang.</div>
     </div>
 
     <h2>Safety rails (the non-negotiables)</h2>
@@ -234,11 +234,11 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
     <p>The agent moves money on your behalf. That's a serious primitive, and the design assumes things will go wrong in production. Five rails:</p>
 
     <ul>
-      <li><strong>Daily cap, signed on-chain.</strong> Top-up mode requires a <code>dailyCap</code>. The agent will never exceed it in any rolling 24-hour window — enforced twice, server-side <em>and</em> at the smart-account level.</li>
+      <li><strong>Daily cap, signed on-chain.</strong> Top-up mode requires a <code>dailyCap</code>. The agent will never exceed it in any rolling 24-hour window - enforced twice, server-side <em>and</em> at the smart-account level.</li>
       <li><strong>Bounded permit headroom.</strong> Your EIP-2612 permit doesn't authorise <em>unlimited</em> USDC; it caps the spender's allowance at 10× your daily cap (or 10× send-amount × target-count for scheduled sends). Bounded blast radius, even in a worst-case server compromise.</li>
       <li><strong>30-day expiry on everything.</strong> Both the agent rule and the USDC permit carry a 30-day <code>expiresAt</code>. Forget about a running agent for a month and it stops on its own.</li>
       <li><strong>Auto-pause after 5 failed runs.</strong> If five consecutive cron executions fail (RPC outage, target wallet drained, permit revoked elsewhere), the agent auto-pauses and shows a red banner explaining why. You fix the underlying issue and resume manually.</li>
-      <li><strong>Revoke is a real on-chain operation.</strong> Hit <em>Revoke</em> and the permit is invalidated server-side; the executor smart account literally cannot pull a single USDC unit afterward. No "trust us, we stopped" — the chain proves it.</li>
+      <li><strong>Revoke is a real on-chain operation.</strong> Hit <em>Revoke</em> and the permit is invalidated server-side; the executor smart account literally cannot pull a single USDC unit afterward. No "trust us, we stopped" - the chain proves it.</li>
     </ul>
 
     <h2>Chain coverage</h2>
@@ -248,9 +248,9 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
     <table class="t">
       <tr><th>Chain</th><th>Role</th><th>Notes</th></tr>
       <tr><td><strong>Arc Testnet</strong></td><td>Source · Destination</td><td>Home chain. USDC is native gas, finality is sub-second.</td></tr>
-      <tr><td>Base Sepolia</td><td>Source · Destination</td><td>Default source — Coinbase-friendly faucet.</td></tr>
+      <tr><td>Base Sepolia</td><td>Source · Destination</td><td>Default source - Coinbase-friendly faucet.</td></tr>
       <tr><td>Ethereum Sepolia</td><td>Source · Destination</td><td>Slowest finality (~13 min) when source.</td></tr>
-      <tr><td>Avalanche Fuji</td><td>Source · Destination</td><td>Fastest finality from source — ~30s end-to-end.</td></tr>
+      <tr><td>Avalanche Fuji</td><td>Source · Destination</td><td>Fastest finality from source - ~30s end-to-end.</td></tr>
       <tr><td>Arbitrum Sepolia</td><td>Source · Destination</td><td>L2 finality.</td></tr>
       <tr><td>OP Sepolia</td><td>Source · Destination</td><td>L2 finality.</td></tr>
       <tr><td>Polygon Amoy</td><td>Source · Destination</td><td>Polygon's PoS testnet.</td></tr>
@@ -264,11 +264,11 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
     <p>The agent has been on a rapid iteration cycle for two months. Highlights of what shipped:</p>
 
     <ul>
-      <li><strong>CCTP V2 cross-chain delivery.</strong> Per-target destination chain selection — the agent burns on source and mints on destination automatically. ~30s fast-finality where Circle supports it.</li>
-      <li><strong>EIP-2612 permits as the primary funding flow.</strong> No pre-funding the executor wallet — the agent pulls from your wallet at runtime. Arc is a first-class permit source now.</li>
-      <li><strong>Cloudflare Workers cron.</strong> Moved off GitHub Actions to a proper Worker — sub-minute scheduling, no minute-jitter, no Actions queue.</li>
+      <li><strong>CCTP V2 cross-chain delivery.</strong> Per-target destination chain selection - the agent burns on source and mints on destination automatically. ~30s fast-finality where Circle supports it.</li>
+      <li><strong>EIP-2612 permits as the primary funding flow.</strong> No pre-funding the executor wallet - the agent pulls from your wallet at runtime. Arc is a first-class permit source now.</li>
+      <li><strong>Cloudflare Workers cron.</strong> Moved off GitHub Actions to a proper Worker - sub-minute scheduling, no minute-jitter, no Actions queue.</li>
       <li><strong>Auto-pause + diagnostic surface.</strong> Five failures auto-pause with a tailored retry CTA; an admin endpoint exposes the failure log for debugging.</li>
-      <li><strong>Bounded ERC-20 approvals.</strong> Recent security pass capped permit headroom at 10× — no more "infinite approval" footgun.</li>
+      <li><strong>Bounded ERC-20 approvals.</strong> Recent security pass capped permit headroom at 10× - no more "infinite approval" footgun.</li>
       <li><strong>Per-target chain selection + custom AM/PM time picker.</strong> Locale-safe scheduling UI.</li>
       <li><strong>Drawer with run-now, retry-failed-provision, force-complete.</strong> The "everything stuck for 5 min" recovery paths are surfaced in the UI, not hidden in admin.</li>
     </ul>
@@ -277,7 +277,7 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 
     <p>We could have built a "Oneliq-managed wallet that holds your USDC and sends it on a schedule". We didn't. Custody-style scheduled-send products already exist; <strong>they require trusting the operator</strong>. Oneliq is non-custodial by construction, and the agent had to stay that way.</p>
 
-    <p>The shape that emerged: <strong>your EOA stays your EOA</strong>. The agent's smart account holds no balance you didn't permit. The permit caps the blast radius. The cron Worker can be compromised tomorrow and the worst case is bounded by what you signed — not "all your USDC drained".</p>
+    <p>The shape that emerged: <strong>your EOA stays your EOA</strong>. The agent's smart account holds no balance you didn't permit. The permit caps the blast radius. The cron Worker can be compromised tomorrow and the worst case is bounded by what you signed - not "all your USDC drained".</p>
 
     <p>That trade has costs. You sign twice the first time (rule + permit). You re-sign when you change the rule. The agent can't move funds you didn't pre-authorise, ever. We think that's the right trade for a primitive this powerful.</p>
 
@@ -285,15 +285,15 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 
     <ol class="steps">
       <li><strong>Get testnet USDC.</strong> <span><a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">faucet.circle.com</a> on Arc Testnet or any of the seven other supported chains. The same USDC works as both the agent's funding source and Arc's gas token.</span></li>
-      <li><strong>Open <a href="/agent">oneliq.xyz/agent</a>.</strong> <span>Connect a wallet. Pick a mode — Auto Top-Up or Scheduled Send. Pick at least one source chain and at least one target wallet.</span></li>
+      <li><strong>Open <a href="/agent">oneliq.xyz/agent</a>.</strong> <span>Connect a wallet. Pick a mode - Auto Top-Up or Scheduled Send. Pick at least one source chain and at least one target wallet.</span></li>
       <li><strong>Set the rule.</strong> <span>Top-Up: floor + refill amount + daily cap. Scheduled: amount + frequency + start time. The summary card on the right shows you the policy in plain English before you sign.</span></li>
       <li><strong>Deploy.</strong> <span>Two signatures (rule + permit per source chain), one server registration call, done. The agent appears in your list with a live status pill. First execution lands on the next cron tick if a rule is satisfied immediately.</span></li>
       <li><strong>Watch the receipts.</strong> <span>Every execution shows up in the agent drawer with state machine, burn-tx explorer link, and final mint hash. The <a href="/history">History</a> page surfaces them in your unified activity feed too.</span></li>
     </ol>
 
     <div class="callout warn">
-      <div class="callout-title">Testnet only — no real money</div>
-      <div class="callout-body">Everything on the agent today runs on <strong>Arc Testnet</strong> and seven other Circle-supported testnets. USDC is testnet USDC. <strong>Never send mainnet USDC to a testnet address</strong> — it's unrecoverable.</div>
+      <div class="callout-title">Testnet only - no real money</div>
+      <div class="callout-body">Everything on the agent today runs on <strong>Arc Testnet</strong> and seven other Circle-supported testnets. USDC is testnet USDC. <strong>Never send mainnet USDC to a testnet address</strong> - it's unrecoverable.</div>
     </div>
 
     <h2>What's next</h2>
@@ -303,15 +303,15 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
     <ol>
       <li><strong>Observability.</strong> Per-execution traces, public uptime dashboard for the cron worker, alerting on the failure-rate KPI.</li>
       <li><strong>Edge cases.</strong> What happens when CCTP fast-finality is degraded? When a target wallet sits behind a smart contract that reverts? When the user's permit gets revoked outside our UI? We're surfacing all of those clearly.</li>
-      <li><strong>Mobile signing.</strong> WalletConnect / Reown AppKit so you can sign from a phone — the agent itself runs server-side, so mobile is purely a signing flow.</li>
+      <li><strong>Mobile signing.</strong> WalletConnect / Reown AppKit so you can sign from a phone - the agent itself runs server-side, so mobile is purely a signing flow.</li>
       <li><strong>More rule shapes.</strong> Conditional rules ("if A's balance &gt; X, send to B"), webhooks for inbound triggers, and B2B memo references on every transfer.</li>
     </ol>
 
-    <p>Past that, mainnet — we ship on Arc Mainnet shortly after Arc Foundation launches it, with the same non-custodial, permit-bounded design.</p>
+    <p>Past that, mainnet - we ship on Arc Mainnet shortly after Arc Foundation launches it, with the same non-custodial, permit-bounded design.</p>
 
     <h2>Try it, break it, tell us</h2>
 
-    <p>Open <a href="https://oneliq.xyz/agent">oneliq.xyz/agent</a>, sign a rule, and watch USDC move itself. If it does something weird, ping us in <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a> with the agent ID — we're triaging preview reports in real time.</p>
+    <p>Open <a href="https://oneliq.xyz/agent">oneliq.xyz/agent</a>, sign a rule, and watch USDC move itself. If it does something weird, ping us in <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a> with the agent ID - we're triaging preview reports in real time.</p>
 
     <div class="cta-card">
       <h3>Let your USDC do the boring work.</h3>
@@ -320,7 +320,7 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
       <a class="alt" href="/docs#agent">Read the docs</a>
     </div>
 
-    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend currently on Arc Testnet. The Auto-Replenish Agent is in preview — expect rough edges and report them. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend currently on Arc Testnet. The Auto-Replenish Agent is in preview - expect rough edges and report them. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
 
   </article>
 

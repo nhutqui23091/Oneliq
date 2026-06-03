@@ -1,4 +1,4 @@
-# Security Policy — Oneliq
+# Security Policy - Oneliq
 
 Oneliq is the Yield Terminal for stablecoins on **Arc Testnet**. We take security
 seriously and welcome responsible disclosure from researchers.
@@ -12,7 +12,7 @@ seriously and welcome responsible disclosure from researchers.
 - IPFS-pinned builds (CIDs published in releases)
 - Public assets at `/assets/*`
 
-### Out-of-scope (third-party — report to vendor)
+### Out-of-scope (third-party - report to vendor)
 | Asset | Owner | Report to |
 |---|---|---|
 | USDC, EURC, CCTP, Gateway | Circle | https://www.circle.com/legal/responsible-disclosure |
@@ -30,7 +30,7 @@ seriously and welcome responsible disclosure from researchers.
 **Do NOT**:
 - Open a public GitHub issue
 - Disclose on Twitter / Discord before we patch
-- Test against mainnet contracts (testnet only — see scope)
+- Test against mainnet contracts (testnet only - see scope)
 
 **Please include**:
 1. Type of issue (XSS, supply chain, frontend phishing vector, RPC injection, etc.)
@@ -50,10 +50,10 @@ We are launching an Immunefi bug bounty program. Indicative ranges (USDC):
 
 | Severity | Reward range |
 |---|---|
-| **Critical** — frontend supply-chain compromise, key extraction, fund-draining tx injection | $10,000 – $50,000 |
-| **High** — persistent XSS leading to wallet drain, DNS / build-pipeline takeover | $2,500 – $10,000 |
-| **Medium** — reflected XSS, CSP bypass, auth bypass on admin routes | $500 – $2,500 |
-| **Low** — clickjacking, missing security headers, info disclosure | $100 – $500 |
+| **Critical** - frontend supply-chain compromise, key extraction, fund-draining tx injection | $10,000 – $50,000 |
+| **High** - persistent XSS leading to wallet drain, DNS / build-pipeline takeover | $2,500 – $10,000 |
+| **Medium** - reflected XSS, CSP bypass, auth bypass on admin routes | $500 – $2,500 |
+| **Low** - clickjacking, missing security headers, info disclosure | $100 – $500 |
 
 Final reward determined by impact + report quality + originality.
 

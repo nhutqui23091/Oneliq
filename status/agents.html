@@ -5,10 +5,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://oneliq.xyz https://www.oneliq.xyz https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="description" content="Oneliq Agent Operations Monitor — active agents, scheduled executions, success rate, recent failures. Bounded autonomous USDC operations via Circle Programmable Wallets."/>
+<meta name="description" content="Oneliq Agent Operations Monitor: active agents, scheduled executions, success rate, recent failures. Bounded autonomous USDC operations via Circle Programmable Wallets."/>
 <meta name="theme-color" content="#0A1628"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-<title>Agents — Oneliq Status</title>
+<title>Agents | Oneliq Status</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -24,7 +24,7 @@
   <div class="page-head fade-in">
     <div class="eyebrow">04 · Agent operations</div>
     <h1>Agents</h1>
-    <div class="slogan">Realtime automation control center for <strong>Circle Programmable Wallets</strong>. Pre-signed EIP-712 intents with hard ceilings; software executes within those bounds — pause or revoke anytime.</div>
+    <div class="slogan">Realtime automation control center for <strong>Circle Programmable Wallets</strong>. Pre-signed EIP-712 intents with hard ceilings; software executes within those bounds - pause or revoke anytime.</div>
   </div>
 
   <div class="sec-head">
@@ -83,7 +83,7 @@ async function renderKpis() {
       { k: 'Executions · 30d',       v: A.fmtNum(exec30),         m: '<strong class="ok">live</strong>' },
       { k: 'Executions · 24h',       v: A.fmtNum(exec24),         m: 'last 24 hours' },
       { k: 'Failures · 30d',         v: A.fmtNum(fail30),         m: fail30 === 0 ? '<strong class="ok">none yet</strong>' : '<strong class="bad">review logs</strong>' },
-      { k: 'Success rate · 30d',     v: successRate ? successRate + '%' : '—', m: successRate ? '<strong class="ok">live</strong>' : 'no exec yet' },
+      { k: 'Success rate · 30d',     v: successRate ? successRate + '%' : '-', m: successRate ? '<strong class="ok">live</strong>' : 'no exec yet' },
       { k: 'Active users · today',   v: A.fmtNum(summary.activeUsers || 0), m: 'unique · today' },
       { k: 'Active chains',          v: '8',                       m: 'realtime probes' },
     ];
@@ -169,7 +169,7 @@ async function renderExec() {
             <div class="exec-rule">${r.rule}</div>
             <div class="exec-id">${r.id}</div>
           </div>
-          <div class="exec-amt">${r.amount != null ? r.amount + ' USDC' : '—'}</div>
+          <div class="exec-amt">${r.amount != null ? r.amount + ' USDC' : '-'}</div>
           <div class="exec-chain">${r.chainShort}</div>
           <div class="exec-time">${A.fmtAgo(r.ago)}</div>
         </div>`).join('');
@@ -211,7 +211,7 @@ async function renderExec() {
         <div class="exec-rule">${r.rule}</div>
         <div class="exec-id">${r.id}</div>
       </div>
-      <div class="exec-amt">${r.ok ? r.amount + ' USDC' : '—'}</div>
+      <div class="exec-amt">${r.ok ? r.amount + ' USDC' : '-'}</div>
       <div class="exec-chain">${r.chain}</div>
       <div class="exec-time">${A.fmtAgo(r.ago)}</div>
     </div>`).join('');

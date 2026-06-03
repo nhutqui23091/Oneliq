@@ -1,9 +1,9 @@
-# Headers for status.oneliq.xyz — a separate Cloudflare Pages project rooted
+# Headers for status.oneliq.xyz - a separate Cloudflare Pages project rooted
 # at /status. Tighter than the main site's _headers because this page does not
 # load Circle App Kit, ethers.js CDN, or any non-self scripts.
 #
 # These headers sit on top of the CSP meta tag baked into status/index.html.
-# frame-ancestors CANNOT be set via meta — only here.
+# frame-ancestors CANNOT be set via meta - only here.
 
 /*
   # Defense-in-depth CSP (matches the <meta> in index.html plus frame-ancestors).
@@ -12,7 +12,7 @@
   # Never embeddable
   X-Frame-Options: DENY
 
-  # HTTPS for 1 year. NOT preloading separately — subdomain inherits from
+  # HTTPS for 1 year. NOT preloading separately - subdomain inherits from
   # oneliq.xyz's preload entry once that's submitted to the browser preload list.
   Strict-Transport-Security: max-age=31536000; includeSubDomains
 

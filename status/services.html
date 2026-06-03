@@ -5,10 +5,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://oneliq.xyz https://www.oneliq.xyz https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="description" content="Oneliq System Status — realtime health probes of 8 infrastructure services: Frontend, Unified Balance API, Trade Engine, Agent System, Circle Gateway/App Kit proxies, Automation Workers, Settlement Services."/>
+<meta name="description" content="Oneliq System Status: realtime health probes of 8 infrastructure services: Frontend, Unified Balance API, Trade Engine, Agent System, Circle Gateway/App Kit proxies, Automation Workers, Settlement Services."/>
 <meta name="theme-color" content="#0A1628"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-<title>System Status — Oneliq</title>
+<title>System Status | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -24,7 +24,7 @@
   <div class="page-head fade-in">
     <div class="eyebrow">02 · System status</div>
     <h1>Services</h1>
-    <div class="slogan">Realtime health of every Oneliq infrastructure component. Probes run from your browser every 30 seconds — what you see is what the system is doing <strong>right now</strong>.</div>
+    <div class="slogan">Realtime health of every Oneliq infrastructure component. Probes run from your browser every 30 seconds - what you see is what the system is doing <strong>right now</strong>.</div>
   </div>
 
   <!-- Overall status hero -->
@@ -33,14 +33,14 @@
       <div class="label">Overall system status</div>
       <div class="status"><span class="big-dot muted" id="overall-dot"></span><span id="overall-text">Probing services…</span></div>
       <div class="meta">
-        <span><strong id="overall-ok">—</strong>/<span id="overall-total">8</span> operational</span>
+        <span><strong id="overall-ok">-</strong>/<span id="overall-total">8</span> operational</span>
         <span>Last check <strong id="overall-ago">just now</strong></span>
         <span>Auto-refresh <strong>30s</strong></span>
       </div>
     </div>
     <div class="right">
       <div class="uptime-label">90-day uptime</div>
-      <div class="uptime tab-num" id="overall-uptime">—</div>
+      <div class="uptime tab-num" id="overall-uptime">-</div>
     </div>
   </div>
 
@@ -66,7 +66,7 @@ function renderServices(results) {
   root.innerHTML = A.SERVICES.map((svc, i) => {
     const r = results[i] || { ok: false, latencyMs: 0 };
     const cls = A.classifyResult(r);
-    const lat = r.latencyMs ? r.latencyMs + 'ms' : '—';
+    const lat = r.latencyMs ? r.latencyMs + 'ms' : '-';
     const latClass = r.ok ? A.latBucket(r.latencyMs) : 'lat-bad';
     const incidentDays = A.ri(7, 88);
     return `
@@ -111,7 +111,7 @@ async function probeAll() {
   document.getElementById('overall-total').textContent = A.SERVICES.length;
   document.getElementById('overall-ago').textContent = 'just now';
 
-  // Weighted 90-day uptime — average across services
+  // Weighted 90-day uptime - average across services
   const avgUptime = A.SERVICES.reduce((a, s) => a + s.uptime, 0) / A.SERVICES.length;
   document.getElementById('overall-uptime').textContent = avgUptime.toFixed(3) + '%';
 }
@@ -121,7 +121,7 @@ A.onRefresh(probeAll);
 A.mountRefreshButton();
 // smartInterval pauses when tab hidden + auto-pauses 5min on 403/429.
 // 5-minute cadence: 8 service probes × (preflight + actual) = 16 reqs
-// per pass on cross-origin /api/* — gentle enough that CF WAF never
+// per pass on cross-origin /api/* - gentle enough that CF WAF never
 // flags the IP. Manual ↻ Refresh button for instant update.
 A.smartInterval(probeAll, 300_000);
 

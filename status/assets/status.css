@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Oneliq Status — shared design system across all status.oneliq.xyz pages.
+   Oneliq Status - shared design system across all status.oneliq.xyz pages.
    Design tokens identical to main oneliq.xyz (/index, /trade, /balance).
    ═══════════════════════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0}
@@ -12,7 +12,7 @@
   --peach:#F4C89A; --sand:#ECDCC4;
   --green:#7BE495; --yellow:#FFCC77; --red:#FF6B8A; --gold:#FFB347;
   --radius:16px;
-  /* Type system — DM Sans body, Space Grotesk display, Space Mono for numbers.
+  /* Type system - DM Sans body, Space Grotesk display, Space Mono for numbers.
      Inter / DM Mono kept as fallback during font load. */
   --display:'Space Grotesk','Inter',system-ui,sans-serif;
   --font:'DM Sans','Inter',system-ui,sans-serif;
@@ -25,7 +25,7 @@ a{color:inherit;text-decoration:none}
 button{font-family:var(--font);cursor:pointer}
 .tab-num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1}
 
-/* Aurora horizon bg — same as homepage */
+/* Aurora horizon bg - same as homepage */
 .aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
   background:
     radial-gradient(ellipse 140% 60% at 50% 110%, rgba(244,200,154,0.22) 0%, rgba(244,200,154,0.06) 35%, transparent 60%),

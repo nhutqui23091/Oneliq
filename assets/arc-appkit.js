@@ -1,4 +1,4 @@
-// arc-appkit.js — Wrapper around Circle's App Kit for browser-side swap.
+// arc-appkit.js - Wrapper around Circle's App Kit for browser-side swap.
 //
 // Usage (from trade.html):
 //   const m = await import('/assets/arc-appkit.js');
@@ -10,7 +10,7 @@
 
 // Lazy-load App Kit + adapter from CDN to avoid module-init failures crashing
 // the page. Pin to specific versions to avoid silent breakage on `@latest`.
-// Note: app-kit and adapter packages have INDEPENDENT versioning — don't share!
+// Note: app-kit and adapter packages have INDEPENDENT versioning - don't share!
 const APPKIT_VERSION = '1.4.1';
 const ADAPTER_VERSION = '1.6.5';
 const APPKIT_URL = `https://esm.sh/@circle-fin/app-kit@${APPKIT_VERSION}`;
@@ -22,7 +22,7 @@ const ADAPTER_URL = `https://esm.sh/@circle-fin/adapter-ethers-v6@${ADAPTER_VERS
 // through our Cloudflare Pages Function at /api/circle-proxy/*, which adds the
 // real KIT_KEY server-side from an encrypted env var. Browser never sees key.
 //
-// Bonus: this also fixes the x-user-agent CORS issue automatically — proxy is
+// Bonus: this also fixes the x-user-agent CORS issue automatically - proxy is
 // same-origin so no CORS preflight needed at all.
 const CIRCLE_API_HOST = 'https://api.circle.com';
 const PROXY_PREFIX = '/api/circle-proxy';
@@ -38,7 +38,7 @@ function patchFetchForCircle() {
       if (url.startsWith(CIRCLE_API_HOST)) {
         // Reroute Circle API calls through our same-origin proxy.
         const proxiedUrl = url.replace(CIRCLE_API_HOST, PROXY_PREFIX);
-        // Strip Authorization — proxy adds the real KIT_KEY server-side.
+        // Strip Authorization - proxy adds the real KIT_KEY server-side.
         if (init && init.headers) {
           if (init.headers instanceof Headers) {
             init.headers.delete('Authorization');
@@ -100,13 +100,13 @@ let adapter = null;
 /**
  * Initialize App Kit with the user's browser wallet (window.ethereum).
  * Must be called AFTER user has connected their wallet.
- * Idempotent — safe to call multiple times.
+ * Idempotent - safe to call multiple times.
  */
 export async function initAppKit() {
   if (kit && adapter) return { kit, adapter };
 
   if (!window.ARC_APPKIT_CONFIG || !window.ARC_APPKIT_CONFIG.kitKey) {
-    throw new Error('App Kit config missing — load /assets/arc-appkit-config.js before this module');
+    throw new Error('App Kit config missing - load /assets/arc-appkit-config.js before this module');
   }
   // Prefer the provider from Reown AppKit (the wallet the user actually
   // connected to). window.ethereum may be a different extension entirely
@@ -127,10 +127,10 @@ export async function initAppKit() {
 
 /**
  * Pre-warm the App Kit SDK CDN bundle. Safe to call before the wallet is
- * connected — only triggers the dynamic import (esm.sh download + parse),
+ * connected - only triggers the dynamic import (esm.sh download + parse),
  * which is the dominant fixed cost (~500-1500ms cold) for the first quote.
  * Idempotent: subsequent calls hit the cached `_sdkPromise`.
- * Errors are swallowed — this is a best-effort optimization, never a blocker.
+ * Errors are swallowed - this is a best-effort optimization, never a blocker.
  */
 export async function prefetchSdk() {
   try { await loadSdk(); } catch { /* best-effort */ }
@@ -150,7 +150,7 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {})
   // Use GET /quote with explicit on-chain addresses instead.
   if (opts.tokenInAddress && opts.tokenOutAddress) {
     const chainName = opts.chain || window.ARC_APPKIT_CONFIG?.network || 'Arc_Testnet';
-    // GET /quote works fine with a dummy address — confirmed on Arc Testnet.
+    // GET /quote works fine with a dummy address - confirmed on Arc Testnet.
     // Do NOT call window.ethereum.request() here: that can hang if the wallet
     // extension is initializing, freezing the entire quote pipeline.
     const addr = '0x0000000000000000000000000000000000000001';
@@ -356,7 +356,7 @@ export async function appKitSwap(tokenIn, tokenOut, amountIn, options = {}) {
 }
 
 /**
- * Quick health check — verifies the config is loaded and kit can init.
+ * Quick health check - verifies the config is loaded and kit can init.
  * Useful for showing UI feedback like "App Kit connected" / "Configure key".
  */
 export function isAppKitReady() {
@@ -376,7 +376,7 @@ export function isAppKitReady() {
   );
 }
 
-// Expose globally for debugging in console (NOT for production logic — use imports above)
+// Expose globally for debugging in console (NOT for production logic - use imports above)
 if (typeof window !== 'undefined') {
   window.ARC_APPKIT = {
     initAppKit, isAppKitReady, prefetchSdk,

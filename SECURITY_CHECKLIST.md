@@ -1,4 +1,4 @@
-# Oneliq — Security Posture
+# Oneliq - Security Posture
 
 A public summary of the security controls that ship with every build of Oneliq,
 and the principles we apply across the lifecycle of the project.
@@ -26,7 +26,7 @@ The threats we design against:
 | **Vendor contract exploit** | USYC / CCTP / Uniswap bug surfaces in our UI | Frontend kill-switch via feature flags; advisory banners |
 
 Out of scope: chain-level attacks on Arc L1, attacks on third-party contracts
-(those have their own disclosure channels — see [`SECURITY.md`](SECURITY.md)).
+(those have their own disclosure channels - see [`SECURITY.md`](SECURITY.md)).
 
 ---
 
@@ -75,19 +75,19 @@ bash scripts/preflight-check.sh
 
 ### Hosting
 
-The primary deploy is **Cloudflare Pages** with the orange-cloud proxy enabled —
+The primary deploy is **Cloudflare Pages** with the orange-cloud proxy enabled -
 this gives us the global CDN, DDoS protection, free TLS, and atomic rollback.
 All site headers and redirects are owned by [`_headers`](_headers) and [`_redirects`](_redirects)
 in the repo, so the deployed configuration is 1:1 with what is reviewed and committed.
 
 For an **immutable audit trail**, the same build can be pinned to IPFS and resolved
-through ENS (`arcswap.eth`) — a pattern used by Uniswap, 1inch, Aave, and other
+through ENS (`arcswap.eth`) - a pattern used by Uniswap, 1inch, Aave, and other
 DeFi frontends. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the runbook.
 
 ### Privileged actions
 
-Anything that affects production state — domain configuration, ENS contenthash,
-treasury funds — is held by **multi-signature wallets** with hardware-wallet
+Anything that affects production state - domain configuration, ENS contenthash,
+treasury funds - is held by **multi-signature wallets** with hardware-wallet
 signers. No single key can move funds, change DNS, or push a build.
 See [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) for the policy.
 
@@ -103,7 +103,7 @@ to gate access for any reason.
 ## Vendor surfaces & their disclosure channels
 
 Oneliq composes third-party contracts. Vulnerabilities in those contracts are
-out of scope for our bounty — please report them upstream:
+out of scope for our bounty - please report them upstream:
 
 | Surface | Owner | Report to |
 |---|---|---|
@@ -136,10 +136,10 @@ These are tracked internally and announced publicly when each milestone lands.
 
 ## Open principles
 
-- **Minimum dependency surface** — vanilla HTML + CSS + JS, one runtime dependency (ethers.js v6, SRI-pinned), no build step
-- **No backend that can pause user access** — all state is on-chain; the proxies we ship are stateless and replaceable
-- **Transparent incidents** — any incident is followed by a public post-mortem within 7 days
-- **Reproducible builds** — what is committed is what is served; preflight enforces this
+- **Minimum dependency surface** - vanilla HTML + CSS + JS, one runtime dependency (ethers.js v6, SRI-pinned), no build step
+- **No backend that can pause user access** - all state is on-chain; the proxies we ship are stateless and replaceable
+- **Transparent incidents** - any incident is followed by a public post-mortem within 7 days
+- **Reproducible builds** - what is committed is what is served; preflight enforces this
 
 ---
 

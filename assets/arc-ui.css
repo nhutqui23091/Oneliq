@@ -1,15 +1,15 @@
-/* Oneliq shared UI — navbar, cursor, aurora, toast, glass primitives */
+/* Oneliq shared UI - navbar, cursor, aurora, toast, glass primitives */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  /* Arc.network-inspired palette — deep navy base, teal/cyan accent, peach horizon.
+  /* Arc.network-inspired palette - deep navy base, teal/cyan accent, peach horizon.
      Retains legacy purple as tertiary only. */
   --bg:#0A1628; --bg2:#0F1E36;
   --surface:rgba(255,255,255,0.035); --surface2:rgba(255,255,255,0.065);
   --border:rgba(255,255,255,0.09); --border2:rgba(255,255,255,0.16);
   --text:#F5F7FB; --muted:#A4B8D0; --muted-soft:#7E92AE;
 
-  /* Primary accents — arc.network horizon */
-  --arc1:#4DD6DB;        /* teal (was purple) — primary */
+  /* Primary accents - arc.network horizon */
+  --arc1:#4DD6DB;        /* teal (was purple) - primary */
   --arc2:#4A7BEC;        /* blue (was cyan) */
   --arc3:#F4C89A;        /* peach horizon (was pink) */
   --arc4:#7BE495;        /* mint (was neon green) */
@@ -20,7 +20,7 @@
   --green:#7BE495; --red:#FF6B8A; --yellow:#FFCC77; --gold:#FFB347;
 
   --radius:16px;
-  /* Type system — DM Sans for body/UI, Space Grotesk for display, Space Mono for numbers.
+  /* Type system - DM Sans for body/UI, Space Grotesk for display, Space Mono for numbers.
      Same family Arc.io uses. Kept Inter as fallback so a slow font-load doesn't regress. */
   --display:'Space Grotesk','Inter',system-ui,sans-serif;
   --font:'DM Sans','Inter',system-ui,sans-serif;
@@ -44,7 +44,7 @@ button{font-family:var(--font);cursor:pointer}
 input,select,textarea{font-family:var(--font)}
 
 
-/* Arc.network-style horizon background — deep navy at top, teal mid, peach/cream
+/* Arc.network-style horizon background - deep navy at top, teal mid, peach/cream
    glow at the bottom edge. Orbs are subtle secondary decoration. */
 .aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
   background:
@@ -52,12 +52,12 @@ input,select,textarea{font-family:var(--font)}
     radial-gradient(ellipse 120% 40% at 50% 90%, rgba(77,214,219,0.22) 0%, rgba(74,123,236,0.10) 35%, transparent 65%),
     linear-gradient(180deg, #0A1628 0%, #0E1F39 40%, #133155 75%, #1E4A6E 100%);
 }
-/* Optional faint orbs for extra depth — used sparingly */
+/* Optional faint orbs for extra depth - used sparingly */
 .orb{position:absolute;border-radius:50%;filter:blur(150px);opacity:.06;animation:orb-drift 40s ease-in-out infinite alternate;mix-blend-mode:screen}
 .orb1{width:720px;height:500px;background:var(--arc1);top:-240px;left:-200px;animation-duration:40s}
 .orb2{width:620px;height:520px;background:var(--arc2);top:-160px;right:-220px;animation-duration:46s;animation-delay:-10s}
-.orb3{display:none}   /* retired — was the loud pink orb */
-.orb4{display:none}   /* retired — mint orb was too colorful */
+.orb3{display:none}   /* retired - was the loud pink orb */
+.orb4{display:none}   /* retired - mint orb was too colorful */
 @keyframes orb-drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(30px,20px) scale(1.06)}}
 
 /* Noise */
@@ -172,7 +172,7 @@ nav.arc-nav.scrolled{background:rgba(3,1,10,.85);backdrop-filter:blur(20px);bord
 .hidden{display:none !important}
 
 /* ─────────────────────────────────────────────────────────
-   APP SHELL — left sidebar variant (used by ArcUI.bootApp).
+   APP SHELL - left sidebar variant (used by ArcUI.bootApp).
    Marketing pages still use the top nav from boot(). Sidebar
    is fixed left, content area shifts right via body padding.
    Collapse state persists in localStorage('arc.side.collapsed').
@@ -193,8 +193,8 @@ aside.arc-side{
 }
 body.arc-side-collapsed aside.arc-side{width:var(--side-w-c)}
 
-/* Sidebar HEAD — brand + toggle.
-   Brand is "Oneliq" big + small TESTNET pill stacked. No mark glyph —
+/* Sidebar HEAD - brand + toggle.
+   Brand is "Oneliq" big + small TESTNET pill stacked. No mark glyph -
    the sidebar itself is the brand. When collapsed, brand hides and the
    toggle button takes center stage. */
 .arc-side-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 16px 18px 22px;border-bottom:1px solid var(--border);min-height:84px;gap:10px}
@@ -243,7 +243,7 @@ body.arc-side-collapsed .arc-side-badge{opacity:0;pointer-events:none;width:0;pa
 body.arc-side-collapsed .arc-side-item{justify-content:center;padding:12px 0;gap:0}
 body.arc-side-collapsed .arc-side-item.active::before{left:0;top:12px;bottom:12px}
 
-/* Sidebar FOOT — chain pill + wallet button */
+/* Sidebar FOOT - chain pill + wallet button */
 .arc-side-foot{padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
 .arc-side-chain{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:100px;font-size:11px;font-weight:600;font-family:var(--mono);color:var(--arc4);background:rgba(123,228,149,.08);border:1px solid rgba(123,228,149,.22);justify-content:center;transition:all .15s;line-height:1;letter-spacing:.04em}
 .arc-side-chain .dot{width:6px;height:6px;border-radius:50%;background:var(--arc4);animation:pulse-dot 2s infinite;flex-shrink:0;box-shadow:0 0 6px var(--arc4)}
@@ -259,14 +259,14 @@ body.arc-side-collapsed .arc-side-foot .wallet-btn .dot{font-size:initial;width:
 .arc-side-hamb{display:none;position:fixed;top:14px;left:14px;z-index:1001;width:40px;height:40px;border-radius:11px;background:rgba(10,22,40,.85);backdrop-filter:blur(20px);border:1px solid var(--border);color:var(--text);align-items:center;justify-content:center;cursor:pointer;padding:0}
 .arc-side-hamb:hover{background:rgba(15,30,54,.95);border-color:var(--border2)}
 
-/* Top-right wallet CTA — always visible on all viewports */
+/* Top-right wallet CTA - always visible on all viewports */
 .arc-mob-wallet{display:inline-flex;position:fixed;top:14px;right:14px;z-index:1002;height:44px;padding:0 18px;border-radius:999px}
 
 /* Mobile drawer backdrop */
 .arc-side-backdrop{position:fixed;inset:0;background:rgba(3,8,16,.66);backdrop-filter:blur(4px);z-index:999;opacity:0;pointer-events:none;transition:opacity .22s}
 body.arc-side-open .arc-side-backdrop{opacity:1;pointer-events:auto}
 
-/* Mobile breakpoint — sidebar becomes drawer, collapsed state ignored */
+/* Mobile breakpoint - sidebar becomes drawer, collapsed state ignored */
 @media(max-width:900px){
   body.arc-app{padding-left:0}
   body.arc-app.arc-side-collapsed{padding-left:0}
@@ -286,7 +286,7 @@ body.arc-side-open .arc-side-backdrop{opacity:1;pointer-events:auto}
   body.arc-side-collapsed .arc-side-chain{padding:7px 12px;gap:7px}
   body.arc-side-collapsed .arc-side-foot .wallet-btn{padding:9px 14px;font-size:13px;letter-spacing:normal}
   body.arc-side-collapsed .arc-side-foot .wallet-btn::after{display:none}
-  /* Toggle button can hide on mobile — drawer just slides */
+  /* Toggle button can hide on mobile - drawer just slides */
   .arc-side-toggle{display:none}
   /* Show X close button in sidebar header; hide hamburger while sidebar is open */
   .arc-side-close{display:flex}

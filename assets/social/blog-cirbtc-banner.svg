@@ -52,7 +52,7 @@
     <text x="0" y="84" font-family="Inter, sans-serif" font-size="82" font-weight="900" fill="#F5F7FB" letter-spacing="-3">cirBTC is</text>
     <text x="0" y="172" font-family="Inter, sans-serif" font-size="82" font-weight="900" fill="url(#brand)" letter-spacing="-3">now live.</text>
     <text x="0" y="234" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#8CA0BD">Circle's 1:1 BTC-backed token in the Oneliq</text>
-    <text x="0" y="266" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#8CA0BD">trade picker — Arc Testnet and Sepolia.</text>
+    <text x="0" y="266" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#8CA0BD">trade picker on Arc Testnet and Sepolia.</text>
   </g>
 
   <!-- Right: concentric rings with Bitcoin B -->

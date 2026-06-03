@@ -25,7 +25,7 @@
   const GW_BASE = '/api/gateway-proxy';
 
   // EIP-712 typed-data definition mirrored verbatim from Circle's quickstart.
-  // DO NOT reorder fields — order is part of the EIP-712 signing hash.
+  // DO NOT reorder fields - order is part of the EIP-712 signing hash.
   const EIP712_DOMAIN = { name: 'GatewayWallet', version: '1' };
   const EIP712_TYPES = {
     TransferSpec: [
@@ -62,7 +62,7 @@
   // per intent. So a too-aggressive maxFee can starve sources whose balance
   // is exactly the allocation. Keep the floor as low as Circle will accept.
   // All values are in canonical 6-decimal USDC units.
-  const MAX_FEE_FLOOR = 1_500_000n;       // 1.5 USDC — clears observed ~1.0 testnet quote
+  const MAX_FEE_FLOOR = 1_500_000n;       // 1.5 USDC - clears observed ~1.0 testnet quote
   const MAX_FEE_BPS_DIVISOR = 100n;       // 1% = value / 100
   function defaultMaxFee(valueCanonical) {
     const proportional = valueCanonical / MAX_FEE_BPS_DIVISOR;
@@ -114,7 +114,7 @@
 
   // Normalize REST balance string → canonical 6-decimal BigInt.
   // Circle's API returns decimals as "10.000000" (NOT "10000000"). Plain BigInt()
-  // throws on strings containing '.' — so we go through ethers.parseUnits which
+  // throws on strings containing '.' - so we go through ethers.parseUnits which
   // handles both decimal-formatted and integer-formatted strings cleanly.
   function balToCanonical(balStr) {
     if (balStr == null || balStr === '' || balStr === '0') return 0n;
@@ -237,7 +237,7 @@
 
   /**
    * On-chain pending withdrawal info for one chain.
-   * Returns { withdrawing, withdrawable, blockReady, currentBlock } — all BigInt.
+   * Returns { withdrawing, withdrawable, blockReady, currentBlock } - all BigInt.
    *  - withdrawing: total amount initiated but not yet finalized
    *  - withdrawable: amount currently claimable (0 if delay not elapsed)
    *  - blockReady: block number when the withdrawal becomes finalizable
@@ -330,7 +330,7 @@
         // Bump well above the quoted minimum (+25%) so a tiny rate change
         // mid-flight doesn't trip the same error a second time.
         burnIntent.maxFee = required + (required / 4n);
-        opts.onStep?.(`Fee bumped to ${ARC.formatAmt(burnIntent.maxFee, CANONICAL_DECIMALS, 4)} USDC — please re-sign`);
+        opts.onStep?.(`Fee bumped to ${ARC.formatAmt(burnIntent.maxFee, CANONICAL_DECIMALS, 4)} USDC. Please re-sign.`);
         ({ res, txt } = await submit(burnIntent, 'Re-sign with bumped fee…'));
       }
     }
@@ -352,7 +352,7 @@
 
   /**
    * Mint USDC on destination chain using attestation from /v1/transfer.
-   * `dstChainKey` is the destination — wallet will switch to it.
+   * `dstChainKey` is the destination - wallet will switch to it.
    */
   async function gatewayMint(dstChainKey, attestation, signature, opts = {}) {
     if (!ARC.wallet.signer) throw new Error('Connect wallet');
@@ -442,16 +442,16 @@
    *
    * Flow:
    *   1. Build N burn intents (1 per source chain, with that chain's value)
-   *   2. Sign each intent via wallet (user signs N times — one per source chain)
-   *      — each chain switch is needed because EIP-712 domain includes the
+   *   2. Sign each intent via wallet (user signs N times - one per source chain)
+   *      - each chain switch is needed because EIP-712 domain includes the
    *        source chainId via `verifyingContract` semantics in some wallets.
-   *      Actually the domain is `{name:"GatewayWallet", version:"1"}` only —
-   *      no chainId, no verifyingContract — so we can sign all from any chain.
+   *      Actually the domain is `{name:"GatewayWallet", version:"1"}` only -
+   *      no chainId, no verifyingContract - so we can sign all from any chain.
    *   3. POST array of {burnIntent, signature} to /v1/transfer
    *   4. Receive ONE combined attestation
    *   5. Switch to destination chain → call gatewayMint() once
    *
-   * `sources`: [{chainKey, valueCanonical}] — produced by pickSources() or hand-picked
+   * `sources`: [{chainKey, valueCanonical}] - produced by pickSources() or hand-picked
    * Returns { intents, attResp, mint }.
    */
   async function multiSpend({ sources, dstChainKey, recipient, maxFee, onStep }) {
@@ -471,7 +471,7 @@
 
     // Sign each + submit, with one auto-retry across ALL intents if Circle
     // quotes a higher per-intent minimum than we picked. EIP-712 domain has
-    // no chainId so signatures are portable — wallet doesn't switch between sigs.
+    // no chainId so signatures are portable - wallet doesn't switch between sigs.
     const signOnce = async (label) => {
       const out = [];
       for (let i = 0; i < intents.length; i++) {
@@ -503,7 +503,7 @@
           if (bumped > it.maxFee) { it.maxFee = bumped; bumpedAny = true; }
         });
         if (bumpedAny) {
-          onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent — please re-sign`);
+          onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
           signed = await signOnce('Re-sign');
           ({ res, txt } = await submit(signed));
         }

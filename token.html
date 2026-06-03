@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<title>Oneliq — Token Deployer</title>
+<title>Oneliq - Token Deployer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.9.2"/>
@@ -41,7 +41,7 @@ html{height:100%}
    Local override: keep min-height:100vh so token form fills tall screens. */
 body{min-height:100vh}
 
-/* Top nav + inline aurora/cursor removed — sidebar shell (ArcUI.bootApp)
+/* Top nav + inline aurora/cursor removed - sidebar shell (ArcUI.bootApp)
    injects all three. */
 
 /* PAGE LAYOUT */
@@ -229,10 +229,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <div class="field">
               <div class="field-label">Decimals</div>
               <select class="field-input" id="f-decimals" onchange="updatePreview()">
-                <option value="18" selected>18 — Standard</option>
-                <option value="6">6 — Stablecoin</option>
-                <option value="8">8 — Bitcoin-style</option>
-                <option value="0">0 — Non-divisible</option>
+                <option value="18" selected>18 - Standard</option>
+                <option value="6">6 - Stablecoin</option>
+                <option value="8">8 - Bitcoin-style</option>
+                <option value="0">0 - Non-divisible</option>
               </select>
               <div class="field-sub">18 = like ETH · 6 = like USDC</div>
             </div>
@@ -341,7 +341,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         <div class="result-card" id="result-card">
           <div class="result-label">✅ Token Deployed!</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Contract Address</div>
-          <div class="result-addr" id="result-addr">—</div>
+          <div class="result-addr" id="result-addr">-</div>
           <div class="result-links" id="result-links"></div>
         </div>
       </div>
@@ -358,7 +358,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <script src="/assets/arc-core.js?v=9.8.4"></script>
 <script src="/assets/arc-ui.js?v=9.9.2"></script>
 <script>
-/* Boot sidebar chrome — fires aurora, cursor, sidebar render, and wallet
+/* Boot sidebar chrome - fires aurora, cursor, sidebar render, and wallet
    autoconnect. Wallet state below is bridged from ARC.wallet so the
    page's existing flow (walletAddr / currentProvider) keeps working. */
 window.addEventListener('DOMContentLoaded', () => {
@@ -467,7 +467,7 @@ function updateDeployBtn(){
 }
 
 /* ============================================================
-   WALLET — routed through ARC.wallet so the sidebar's Connect button
+   WALLET - routed through ARC.wallet so the sidebar's Connect button
    and this page's Deploy button share a single source of truth. The
    sidebar handles the picker UI + auto-reconnect; we only sync state
    (walletAddr, currentProvider) and prompt the chain switch.
@@ -505,7 +505,7 @@ async function connectWallet(){
   // the connection resolves; nothing else to do here.
 }
 
-/* Subscribe to ARC.wallet state changes — fires on connect, disconnect,
+/* Subscribe to ARC.wallet state changes - fires on connect, disconnect,
    account switch. Keeps token.html's local walletAddr in sync with the
    sidebar's Connect button. */
 function bindArcWallet(){
@@ -528,9 +528,9 @@ function bindArcWallet(){
   return true;
 }
 
-// Legacy stub — kept so older callers don't error. ARC.wallet.autoConnect
+// Legacy stub - kept so older callers don't error. ARC.wallet.autoConnect
 // runs inside ArcUI.bootApp; we just hook into the state.
-async function tryAutoReconnect(){ /* no-op — handled by bindArcWallet */ }
+async function tryAutoReconnect(){ /* no-op - handled by bindArcWallet */ }
 
 /* ============================================================
    ERC-20 BYTECODE GENERATION
@@ -707,7 +707,7 @@ async function handleDeploy(){
 
     const receipt = await waitForReceipt(txHash);
 
-    // contractAddress can be null on MetaMask for some versions — also try computing it
+    // contractAddress can be null on MetaMask for some versions - also try computing it
     let addr = receipt?.contractAddress;
     if(!addr && receipt?.status==='0x1'){
       // Fallback: compute CREATE address from deployer nonce
@@ -721,7 +721,7 @@ async function handleDeploy(){
         const nonceRlp = nonce === 0 ? '80' : nonce.toString(16).padStart(2,'0');
         const payload = '94' + senderBytes + (nonce < 128 ? nonceRlp : '01' + nonceRlp);
         const rlp = 'd6' + payload;
-        // Use eth_call trick — just use the receipt's contractAddress or logs
+        // Use eth_call trick - just use the receipt's contractAddress or logs
         addr = receipt.contractAddress; // try again
       }catch(e){}
     }
@@ -844,7 +844,7 @@ updatePreview();
         </div>
         <div style="margin-left:auto;text-align:right">
           <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Total Supply</div>
-          <div id="sm-supply" style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--arc2)">—</div>
+          <div id="sm-supply" style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--arc2)">-</div>
         </div>
       </div>
 
@@ -852,7 +852,7 @@ updatePreview();
       <div style="margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Contract Address</div>
         <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px">
-          <span id="sm-addr" style="font-size:12px;font-family:var(--mono);flex:1;word-break:break-all">—</span>
+          <span id="sm-addr" style="font-size:12px;font-family:var(--mono);flex:1;word-break:break-all">-</span>
           <span onclick="navigator.clipboard.writeText(document.getElementById('sm-addr').textContent);showToast('✅','Copied!','')"
                 style="cursor:pointer;flex-shrink:0;padding:4px 8px;border-radius:6px;background:rgba(0,207,255,.1);color:var(--arc2);font-size:12px;font-weight:700">📋</span>
         </div>
@@ -864,7 +864,7 @@ updatePreview();
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--muted)">
             <span style="color:var(--arc4);font-weight:700;flex-shrink:0">✓</span>
-            <span><strong style="color:var(--text)">MetaMask will ask you to add the token</strong> — click "Add token" to see your balance in your wallet</span>
+            <span><strong style="color:var(--text)">MetaMask will ask you to add the token</strong> - click "Add token" to see your balance in your wallet</span>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--muted)">
             <span style="color:var(--arc2);font-weight:700;flex-shrink:0">→</span>

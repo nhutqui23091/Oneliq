@@ -7,10 +7,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://oneliq.xyz https://www.oneliq.xyz https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="description" content="Oneliq Status — testnet explorer + realtime infrastructure dashboard. Track every transaction, deposit, swap, and agent execution across Arc and 7 EVM testnets."/>
+<meta name="description" content="Oneliq Status: testnet explorer + realtime infrastructure dashboard. Track every transaction, deposit, swap, and agent execution across Arc and 7 EVM testnets."/>
 <meta name="theme-color" content="#0A1628"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-<title>Oneliq Status — Testnet Explorer + Network Operations</title>
+<title>Oneliq Status: Testnet Explorer + Network Operations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -28,7 +28,7 @@
   <div class="page-head fade-in">
     <div class="eyebrow">Oneliq testnet explorer · realtime dashboard</div>
     <h1>One USDC. One Balance.<br/>Everywhere.</h1>
-    <div class="slogan">Track every transaction, deposit, swap, and agent execution across <strong>Arc Testnet</strong> and 7 EVM testnets — settled via Circle Gateway and CCTP V2.</div>
+    <div class="slogan">Track every transaction, deposit, swap, and agent execution across <strong>Arc Testnet</strong> and 7 EVM testnets - settled via Circle Gateway and CCTP V2.</div>
   </div>
 
   <!-- Search bar -->
@@ -43,17 +43,17 @@
   <div class="glass hero-stat">
     <div class="hero-stat-left">
       <div class="hero-stat-label">Total Transactions</div>
-      <div class="hero-stat-value tab-num" id="hero-total">—</div>
+      <div class="hero-stat-value tab-num" id="hero-total">-</div>
       <div class="hero-stat-meta">
         <span><strong id="hero-trend">+0%</strong> · 30d</span>
-        <span>Last 24h · <strong id="hero-24h">—</strong> txns</span>
-        <span>Avg fee · <strong id="hero-fee">—</strong> USDC</span>
+        <span>Last 24h · <strong id="hero-24h">-</strong> txns</span>
+        <span>Avg fee · <strong id="hero-fee">-</strong> USDC</span>
       </div>
     </div>
     <div class="hero-stat-right">
       <span id="data-badge"><span class="data-pill probing"><span class="d"></span>PROBING · /api/metrics</span></span>
-      <span class="pulse-sub">Block <span id="hero-block">—</span> · Arc Testnet</span>
-      <span class="pulse-sub">Gas <span id="hero-gas">—</span> Gwei</span>
+      <span class="pulse-sub">Block <span id="hero-block">-</span> · Arc Testnet</span>
+      <span class="pulse-sub">Gas <span id="hero-gas">-</span> Gwei</span>
     </div>
   </div>
 
@@ -70,15 +70,15 @@
       <div class="right">
         <div>
           <div class="k">Peak</div>
-          <div class="v tab-num" id="chart-peak">—</div>
+          <div class="v tab-num" id="chart-peak">-</div>
         </div>
         <div>
           <div class="k">Avg</div>
-          <div class="v tab-num" id="chart-avg">—</div>
+          <div class="v tab-num" id="chart-avg">-</div>
         </div>
         <div>
           <div class="k">Today</div>
-          <div class="v tab-num" id="chart-today">—</div>
+          <div class="v tab-num" id="chart-today">-</div>
         </div>
       </div>
     </div>
@@ -143,7 +143,7 @@
 const A = window.ArcStatus;
 A.bootCommon('overview');
 
-// ─── Search bar — route tx hash / address to external explorers ──────────────
+// ─── Search bar - route tx hash / address to external explorers ──────────────
 const searchInput = document.getElementById('search-input');
 addEventListener('keydown', (e) => {
   if (e.key === '/' && document.activeElement !== searchInput) {
@@ -176,7 +176,7 @@ async function renderHeroAndStats() {
   document.getElementById('hero-gas').textContent   = (18 + A.rng() * 6).toFixed(1);
 
   // API reachable → ALWAYS use real data (even if all 0s). No more seeded fakes
-  // mixed in. The point of this page is to show actual project growth — 0 is
+  // mixed in. The point of this page is to show actual project growth - 0 is
   // honest information when nothing has happened yet.
   if (real) {
     const total   = real.grandTotal || 0;
@@ -189,9 +189,9 @@ async function renderHeroAndStats() {
     const trendPct = avg30 > 0 ? ((today - avg30) / avg30 * 100) : 0;
 
     document.getElementById('hero-total').textContent = A.fmtNum(total);
-    document.getElementById('hero-trend').textContent = total === 0 ? '—' : (trendPct >= 0 ? '+' : '') + trendPct.toFixed(1) + '%';
+    document.getElementById('hero-trend').textContent = total === 0 ? '-' : (trendPct >= 0 ? '+' : '') + trendPct.toFixed(1) + '%';
     document.getElementById('hero-24h').textContent   = A.fmtNum(today);
-    document.getElementById('hero-fee').textContent   = '—';
+    document.getElementById('hero-fee').textContent   = '-';
     A.mountDataBadge({ status: 'live', detail: 'updated ' + new Date(real.asOf).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) });
 
     const stats = [
@@ -216,7 +216,7 @@ async function renderHeroAndStats() {
   }
 
   // SEEDED FALLBACK only when API truly unreachable (network down, CORS error).
-  // Page won't look broken in that case — but badge says DEMO so it's clear.
+  // Page won't look broken in that case - but badge says DEMO so it's clear.
   const dailyAvg = 11_800 + A.ri(0, 600);
   const today    = dailyAvg + A.ri(-1200, 1800);
   const total    = 365_000 + A.ri(0, 22_000);
@@ -252,10 +252,10 @@ function renderChart(realSeries) {
   const days = 30;
   let data;
   if (realSeries && Object.keys(realSeries).length === 30) {
-    // Real path — keys are YYYY-MM-DD sorted ascending
+    // Real path - keys are YYYY-MM-DD sorted ascending
     data = Object.keys(realSeries).sort().map(k => realSeries[k]);
   } else {
-    // Seeded fallback — smooth random walk
+    // Seeded fallback - smooth random walk
     data = [];
     let v = 8500;
     for (let i = 0; i < days; i++) {
@@ -379,13 +379,13 @@ async function renderFeed() {
             <div class="feed-sub">${it.hash ? A.shortHash(it.hash) : 'no on-chain hash'} · ${it.chainLabel}</div>
             ${it.sources ? `<div class="feed-sub" style="margin-top:2px;font-size:10px;color:var(--muted)">From: ${it.sources.map(s => chainShortLabel(s.chainKey) + (s.amount ? ' ' + s.amount : '')).join(' · ')}</div>` : ''}
           </div>
-          <div class="feed-amt">${it.amount != null ? it.amount + ' USDC' : '—'}</div>
+          <div class="feed-amt">${it.amount != null ? it.amount + ' USDC' : '-'}</div>
           <div class="feed-chain">${chainShortLabel(it.chainKey)}</div>
           <div class="feed-time">${A.fmtAgo(it.ago)}</div>
-          ${it.hash ? `<a class="feed-link" href="${chainExplorerTx(it.chainKey, it.hash)}" target="_blank" rel="noopener noreferrer">view ↗</a>` : `<span class="feed-link" style="opacity:.5;cursor:default">—</span>`}
+          ${it.hash ? `<a class="feed-link" href="${chainExplorerTx(it.chainKey, it.hash)}" target="_blank" rel="noopener noreferrer">view ↗</a>` : `<span class="feed-link" style="opacity:.5;cursor:default">-</span>`}
         </div>`).join('');
     } else {
-      // Empty state — API works but no transactions logged yet
+      // Empty state - API works but no transactions logged yet
       document.getElementById('feed-card').innerHTML = `
         <div style="padding:48px 24px;text-align:center">
           <div style="font-size:32px;margin-bottom:12px;opacity:.4">∅</div>
@@ -423,7 +423,7 @@ async function renderFeed() {
         <div class="feed-title">${it.label}</div>
         <div class="feed-sub">${A.shortHash(it.hash)} · ${it.chain.label}</div>
       </div>
-      <div class="feed-amt">${it.type === 'fail' ? '—' : it.amount + ' USDC'}</div>
+      <div class="feed-amt">${it.type === 'fail' ? '-' : it.amount + ' USDC'}</div>
       <div class="feed-chain">${chainShortLabel(it.chain.key)}</div>
       <div class="feed-time">${A.fmtAgo(it.ago)}</div>
       <a class="feed-link" href="${it.chain.explorer}${it.hash}" target="_blank" rel="noopener noreferrer">view ↗</a>
@@ -458,7 +458,7 @@ async function renderHealth() {
     const r = results[i];
     const c = A.classifyResult(r);
     const cdot = c === 'op' ? 'green' : c === 'deg' ? 'yellow' : c === 'dn' ? 'red' : 'muted';
-    const val = c === 'op' ? r.latencyMs + 'ms' : c === 'deg' ? 'slow' : c === 'dn' ? 'down' : '—';
+    const val = c === 'op' ? r.latencyMs + 'ms' : c === 'deg' ? 'slow' : c === 'dn' ? 'down' : '-';
     return `
       <div class="row">
         <span class="k"><span class="health-dot ${cdot}" style="width:6px;height:6px;box-shadow:0 0 4px currentColor"></span>${s.name}</span>
@@ -498,7 +498,7 @@ renderHealth();
 A.onRefresh(async () => { await refreshAll(); await renderHealth(); });
 A.mountRefreshButton();
 
-// Auto refresh — smartInterval pauses when tab is hidden (Page Visibility
+// Auto refresh - smartInterval pauses when tab is hidden (Page Visibility
 // API) and trips a 5-min circuit breaker if any probe returns 403/429.
 // Cadence: 5 minutes. The page is still useful as a real-time status
 // dashboard, but tab-in-background = zero traffic. User clicks ↻ for

@@ -4,7 +4,7 @@
 //   1. Copy this file to arc-appkit-config.js (in the same folder)
 //   2. Replace the placeholder kitKey with your real key from Circle Console:
 //      https://console.circle.com/keys → Kit Keys - Network agnostic → Create
-//   3. The real arc-appkit-config.js is gitignored — never commits.
+//   3. The real arc-appkit-config.js is gitignored - never commits.
 //
 // PRODUCTION:
 //   Cloudflare Pages runs scripts/build-config.sh which generates this file

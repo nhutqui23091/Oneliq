@@ -26,7 +26,7 @@
       native: { symbol: 'USDC', name: 'USDC (Arc Gas)', decimals: 18 },
       cctpDomain: 26,
       iconGrad: 'linear-gradient(135deg,#6C3FFF,#00CFFF)',
-      // Arc's USDC is the native gas token — it lives in the L1 ledger, not in
+      // Arc's USDC is the native gas token - it lives in the L1 ledger, not in
       // the ERC-20 wrapper at 0x3600…. Standard `approve` + `transferFrom`
       // (which GatewayWallet.deposit relies on) cannot move native balance, so
       // direct deposits revert with "ERC20: transfer amount exceeds balance".
@@ -179,7 +179,7 @@
   };
 
   // ───────── TOKEN REGISTRY ─────────
-  // Arc's USDC IS the native gas token — it stores balances internally at 18 decimals
+  // Arc's USDC IS the native gas token - it stores balances internally at 18 decimals
   // (same as ETH/wei on other EVM chains), even though the Circle USDC logical
   // convention is 6. That means: balanceOf()/transfer()/approve() on 0x3600…0000
   // all operate in 18-decimal raw units. We model it as decimals=18 for the UI and
@@ -193,7 +193,7 @@
         address: '0x3600000000000000000000000000000000000000',
         decimals: 18,
         cctpDecimals: 6,
-        isGasToken: true, // display hint — fees come from this balance
+        isGasToken: true, // display hint - fees come from this balance
         icon: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
       },
       EURC: {
@@ -380,7 +380,7 @@
     },
 
     // EVM-first priority. Phantom + Keplr support EVM but their primary chains
-    // are Solana / Cosmos, so they go LAST — users typically have them installed
+    // are Solana / Cosmos, so they go LAST - users typically have them installed
     // for those ecosystems and don't expect them to be the default for an EVM dApp.
     _PROVIDER_PRIORITY: {
       'io.metamask': 1,
@@ -391,17 +391,17 @@
       'com.trustwallet.app': 5,
       'com.brave.wallet': 6,
       'walletconnect': 7,
-      // Multi-chain wallets — deprioritized for EVM dApps
+      // Multi-chain wallets - deprioritized for EVM dApps
       'app.phantom': 90,
       'app.keplr': 95,
     },
 
-    // Reown AppKit instance — initialized synchronously from local bundle
+    // Reown AppKit instance - initialized synchronously from local bundle
     _appkit: null,
     _appkitReady: false,
     _appkitNetworks: null,
     _appkitManaging: false, // true when AppKit is managing the current session
-    _appkitError: null,       // set if AppKit init fails — visible in console for debugging
+    _appkitError: null,       // set if AppKit init fails - visible in console for debugging
 
     /**
      * Returns all detected wallets, sorted by EVM priority (MetaMask → OKX → ...).
@@ -472,12 +472,12 @@
         try { localStorage.setItem('__t__', '1'); localStorage.removeItem('__t__'); return false; } catch { return true; }
       })();
       if (isInPrivate) {
-        return 'No wallet detected. Browser extensions are usually disabled in Incognito/Private mode — open this site in a normal window.';
+        return 'No wallet detected. Browser extensions are usually disabled in Incognito/Private mode. Open this site in a normal window.';
       }
       return 'No wallet extension detected. Install MetaMask (metamask.io), Rabby, or OKX Wallet, then reload this page.';
     },
 
-    // Legacy EIP-6963 connect — used when a specific RDNS is requested or AppKit is not yet ready.
+    // Legacy EIP-6963 connect - used when a specific RDNS is requested or AppKit is not yet ready.
     async _connectLegacy(rdns) {
       const eth = this.eip1193(rdns);
       if (!eth) throw new Error(this._noWalletReason());
@@ -519,7 +519,7 @@
       if (rdns) return this._connectLegacy(rdns);
 
       if (!this._appkitReady) {
-        // Local bundle failed to init — fall back to EIP-6963 (desktop) or hard error (mobile)
+        // Local bundle failed to init - fall back to EIP-6963 (desktop) or hard error (mobile)
         if (/Mobile|Android|iPhone|iPad/i.test(navigator.userAgent || '')) {
           throw new Error('Wallet modal failed to load. Try refreshing the page.');
         }
@@ -632,7 +632,7 @@
     // Pure native gas (Sepolia ETH): use eth_getBalance.
     if (token.isGas) return await prov.getBalance(addr);
     // Arc's USDC = native gas but also exposed as ERC-20 at 0x3600…. In practice
-    // balances live in the native ledger — eth_getBalance is canonical and always
+    // balances live in the native ledger - eth_getBalance is canonical and always
     // matches what MetaMask shows. We query BOTH in parallel and return whichever
     // is non-zero (native takes priority on tie). This makes the UI robust no
     // matter whether a given wallet stores value natively or via the wrapper.
@@ -664,7 +664,7 @@
     // Security: approve only what's needed for this deposit + 50% buffer
     // (lets minor retries / slippage adjustments succeed without re-approval).
     //
-    // PREVIOUSLY: approved (2^256 - 1) — "infinite approval" pattern. Risk:
+    // PREVIOUSLY: approved (2^256 - 1) - "infinite approval" pattern. Risk:
     // if the spender contract is ever compromised, attacker drains user's
     // entire token balance. Industry has moved away from this pattern post
     // multiple high-profile DeFi exploits (e.g. Multichain 2023).
@@ -754,9 +754,9 @@
     const msg = (e.info?.error?.message || e.shortMessage || e.message || '').toString();
     if (e.code === 'ACTION_REJECTED' || /user rejected|user denied/i.test(msg)) return 'Rejected in wallet';
     if (/insufficient funds/i.test(msg)) return 'Insufficient funds for gas';
-    if (/INSUFFICIENT_OUTPUT_AMOUNT/i.test(msg)) return 'Slippage too tight — price moved';
+    if (/INSUFFICIENT_OUTPUT_AMOUNT/i.test(msg)) return 'Slippage too tight: price moved';
     if (/INSUFFICIENT_LIQUIDITY/i.test(msg)) return 'Not enough pool liquidity';
-    if (/nonce/i.test(msg)) return 'Nonce error — reset wallet activity';
+    if (/nonce/i.test(msg)) return 'Nonce error: reset wallet activity';
     if (/replacement fee too low/i.test(msg)) return 'Replacement fee too low';
     return msg.slice(0, 160);
   }
@@ -780,13 +780,13 @@
   }
 
   // ───────── METRICS TELEMETRY ─────────
-  // Fire-and-forget reporter — runs after a successful user action so the
+  // Fire-and-forget reporter - runs after a successful user action so the
   // status page (status.oneliq.xyz) can show real numbers, not seeded mocks.
   //
   //   event   : 'trade' | 'deposit' | 'spend' | 'bridge' | 'agent-create'
   //             | 'agent-exec' | 'failure'   (validated server-side too)
   //   chain   : one of CHAINS keys (arc, sepolia, baseSepolia, ...)
-  //   amount  : number (USDC units, decimal — e.g. 12.5) or null
+  //   amount  : number (USDC units, decimal - e.g. 12.5) or null
   //   txHash  : 0x-prefixed hash or null (for non-onchain events)
   //   surface : 'trade' | 'balance' | 'agent' (origin page) or null
   //
@@ -803,7 +803,7 @@
         body: JSON.stringify(payload),
       });
     } catch (e) {
-      // Best-effort only — never surface to the user.
+      // Best-effort only - never surface to the user.
       if (typeof console !== 'undefined') console.debug('[metrics] track failed:', e?.message);
     }
   }
@@ -829,7 +829,7 @@
 
   // ───────── CHAIN ICONS ─────────
   // Brand-matched PNG logos hosted locally (see /assets/logos/).
-  // All 8 chains have user-supplied artwork — kept on disk so we don't
+  // All 8 chains have user-supplied artwork - kept on disk so we don't
   // pay a CDN round-trip and don't widen img-src in our CSP.
   const CHAIN_ICONS = {
     arc: "/assets/logos/arc.png",

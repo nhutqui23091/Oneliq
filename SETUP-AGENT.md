@@ -4,7 +4,7 @@ One-time provisioning to switch the `/agent` page from local-only preview to
 real persistent backend backed by Cloudflare KV + Circle Programmable Wallets.
 
 Until both items below are configured, the page works in **localStorage-only**
-mode — agents are stored client-side and execution is simulated.
+mode - agents are stored client-side and execution is simulated.
 
 ---
 
@@ -22,7 +22,7 @@ The agent API stores rules and executions in Cloudflare KV.
 
 1. Cloudflare dashboard → **Pages** → your Oneliq project → **Settings** →
    **Functions** → **KV namespace bindings** → **Add binding**
-2. Variable name: `AGENT_KV` *(must be exactly this — it's hard-coded in the API)*
+2. Variable name: `AGENT_KV` *(must be exactly this - it's hard-coded in the API)*
 3. Namespace: select the one created above
 4. Save and **redeploy** (env changes don't auto-apply to existing deployments)
 
@@ -48,7 +48,7 @@ returns simulated executions.
    - Scope: **Wallets** + **Transactions**
    - Save the key (you only see it once)
 3. Console → **Configurator** → **Entity Secret**
-   - Generate a 32-byte hex secret (must persist — losing it locks your wallets)
+   - Generate a 32-byte hex secret (must persist - losing it locks your wallets)
    - Encrypt it with Circle's public key to produce ciphertext (one-time per request)
    - For the dev console UI: paste the secret directly; the SDK will handle ciphertexting
 
@@ -61,8 +61,8 @@ Cloudflare dashboard → **Pages** → Oneliq project → **Settings** →
 |----------------------------|----------------------------------------------------------------|
 | `CIRCLE_API_KEY`           | `TEST_API_KEY:abcdef…` from Circle console                      |
 | `CIRCLE_ENTITY_SECRET`     | 32-byte hex from Circle console (NEVER commit this)             |
-| *(existing)* `KIT_KEY`     | Already set — used by `/api/circle-proxy` for App Kit swaps     |
-| *(existing)* `POOL_AUTH_*` | Already set — used by `/pool` Basic Auth                        |
+| *(existing)* `KIT_KEY`     | Already set - used by `/api/circle-proxy` for App Kit swaps     |
+| *(existing)* `POOL_AUTH_*` | Already set - used by `/pool` Basic Auth                        |
 
 After saving, **trigger a redeploy** (Pages → Deployments → ⋯ → Retry).
 
@@ -80,7 +80,7 @@ autonomous.
 Cloudflare Pages → Settings → Environment variables → Production
   → Add variable:
     Name:  CRON_SECRET
-    Value: <generate a random 32-char string — `openssl rand -hex 32`>
+    Value: <generate a random 32-char string - `openssl rand -hex 32`>
     Type:  🔒 Encrypted
 ```
 
@@ -94,18 +94,18 @@ cron is a no-op (safe default).
   execution-log keys)
 - For schedule mode: fires when `nextRun <= now`, then advances nextRun
   based on cadence (daily / weekly / monthly)
-- For topup mode: fires at most once per hour (placeholder — real
+- For topup mode: fires at most once per hour (placeholder - real
   version polls each target balance via RPC and fires only those below
   the floor)
 - Returns a summary JSON: `{ scanned, fired, skipped, errors, details }`
 
-### Wire up the cron trigger — Cloudflare Worker
+### Wire up the cron trigger - Cloudflare Worker
 
 **Why a Worker?** External HTTP cron services (GitHub Actions,
 cron-job.org, EasyCron, etc.) all hit `https://oneliq.xyz/api/agent/
 cron-tick` from outside Cloudflare. On the **Free plan**, Cloudflare's
 basic Bot Fight Mode intercepts non-browser User-Agents and serves a
-JavaScript challenge — which means our cron sees HTTP 403 instead of
+JavaScript challenge - which means our cron sees HTTP 403 instead of
 the function. WAF Custom Rules on Free can't skip the basic Bot Fight
 Mode (only Super Bot Fight Mode on Pro+ is skippable). The Worker
 approach sidesteps this entirely.
@@ -116,7 +116,7 @@ The Worker:
 - Uses a **service binding** to talk directly to the Pages project
 - Fires every minute via Cloudflare's native cron trigger (more precise
   than GitHub Actions schedule)
-- Free plan allowance: 100k req/day — a per-minute cron uses ~1.5k
+- Free plan allowance: 100k req/day - a per-minute cron uses ~1.5k
 
 Files live at `workers/agent-cron/` in this repo.
 
@@ -135,11 +135,11 @@ cd workers/agent-cron
 npx wrangler@3 deploy
 
 # 3. Set the secret on the Worker (must match CRON_SECRET on the
-#    Pages project — same 64-hex value)
+#    Pages project - same 64-hex value)
 npx wrangler@3 secret put CRON_SECRET
 # (paste value when prompted, press Enter)
 
-# 4. Optional — stream live invocation logs to verify
+# 4. Optional - stream live invocation logs to verify
 npx wrangler@3 tail
 ```
 
@@ -154,7 +154,7 @@ has everything it needs and starts firing on the schedule defined in
 
 ### Verify
 
-Check the Worker dashboard "Last invocation" timestamp — should update
+Check the Worker dashboard "Last invocation" timestamp - should update
 every minute. Or run a smoke test manually via the HTTP handler:
 
 ```bash
@@ -179,7 +179,7 @@ fetch('/api/agent/cron-tick', {
 ## 4. EIP-2612 permit flow (Phase 2)
 
 When a user deploys an agent, the frontend now ALSO signs EIP-2612
-permit signatures — one per source chain. The backend submits each
+permit signatures - one per source chain. The backend submits each
 `USDC.permit(...)` on-chain via the agent's SCA wallet (Paymaster
 covers gas, free on testnet).
 
@@ -217,7 +217,7 @@ This will happen in a follow-up commit once the KV binding is verified live.
 
 **`/api/agent/create` returns 400 `signature_invalid`**
 → Frontend isn't sending a valid hex signature. Currently any `0x[hex]` passes
-preview validation — real EIP-712 verification is TODO in `_circle.js`.
+preview validation - real EIP-712 verification is TODO in `_circle.js`.
 
 **Real Circle calls fail with 401**
 → `CIRCLE_API_KEY` is wrong/expired, or `CIRCLE_ENTITY_SECRET` ciphertext

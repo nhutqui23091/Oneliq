@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Oneliq Status — shared helpers across all status.oneliq.xyz pages.
+   Oneliq Status - shared helpers across all status.oneliq.xyz pages.
 
    Exposes window.ArcStatus with:
      - API_BASE         → cross-origin base URL ('' on localhost, 'https://oneliq.xyz' on prod)
@@ -108,7 +108,7 @@
   // ── Real-metrics fetchers (cross-origin to oneliq.xyz/api/metrics/*)
   // Both return null on failure so callers can fall back to seeded data.
   async function fetchSummary() {
-    // No `cache: 'no-cache'` — that header forces edge revalidation on every
+    // No `cache: 'no-cache'` - that header forces edge revalidation on every
     // request, defeating Cloudflare's edge cache (max-age=120 on the response).
     // The server response Cache-Control already controls freshness correctly.
     try {
@@ -211,7 +211,7 @@
           <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
           <a href="https://oneliq.xyz/.well-known/security.txt">security.txt</a>
         </div>
-        <div>Built on Arc · Powered by Circle · <span id="footer-ts">—</span></div>
+        <div>Built on Arc · Powered by Circle · <span id="footer-ts">-</span></div>
       </div>
     `;
   }

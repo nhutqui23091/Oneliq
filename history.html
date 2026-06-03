@@ -7,21 +7,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<meta name="description" content="History — every transfer reads like a receipt. Trade, Balance, and Agent moments across your Arc stablecoin activity."/>
-<title>History — Oneliq</title>
+<meta name="description" content="History: every transfer reads like a receipt. Trade, Balance, and Agent moments across your Arc stablecoin activity."/>
+<title>History | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.9.2"/>
 <style>
 /* ============================================================
-   HISTORY — minimal receipt feed.
+   HISTORY - minimal receipt feed.
    One hero block, one segmented pill control, one feed list.
    No charts, no toolbar, no modal. Each row is a receipt.
 ============================================================ */
 
 .hist-wrap{position:relative;z-index:2;max-width:980px;margin:0 auto;padding:48px 36px 80px}
 
-/* HERO — one big glass card */
+/* HERO - one big glass card */
 .hist-hero{position:relative;padding:38px 40px 36px;border-radius:24px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:22px}
 .hist-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 10%,rgba(77,214,219,.45) 50%,transparent 90%)}
 .hist-hero::after{content:'';position:absolute;right:-160px;top:-160px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(77,214,219,.10) 0%,transparent 60%);pointer-events:none}
@@ -30,7 +30,7 @@
 .hist-title .accent{background:linear-gradient(135deg,var(--arc1),var(--arc2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 .hist-sub{font-size:14.5px;color:var(--muted);max-width:560px;line-height:1.7}
 
-/* SEGMENTED CONTROL — pill tabs */
+/* SEGMENTED CONTROL - pill tabs */
 .hist-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:5px;border-radius:16px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);margin-bottom:18px}
 .hist-tab{padding:13px 18px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;letter-spacing:-.005em;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font);position:relative}
 .hist-tab:hover{color:var(--text)}
@@ -121,7 +121,7 @@
   <section class="hist-hero">
     <span class="hist-eyebrow">History</span>
     <h1 class="hist-title">Every transfer should read like a <span class="accent">receipt feed</span>.</h1>
-    <p class="hist-sub">Not charts, not noise — just clear Trade, Balance, and Agent moments across your USDC activity on Arc.</p>
+    <p class="hist-sub">Not charts, not noise - just clear Trade, Balance, and Agent moments across your USDC activity on Arc.</p>
   </section>
 
   <!-- TABS -->
@@ -149,17 +149,17 @@
 <script>
 (async () => {
   /* ============================================================
-     History — minimal receipt feed.
+     History - minimal receipt feed.
 
      One feed, four tabs (All / Trade / Balance / Agent), nothing
      else. Each row is a single receipt: who, what, where, when.
      Click a row → open its on-chain explorer record.
 
      Data merges two sources (the only two Oneliq itself owns):
-       1. localStorage 'arc.trade.activity.v1' — trade.html writes
+       1. localStorage 'arc.trade.activity.v1' - trade.html writes
           swap/bridge/transfer rows here. 'bridge' rows are Balance
           (Unified Balance settlements); other kinds are Trade.
-       2. /api/agent/list?owner + /api/agent/:id/executions — the
+       2. /api/agent/list?owner + /api/agent/:id/executions - the
           server-side agent log. Local fallback (arcswap_execs)
           mirrors the same shape when the backend is unconfigured.
   ============================================================ */
@@ -197,13 +197,13 @@
     return h.length > head + tail + 2 ? `${h.slice(0, head)}…${h.slice(-tail)}` : h;
   }
   function fmtMoney(n, frac = 2) {
-    if (n == null || isNaN(n)) return '—';
+    if (n == null || isNaN(n)) return '-';
     const v = Number(n);
-    if (!isFinite(v)) return '—';
+    if (!isFinite(v)) return '-';
     return v.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac });
   }
   function fmtRelTime(ts) {
-    if (!ts) return '—';
+    if (!ts) return '-';
     const diff = Date.now() - ts;
     const s = Math.floor(diff / 1000);
     if (s < 60) return `${s}s ago`;
@@ -370,7 +370,7 @@
     const amtClass = t.tab === 'balance' && t.title?.includes('Bridge') ? 'down' : '';
     const amt = (t.amount != null)
       ? `<div class="hist-row-amt ${amtClass}">${fmtMoney(t.amount)}<small>${t.asset || 'USDC'}</small></div>`
-      : `<div class="hist-row-amt" style="color:var(--muted-soft)">—</div>`;
+      : `<div class="hist-row-amt" style="color:var(--muted-soft)">-</div>`;
 
     const explorerHref = (t.hash && t.srcChain) ? explorerTx(t.srcChain, t.hash) : '';
 
@@ -378,7 +378,7 @@
       <div class="hist-row" data-href="${escapeHtml(explorerHref)}">
         <div class="hist-row-ico ${icoCls}">${glyph}</div>
         <div class="hist-row-main">
-          <div class="hist-row-title">${escapeHtml(t.title || '—')}</div>
+          <div class="hist-row-title">${escapeHtml(t.title || '-')}</div>
           <div class="hist-row-sub">${sub}</div>
         </div>
         ${amt}

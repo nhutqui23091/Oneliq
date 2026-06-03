@@ -5,10 +5,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://oneliq.xyz https://www.oneliq.xyz https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="description" content="Oneliq Incident History — past 90 days of outages, degradations, scheduled maintenance windows, and post-mortems. All resolved unless noted."/>
+<meta name="description" content="Oneliq Incident History: past 90 days of outages, degradations, scheduled maintenance windows, and post-mortems. All resolved unless noted."/>
 <meta name="theme-color" content="#0A1628"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-<title>Incidents — Oneliq Status</title>
+<title>Incidents | Oneliq Status</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -58,14 +58,14 @@ const INCIDENTS = [
   { kind: 'maint',    icon: '⚙', title: 'Scheduled CSP rollout',
     desc: 'Tightened connect-src directive across all surfaces. Added gateway-api-testnet.circle.com to allowlist. Zero-downtime.',
     date: '2026-05-02', status: 'maint' },
-  { kind: 'resolved', icon: '✓', title: 'Gateway proxy 504 — Cloudflare edge',
+  { kind: 'resolved', icon: '✓', title: 'Gateway proxy 504 - Cloudflare edge',
     desc: 'Pages Function timed out connecting to Circle Gateway API for 6 minutes. Affected Unified Balance refresh. Auto-recovered.',
     date: '2026-04-22', status: 'resolved' },
   { kind: 'deg',      icon: '!', title: 'CCTP V2 Fast attestation delays',
     desc: 'Circle Iris attestation queue ran 90s above target during US-east peak. CCTP Standard mode unaffected. Resolved upstream.',
     date: '2026-04-14', status: 'resolved' },
   { kind: 'resolved', icon: '✓', title: 'Arc Testnet RPC node restart',
-    desc: 'Sequencer maintenance window — 4 minutes of read-only mode. No transactions lost.',
+    desc: 'Sequencer maintenance window - 4 minutes of read-only mode. No transactions lost.',
     date: '2026-03-31', status: 'resolved' },
   { kind: 'maint',    icon: '⚙', title: 'Agent cron upgrade · v2',
     desc: 'Migrated automation workers to Durable Object scheduler. Improved p95 execution latency by ~40%.',

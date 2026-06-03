@@ -5,21 +5,21 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<!-- Private operator page — gated by Basic Auth in functions/_middleware.js.
+<!-- Private operator page - gated by Basic Auth in functions/_middleware.js.
      noindex/nofollow keeps it out of search engines and crawler indexes
      while it's under wraps. Remove these when the page goes public. -->
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>
 <meta name="googlebot" content="noindex,nofollow"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<meta name="description" content="Oneliq Dashboard — private operator console."/>
-<title>Dashboard — Oneliq</title>
+<meta name="description" content="Oneliq Dashboard - private operator console."/>
+<title>Dashboard - Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.9.2"/>
 <style>
 /* ============================================================
-   DASHBOARD — modern stablecoin infrastructure control center.
+   DASHBOARD - modern stablecoin infrastructure control center.
    Visual language inherited from /trade, /balance, /agent so the
    four pages feel like one app. New tokens live under .dash-* so
    they don't collide with the shared primitives in arc-ui.css.
@@ -37,7 +37,7 @@
 @keyframes live-blink{0%,100%{opacity:1}50%{opacity:.35}}
 .dash-clock{font-family:var(--mono);font-size:13px;color:var(--muted);padding:8px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border)}
 
-/* OVERVIEW METRICS — five hero cards. On smaller widths we drop
+/* OVERVIEW METRICS - five hero cards. On smaller widths we drop
    to 3 / 2 / 1 columns cleanly. */
 .metric-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
 @media(max-width:1100px){.metric-grid{grid-template-columns:repeat(3,1fr)}}
@@ -62,7 +62,7 @@
 @media(max-width:1000px){.dash-grid{grid-template-columns:1fr}}
 .dash-col{display:flex;flex-direction:column;gap:24px;min-width:0}
 
-/* MODULE CARD — shared shell for every dashboard section */
+/* MODULE CARD - shared shell for every dashboard section */
 .module{background:var(--surface);border:1px solid var(--border);border-radius:22px;backdrop-filter:blur(20px);padding:22px 24px;position:relative}
 .module-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .module-h-l{display:flex;align-items:center;gap:10px;min-width:0}
@@ -206,7 +206,7 @@
 .connect-prompt button{padding:12px 26px;border-radius:11px;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);font-weight:800;font-size:13.5px;border:none;cursor:pointer;letter-spacing:-.005em;transition:transform .15s,box-shadow .25s}
 .connect-prompt button:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(77,214,219,.32)}
 
-/* SKELETON LINES — match arc-ui.css .skel but tailored heights */
+/* SKELETON LINES - match arc-ui.css .skel but tailored heights */
 .skel-line{display:inline-block;border-radius:6px;background:linear-gradient(90deg,var(--surface) 0%,var(--surface2) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.3s infinite}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
@@ -230,7 +230,7 @@
     <div class="dash-hero-l">
       <span class="arc-label">Control Center</span>
       <h1>Dashboard</h1>
-      <p>One USDC. One Balance. Everywhere. Unified stablecoin operations, cross-chain finance, and agent management — in one place.</p>
+      <p>One USDC. One Balance. Everywhere. Unified stablecoin operations, cross-chain finance, and agent management - in one place.</p>
     </div>
     <div class="dash-hero-r">
       <span class="live-pill"><span class="live-dot"></span>Live · Arc Testnet</span>
@@ -238,7 +238,7 @@
     </div>
   </section>
 
-  <!-- CONNECT PROMPT — hidden when wallet is connected -->
+  <!-- CONNECT PROMPT - hidden when wallet is connected -->
   <div id="dash-connect" class="connect-prompt" style="display:none">
     <h3>Connect your wallet to see your dashboard</h3>
     <p>Your unified balance, agents, recent activity, and portfolio analytics will appear here once your wallet is connected.</p>
@@ -249,29 +249,29 @@
   <section class="metric-grid" id="metric-grid">
     <div class="metric-card">
       <div class="metric-label"><span class="mico">◆</span>Portfolio Value</div>
-      <div class="metric-val" id="m-portfolio">—<span class="unit">USDC</span></div>
+      <div class="metric-val" id="m-portfolio">-<span class="unit">USDC</span></div>
       <div class="metric-sub" id="m-portfolio-sub">Wallet + Gateway across all chains</div>
       <svg class="metric-spark" id="spark-portfolio" viewBox="0 0 60 24" preserveAspectRatio="none"></svg>
     </div>
     <div class="metric-card">
       <div class="metric-label"><span class="mico">⚡</span>Unified Balance</div>
-      <div class="metric-val" id="m-unified">—<span class="unit">USDC</span></div>
+      <div class="metric-val" id="m-unified">-<span class="unit">USDC</span></div>
       <div class="metric-sub" id="m-unified-sub">Spendable on any chain</div>
       <svg class="metric-spark" id="spark-unified" viewBox="0 0 60 24" preserveAspectRatio="none"></svg>
     </div>
     <div class="metric-card">
       <div class="metric-label"><span class="mico">⌬</span>Active Chains</div>
-      <div class="metric-val" id="m-chains">—<span class="unit">of 8</span></div>
+      <div class="metric-val" id="m-chains">-<span class="unit">of 8</span></div>
       <div class="metric-sub" id="m-chains-sub">With non-zero USDC</div>
     </div>
     <div class="metric-card">
       <div class="metric-label"><span class="mico">∞</span>Active Agents</div>
-      <div class="metric-val" id="m-agents">—</div>
+      <div class="metric-val" id="m-agents">-</div>
       <div class="metric-sub" id="m-agents-sub">Running automations</div>
     </div>
     <div class="metric-card">
       <div class="metric-label"><span class="mico">↻</span>Settlement Vol · 24h</div>
-      <div class="metric-val" id="m-volume">—<span class="unit">USDC</span></div>
+      <div class="metric-val" id="m-volume">-<span class="unit">USDC</span></div>
       <div class="metric-sub" id="m-volume-sub">Cross-chain moves</div>
     </div>
   </section>
@@ -293,12 +293,12 @@
 
         <div class="ub-total-row">
           <div>
-            <div class="ub-total-val" id="ub-total">—<span class="unit">USDC</span></div>
+            <div class="ub-total-val" id="ub-total">-<span class="unit">USDC</span></div>
             <div class="ub-total-sub" id="ub-total-sub">Connect wallet to see your unified balance.</div>
           </div>
           <div class="ub-spendable" id="ub-spendable" style="display:none">
             <span style="color:var(--muted)">Spendable now</span>
-            <b id="ub-spendable-val">—</b>
+            <b id="ub-spendable-val">-</b>
             <span style="color:var(--muted)">USDC</span>
           </div>
         </div>
@@ -331,9 +331,9 @@
             <div class="trend-h">
               <span class="trend-h-l">Unified Balance Trend</span>
             </div>
-            <div class="trend-val" id="trend-val">—<span class="unit">USDC</span></div>
+            <div class="trend-val" id="trend-val">-<span class="unit">USDC</span></div>
             <div class="trend-sub">
-              <span class="delta" id="trend-delta">—</span>
+              <span class="delta" id="trend-delta">-</span>
               <span id="trend-delta-sub">vs previous period</span>
             </div>
             <svg class="trend-chart" id="trend-chart" viewBox="0 0 400 96" preserveAspectRatio="none"></svg>
@@ -342,25 +342,25 @@
             <div class="flow-h">Stablecoin Flow</div>
             <div class="flow-row">
               <span class="flow-row-l"><span class="flow-arr in">↓</span>Inflow</span>
-              <span class="flow-row-v up" id="flow-in">— USDC</span>
+              <span class="flow-row-v up" id="flow-in">- USDC</span>
             </div>
             <div class="flow-row">
               <span class="flow-row-l"><span class="flow-arr out">↑</span>Outflow</span>
-              <span class="flow-row-v down" id="flow-out">— USDC</span>
+              <span class="flow-row-v down" id="flow-out">- USDC</span>
             </div>
             <div class="flow-row">
               <span class="flow-row-l">Net</span>
-              <span class="flow-row-v" id="flow-net">— USDC</span>
+              <span class="flow-row-v" id="flow-net">- USDC</span>
             </div>
             <div class="flow-row">
               <span class="flow-row-l">Transfers</span>
-              <span class="flow-row-v" id="flow-txn">—</span>
+              <span class="flow-row-v" id="flow-txn">-</span>
             </div>
           </div>
         </div>
 
         <div class="alloc-block">
-          <div class="alloc-h"><span>Allocation by chain</span><span id="alloc-h-sum">— USDC</span></div>
+          <div class="alloc-h"><span>Allocation by chain</span><span id="alloc-h-sum">- USDC</span></div>
           <div class="alloc-bar" id="alloc-bar"></div>
           <div class="alloc-legend" id="alloc-legend"></div>
         </div>
@@ -462,7 +462,7 @@
 <script>
 (async () => {
   /* ============================================================
-     Oneliq Dashboard — control center.
+     Oneliq Dashboard - control center.
      Composition:
        1. Boot shared chrome (aurora + cursor + navbar + auto-connect).
        2. On wallet connect (or auto-connect from localStorage), load:
@@ -473,7 +473,7 @@
           spendable, active chains, settlement volume) and paint.
        4. Re-render on wallet change.
      All quick-action CTAs deep-link to the existing /balance, /trade,
-     /agent pages — we don't duplicate Gateway flows here (one source
+     /agent pages - we don't duplicate Gateway flows here (one source
      of truth in /balance keeps allowances + pending state coherent).
   ============================================================ */
 
@@ -512,7 +512,7 @@
     try { return Number(ARC.formatAmt(rawBigInt, decimals, 4)); } catch { return 0; }
   }
   function fmtMoney(n, frac = 2) {
-    if (n == null || isNaN(n)) return '—';
+    if (n == null || isNaN(n)) return '-';
     return n.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac });
   }
   function escapeHtml(s) {
@@ -524,7 +524,7 @@
   }
 
   // ── CLOCK ──────────────────────────────────────────────────────
-  // Realtime feeling — tick a 1s clock in the hero. Pure cosmetic but it
+  // Realtime feeling - tick a 1s clock in the hero. Pure cosmetic but it
   // sells the "live infrastructure" vibe.
   (function tickClock() {
     const el = document.getElementById('dash-clock');
@@ -555,7 +555,7 @@
         const raw = await ARC.tokenBalance(chip.arcKey, tok, state.addr);
         state.walletBals[chip.arcKey] = raw;
       } catch (e) {
-        // Chain RPC may be flaky on testnet — store 0n and keep going so
+        // Chain RPC may be flaky on testnet - store 0n and keep going so
         // one bad chain doesn't black-hole the rest of the dashboard.
         state.walletBals[chip.arcKey] = 0n;
       }
@@ -665,7 +665,7 @@
     document.getElementById('m-agents').textContent = running;
     document.getElementById('m-agents-sub').textContent = paused > 0 ? `${running} active · ${paused} paused` : (running > 0 ? 'Running automations' : 'No agents yet');
 
-    // Settlement volume 24h — from executions
+    // Settlement volume 24h - from executions
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const vol24 = state.executions
       .filter(e => (e.time || 0) >= cutoff && (e.type === 'sent' || e.amount))
@@ -675,14 +675,14 @@
       ? `${state.executions.filter(e => (e.time || 0) >= cutoff).length} transfers`
       : 'Nothing yet';
 
-    // Sparklines — small mock-ish lines built from balance points
+    // Sparklines - small mock-ish lines built from balance points
     renderSpark('spark-portfolio', portfolio);
     renderSpark('spark-unified', gatewaySum);
   }
 
   /** Render a tiny SVG sparkline. Since real per-second history isn't
    * tracked yet, we synthesize a calm wave so the card doesn't feel
-   * empty — clamped to amplitude proportional to the current value. */
+   * empty - clamped to amplitude proportional to the current value. */
   function renderSpark(id, val) {
     const svg = document.getElementById(id);
     if (!svg) return;
@@ -691,7 +691,7 @@
     const N = 16;
     for (let i = 0; i < N; i++) {
       const x = (i / (N - 1)) * 60;
-      // Small sinusoid + slight upward drift — purely visual
+      // Small sinusoid + slight upward drift - purely visual
       const wave = Math.sin(i * 0.7) * 4 + Math.cos(i * 1.3) * 2 + i * 0.25;
       pts.push([x, 12 + wave]);
     }
@@ -717,7 +717,7 @@
     const spVEl = document.getElementById('ub-spendable-val');
 
     if (!state.addr) {
-      totalEl.innerHTML = `—<span class="unit">USDC</span>`;
+      totalEl.innerHTML = `-<span class="unit">USDC</span>`;
       subEl.textContent = 'Connect wallet to see your unified balance.';
       spEl.style.display = 'none';
       document.getElementById('ub-chain-list').innerHTML = '';
@@ -727,7 +727,7 @@
     totalEl.innerHTML = `${fmtMoney(gatewaySum)}<span class="unit">USDC</span>`;
     subEl.textContent = gatewaySum > 0
       ? `Aggregated across ${Object.keys(state.gatewayBals).filter(k => (state.gatewayBals[k].canonical || 0n) > 0n).length} chain(s) via Circle Gateway`
-      : 'No deposits yet — deposit USDC to spend cross-chain in ~30s.';
+      : 'No deposits yet - deposit USDC to spend cross-chain in ~30s.';
 
     if (gatewaySum > 0) {
       spEl.style.display = '';
@@ -736,7 +736,7 @@
       spEl.style.display = 'none';
     }
 
-    // Per-chain breakdown — sort by descending balance (largest first),
+    // Per-chain breakdown - sort by descending balance (largest first),
     // then by name for stable ordering across re-renders.
     const rows = CHIPS.map(chip => {
       const tok = ARC.TOKENS[chip.arcKey]?.USDC;
@@ -788,7 +788,7 @@
       return;
     }
 
-    // Sort: active first, then by createdAt desc. Cap to 5 — anything beyond
+    // Sort: active first, then by createdAt desc. Cap to 5 - anything beyond
     // 5 belongs in the /agent page proper.
     const sorted = [...state.agents].sort((a, b) => {
       const sa = (a.state || 'active') === 'active' ? 0 : 1;
@@ -843,7 +843,7 @@
     document.getElementById('trend-val').innerHTML = `${fmtMoney(total)}<span class="unit">USDC</span>`;
 
     // Synthesize a 7-day trend line.  Without persisted history we render a
-    // calm, slightly-uptrending series anchored at the current total — the
+    // calm, slightly-uptrending series anchored at the current total - the
     // line is honestly labelled "growth shape" and gates real numbers behind
     // /balance once Circle adds historical endpoints. This keeps the page
     // from looking dead while staying truthful.
@@ -880,7 +880,7 @@
       <path d="${path}" fill="none" stroke="#4DD6DB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     `;
 
-    // Delta — first point vs last (synthetic but proportional)
+    // Delta - first point vs last (synthetic but proportional)
     const first = points[0];
     const last = points[points.length - 1];
     const delta = last - first;
@@ -903,7 +903,7 @@
     netEl.className = 'flow-row-v ' + (net >= 0 ? 'up' : 'down');
     document.getElementById('flow-txn').textContent = `${recent.length} · 24h`;
 
-    // Allocation by chain — stacked bar of (wallet + gateway) per chain
+    // Allocation by chain - stacked bar of (wallet + gateway) per chain
     const allocRows = CHIPS.map(chip => {
       const tok = ARC.TOKENS[chip.arcKey]?.USDC;
       const w = toNumUsdc(state.walletBals[chip.arcKey] || 0n, tok?.decimals || 6);
@@ -975,7 +975,7 @@
 
       const amtLabel = isRev
         ? '<small>signature invalidated</small>'
-        : (amount > 0 ? `${isOut ? '-' : '+'}$${fmtMoney(amount)}<small>${escapeHtml(chip?.short || 'cross-chain')}</small>` : '<small>—</small>');
+        : (amount > 0 ? `${isOut ? '-' : '+'}$${fmtMoney(amount)}<small>${escapeHtml(chip?.short || 'cross-chain')}</small>` : '<small>-</small>');
       const amtClass = isRev ? '' : (isOut ? 'down' : 'up');
 
       return `
@@ -1018,7 +1018,7 @@
       return;
     }
 
-    // Fire all three loaders in parallel — they're independent and waiting
+    // Fire all three loaders in parallel - they're independent and waiting
     // for the slowest one means a faster page-to-pixel time.
     await Promise.allSettled([
       loadWalletBalances(),
@@ -1032,7 +1032,7 @@
     renderActivity();
   }
 
-  // First paint — empty state until wallet connects
+  // First paint - empty state until wallet connects
   refreshAll();
 
   // Re-render whenever the wallet changes (connect / disconnect / account swap)

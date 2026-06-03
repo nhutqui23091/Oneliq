@@ -1,4 +1,4 @@
-/* Oneliq shared UI widgets — navbar, toast, modal, cursor. Requires arc-core.js */
+/* Oneliq shared UI widgets - navbar, toast, modal, cursor. Requires arc-core.js */
 (function (global) {
   'use strict';
   if (!global.ARC) { console.error('[arc-ui] ARC core not loaded'); return; }
@@ -6,8 +6,8 @@
 
   // ── NAVBAR ─────────────────────────────────────────────
   // Two chrome variants:
-  //   1. boot()    — classic top nav. Marketing/landing pages (/, /blog).
-  //   2. bootApp() — left sidebar app shell. Operator surfaces (/trade,
+  //   1. boot()    - classic top nav. Marketing/landing pages (/, /blog).
+  //   2. bootApp() - left sidebar app shell. Operator surfaces (/trade,
   //                  /balance, /agent, /history, /token, etc).
   // Dashboard (the operator one) is still gated in functions/_middleware.js;
   // the sidebar "Dashboard" entry is a public placeholder for the future
@@ -51,7 +51,7 @@
     };
     paint();
     window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 10), { passive: true });
-    // Re-paint when wallet changes — gated tabs depend on the connected address
+    // Re-paint when wallet changes - gated tabs depend on the connected address
     ARC.wallet.on(paint);
   }
 
@@ -170,7 +170,7 @@
   function closeModal() { document.getElementById('arc-modal-root')?.classList.remove('show'); }
 
   /**
-   * Styled confirmation dialog — replaces window.confirm() for security gates
+   * Styled confirmation dialog - replaces window.confirm() for security gates
    * (pre-sign review modals etc.) so the UX matches the rest of the app
    * instead of showing the browser-native generic dialog.
    *
@@ -237,7 +237,7 @@
           m.addEventListener('click', (e) => { if (e.target === m) finish(false); }, { once: true });
           m.querySelector('.arc-modal-close').addEventListener('click', () => finish(false), { once: true });
           document.addEventListener('keydown', onKey);
-          // Focus confirm by default — Enter accepts, Esc cancels.
+          // Focus confirm by default - Enter accepts, Esc cancels.
           setTimeout(() => confirmBtn.focus(), 50);
         },
       });
@@ -258,9 +258,9 @@
   // ── SIDEBAR (app shell) ─────────────────────────────────
   // Used by operator surfaces (/history, future /trade /balance /agent).
   // Marketing pages keep the top nav via boot(). State persists via:
-  //   localStorage 'arc.side.collapsed' = '1' | '0'   — desktop collapse
-  //   body.arc-side-collapsed                          — applied class
-  //   body.arc-side-open                               — mobile drawer open
+  //   localStorage 'arc.side.collapsed' = '1' | '0'   - desktop collapse
+  //   body.arc-side-collapsed                          - applied class
+  //   body.arc-side-open                               - mobile drawer open
   const svgClock = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>`;
 
   const SIDE_SECTIONS = [
@@ -326,7 +326,7 @@
       document.body.appendChild(hamb);
     }
 
-    // Mobile wallet CTA (top-right, mirrors hamburger — always visible on mobile)
+    // Mobile wallet CTA (top-right, mirrors hamburger - always visible on mobile)
     if (!document.getElementById('arc-wallet-btn-mob')) {
       const mobW = document.createElement('button');
       mobW.type = 'button';
@@ -352,7 +352,7 @@
               <span class="arc-side-label">${it.label}</span>
               ${badge}`;
             if (it.soon) {
-              return `<button type="button" class="${cls}" data-soon="${it.label}" title="${it.label} — Coming soon">${inner}</button>`;
+              return `<button type="button" class="${cls}" data-soon="${it.label}" title="${it.label}: Coming soon">${inner}</button>`;
             }
             const ext = it.external ? ' target="_blank" rel="noopener"' : '';
             return `<a class="${cls}" href="${it.href}"${ext} title="${it.label}">${inner}</a>`;
@@ -394,7 +394,7 @@
       side.querySelectorAll('[data-soon]').forEach(btn => {
         btn.addEventListener('click', () => {
           const name = btn.dataset.soon;
-          toast('', `${name} — Coming soon`, "It's on the roadmap. We'll announce when it ships.");
+          toast('', `${name}: Coming soon`, "It's on the roadmap. We'll announce when it ships.");
           document.body.classList.remove('arc-side-open');
         });
       });

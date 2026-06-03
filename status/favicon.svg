@@ -13,7 +13,7 @@
   <rect width="64" height="64" rx="14" ry="14" fill="url(#bg)"/>
   <!-- Subtle inner glow -->
   <rect x="2" y="2" width="60" height="60" rx="12" ry="12" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
-  <!-- Letter A — bold, geometric -->
+  <!-- Letter A - bold, geometric -->
   <path d="M 32 12 L 50 50 L 42 50 L 38.5 42.5 L 25.5 42.5 L 22 50 L 14 50 Z M 28.5 35.5 L 35.5 35.5 L 32 27 Z"
         fill="url(#letter)"/>
 </svg>

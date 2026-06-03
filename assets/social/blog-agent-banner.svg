@@ -51,11 +51,11 @@
     <text x="0" y="0" font-family="DM Mono, monospace" font-size="14" font-weight="600" fill="#4DD6DB" letter-spacing="3">// PRODUCT LAUNCH</text>
     <text x="0" y="84" font-family="Inter, sans-serif" font-size="82" font-weight="900" fill="#F5F7FB" letter-spacing="-3">Auto-Replenish</text>
     <text x="0" y="172" font-family="Inter, sans-serif" font-size="82" font-weight="900" fill="url(#brand)" letter-spacing="-3">Agent.</text>
-    <text x="0" y="234" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#8CA0BD">Sign once. USDC moves itself — across 8 chains,</text>
+    <text x="0" y="234" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#8CA0BD">Sign once. USDC moves itself across 8 chains,</text>
     <text x="0" y="266" font-family="Inter, sans-serif" font-size="22" font-weight="400" fill="#8CA0BD">on a floor or on a schedule. Preview today.</text>
   </g>
 
-  <!-- Right: orbit motif — three concentric rings with a smaller satellite, evoking
+  <!-- Right: orbit motif - three concentric rings with a smaller satellite, evoking
        "one source, many targets, automated loop". -->
   <g transform="translate(960 290)">
     <circle r="190" fill="none" stroke="#A78BFA" stroke-width="1" opacity=".25"/>
@@ -65,7 +65,7 @@
     <circle r="80" fill="rgba(10,22,40,0.88)" stroke="url(#ring)" stroke-width="2.5"/>
     <!-- Lightning-bolt glyph (auto-replenish) -->
     <path d="M -18 -28 L 6 -4 L -8 -4 L 18 28 L -6 4 L 8 4 Z" fill="#A78BFA" opacity=".95"/>
-    <!-- Three orbit satellites — destination wallets on different chains -->
+    <!-- Three orbit satellites - destination wallets on different chains -->
     <g>
       <circle cx="190" cy="0" r="9" fill="#4DD6DB"/>
       <circle cx="190" cy="0" r="9" fill="none" stroke="#4DD6DB" stroke-width="1" opacity=".4">
