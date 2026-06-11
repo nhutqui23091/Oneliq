@@ -1,6 +1,6 @@
 /**
  * Cloudflare Pages Function: /auth/gm
- * GET  ?address=0x...                   -> current GM state
+ * GET  ?address=0x...                   -> current GM state (includes badges)
  * POST { address, txHash, date }        -> daily check-in (verifies real Arc tx)
  * POST { action:'x_follow', address }   -> mark X follow done (trust-based)
  *
@@ -20,7 +20,7 @@ export async function onRequest(context) {
   return jsonRes({ error: 'Method not allowed' }, 405);
 }
 
-// ── GET ───────────────────────────────────────────────────────────────────────
+// -- GET --
 async function handleGet(request, env) {
   const url  = new URL(request.url);
   const addr = (url.searchParams.get('address') || '').toLowerCase();
@@ -40,7 +40,7 @@ async function handleGet(request, env) {
   });
 }
 
-// ── POST ──────────────────────────────────────────────────────────────────────
+// -- POST --
 async function handlePost(request, env) {
   const kv = env.PROFILE_KV;
   if (!kv) return jsonRes({ error: 'KV not configured' }, 503);
@@ -83,7 +83,7 @@ async function handlePost(request, env) {
     return jsonRes({ error: verify.error }, 400);
   }
 
-  // ── Streak logic ─────────────────────────────────────────────────────────────
+  // -- Streak logic --
   const yesterday  = utcOffset(-1);
   const twoDaysAgo = utcOffset(-2);
 
@@ -91,7 +91,9 @@ async function handlePost(request, env) {
   let freezes    = typeof state.freezes_left === 'number' ? state.freezes_left : 3;
   let freezeUsed = false;
 
-  if (!state.last_checkin) {
+  const isFirstCheckin = !state.last_checkin;
+
+  if (isFirstCheckin) {
     streak = 1;
   } else if (state.last_checkin === yesterday) {
     streak += 1;
@@ -108,15 +110,28 @@ async function handlePost(request, env) {
     freezes = Math.min(freezes + 1, 5);
   }
 
-  const history  = [...(state.history || []).slice(-89), today];
+  const history        = [...(state.history || []).slice(-89), today];
+  const totalCheckins  = (state.total_checkins || 0) + 1;
+
+  // -- Badge logic --
+  const badges = [...(state.badges || [])];
+  if (isFirstCheckin && !badges.includes('welcome')) {
+    badges.push('welcome');
+  }
+  if (totalCheckins >= 100 && !badges.includes('tx100')) {
+    badges.push('tx100');
+  }
+
   const newState = {
-    last_checkin:  today,
-    last_tx_hash:  txHash,
+    last_checkin:   today,
+    last_tx_hash:   txHash,
     streak,
-    freezes_left:  freezes,
-    points:        (state.points || 0) + streak,
+    freezes_left:   freezes,
+    points:         (state.points || 0) + streak,
     history,
-    x_follow_done: state.x_follow_done || false,
+    total_checkins: totalCheckins,
+    x_follow_done:  state.x_follow_done || false,
+    badges,
   };
 
   await kv.put('gm:' + addr, JSON.stringify(newState));
@@ -134,7 +149,7 @@ async function handlePost(request, env) {
   });
 }
 
-// ── Arc Testnet tx verification (retries up to ~10 s) ─────────────────────────
+// -- Arc Testnet tx verification (retries up to ~10 s) --
 async function verifyArcTx(txHash, expectedFrom) {
   for (let attempt = 0; attempt < 5; attempt++) {
     if (attempt > 0) await sleep(2000);
@@ -168,7 +183,7 @@ async function verifyArcTx(txHash, expectedFrom) {
   };
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// -- helpers --
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function getState(kv, addr) {
@@ -181,13 +196,15 @@ async function getState(kv, addr) {
 
 function defaultState() {
   return {
-    last_checkin:  null,
-    last_tx_hash:  null,
-    streak:        0,
-    freezes_left:  3,
-    points:        0,
-    history:       [],
-    x_follow_done: false,
+    last_checkin:   null,
+    last_tx_hash:   null,
+    streak:         0,
+    freezes_left:   3,
+    points:         0,
+    history:        [],
+    total_checkins: 0,
+    x_follow_done:  false,
+    badges:         [],
   };
 }
 
