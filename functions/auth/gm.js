@@ -1,12 +1,17 @@
 /**
  * Cloudflare Pages Function: /auth/gm
- * GET  ?address=0x...                       -> current GM state
- * POST { address, signature, date, nonce }  -> daily check-in
- * POST { action:'x_follow', address }       -> mark X follow done (trust-based)
+ * GET  ?address=0x...                   -> current GM state
+ * POST { address, txHash, date }        -> daily check-in (verifies real Arc tx)
+ * POST { action:'x_follow', address }   -> mark X follow done (trust-based)
  *
  * Uses PROFILE_KV (same namespace as Discord profile).
  * KV key: gm:${address_lowercase}
+ *
+ * Arc Testnet RPC: https://rpc.testnet.arc.network (chainId 5042002)
  */
+
+const ARC_RPC = 'https://rpc.testnet.arc.network';
+
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method === 'OPTIONS') return corsOk();
@@ -50,25 +55,35 @@ async function handlePost(request, env) {
   const today = utcToday();
   const state = await getState(kv, addr);
 
-  // Trust-based action: mark X follow as done
+  // Trust-based action: mark X follow as done (no tx required)
   if (body.action === 'x_follow') {
     const updated = { ...state, x_follow_done: true };
     await kv.put('gm:' + addr, JSON.stringify(updated));
     return jsonRes({ ...updated, already_checked_in: state.last_checkin === today });
   }
 
-  // Regular check-in: validate signature and date
-  const { signature, date, nonce } = body;
-  if (!signature || typeof signature !== 'string' || !/^0x[0-9a-f]{100,}/i.test(signature)) {
-    return jsonRes({ error: 'Invalid signature' }, 400);
-  }
-  if (date !== today) return jsonRes({ error: 'Date mismatch. Use today UTC date.' }, 400);
+  // Daily check-in: verify real Arc Testnet transaction
+  const { txHash, date } = body;
 
+  if (!txHash || !/^0x[0-9a-f]{64}$/i.test(txHash)) {
+    return jsonRes({ error: 'Invalid transaction hash. Expected 0x + 64 hex chars.' }, 400);
+  }
+  if (date !== today) {
+    return jsonRes({ error: 'Date mismatch. Use today UTC date (' + today + ').' }, 400);
+  }
+
+  // Rate-limit: one check-in per wallet per day
   if (state.last_checkin === today) {
     return jsonRes({ ...state, already_checked_in: true, message: 'Already checked in today.' });
   }
 
-  // Streak logic
+  // Verify the transaction exists on Arc Testnet and was sent by this wallet
+  const verify = await verifyArcTx(txHash, addr);
+  if (!verify.ok) {
+    return jsonRes({ error: verify.error }, 400);
+  }
+
+  // ── Streak logic ─────────────────────────────────────────────────────────────
   const yesterday  = utcOffset(-1);
   const twoDaysAgo = utcOffset(-2);
 
@@ -88,7 +103,7 @@ async function handlePost(request, env) {
     streak = 1;
   }
 
-  // Bonus freeze at milestone days
+  // Bonus freeze at milestone days (capped at 5)
   if ([7, 30, 100].includes(streak) && freezes < 5) {
     freezes = Math.min(freezes + 1, 5);
   }
@@ -96,6 +111,7 @@ async function handlePost(request, env) {
   const history  = [...(state.history || []).slice(-89), today];
   const newState = {
     last_checkin:  today,
+    last_tx_hash:  txHash,
     streak,
     freezes_left:  freezes,
     points:        (state.points || 0) + streak,
@@ -118,7 +134,43 @@ async function handlePost(request, env) {
   });
 }
 
+// ── Arc Testnet tx verification (retries up to ~10 s) ─────────────────────────
+async function verifyArcTx(txHash, expectedFrom) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (attempt > 0) await sleep(2000);
+    try {
+      const res = await fetch(ARC_RPC, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          jsonrpc: '2.0', id: 1,
+          method:  'eth_getTransactionByHash',
+          params:  [txHash],
+        }),
+      });
+      const json = await res.json();
+      const tx   = json.result;
+
+      if (!tx) continue; // not found yet, retry
+
+      if (tx.from?.toLowerCase() !== expectedFrom) {
+        return { ok: false, error: 'Transaction sender does not match wallet address.' };
+      }
+      return { ok: true };
+
+    } catch (e) {
+      console.warn('[gm] verifyArcTx attempt', attempt, e?.message);
+    }
+  }
+  return {
+    ok: false,
+    error: 'Transaction not found on Arc Testnet after retries. Ensure you are on Arc Testnet (chainId 5042002) and try again.',
+  };
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function getState(kv, addr) {
   try {
     const raw = await kv.get('gm:' + addr);
@@ -128,7 +180,15 @@ async function getState(kv, addr) {
 }
 
 function defaultState() {
-  return { last_checkin: null, streak: 0, freezes_left: 3, points: 0, history: [], x_follow_done: false };
+  return {
+    last_checkin:  null,
+    last_tx_hash:  null,
+    streak:        0,
+    freezes_left:  3,
+    points:        0,
+    history:       [],
+    x_follow_done: false,
+  };
 }
 
 function utcToday() { return new Date().toISOString().slice(0, 10); }
@@ -139,7 +199,7 @@ function utcOffset(days) {
   return d.toISOString().slice(0, 10);
 }
 
-function isAddr(s) { return /^0x[0-9a-f]{40}$/.test(s); }
+function isAddr(s)  { return /^0x[0-9a-f]{40}$/.test(s); }
 
 function jsonRes(data, status = 200) {
   return new Response(JSON.stringify(data), {

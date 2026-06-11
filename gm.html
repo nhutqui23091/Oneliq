@@ -12,7 +12,7 @@
 <title>GM | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.0"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.1"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0A1628;--bg2:#0F1E36;--surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;--arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;--display:'Space Grotesk','Inter',system-ui,sans-serif;--font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace}
@@ -154,7 +154,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.0"></script>
 <script src="/assets/arc-core.js?v=9.8.4"></script>
-<script src="/assets/arc-ui.js?v=9.10.0"></script>
+<script src="/assets/arc-ui.js?v=9.10.1"></script>
 <script>
 (async () => {
   const ARC = window.ARC;
@@ -317,27 +317,65 @@
   btn.addEventListener('pointerleave',onUp);
   btn.addEventListener('pointercancel',onUp);
 
-  // ── Check-in flow ───────────────────────────────────────────────────────────
+  // ── Check-in flow (real Arc Testnet tx) ────────────────────────────────────
+  const ARC_CHAIN_HEX = '0x4cef52'; // chainId 5042002
+  const ARC_EXPLORER  = 'https://testnet.arcscan.app';
+
   async function triggerCheckin() {
-    btn.disabled = true; btn.textContent = 'Signing...';
-    hint.textContent = 'Approve in your wallet';
+    btn.disabled = true; btn.textContent = 'Preparing...';
+    hint.textContent = 'Switching to Arc Testnet if needed';
     try {
       const a     = addr();
       const today = utcDay();
-      const nonce = (typeof crypto !== 'undefined' && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2) + Date.now().toString(36);
-      const msg   = 'Oneliq GM check-in\nDate: ' + today + '\nWallet: ' + a + '\nNonce: ' + nonce;
 
-      if (!window.ethereum) throw new Error('No wallet provider found');
+      if (!window.ethereum) throw new Error('No wallet provider found. Install MetaMask or a compatible wallet.');
+
+      // Ensure Arc Testnet is the active chain
+      const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+      if (currentChain !== ARC_CHAIN_HEX) {
+        btn.textContent = 'Switching to Arc...';
+        try {
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARC_CHAIN_HEX }] });
+        } catch(sw) {
+          if (sw.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId:            ARC_CHAIN_HEX,
+                chainName:          'Arc Testnet',
+                rpcUrls:            ['https://rpc.testnet.arc.network'],
+                nativeCurrency:     { name: 'USDC', symbol: 'USDC', decimals: 18 },
+                blockExplorerUrls:  [ARC_EXPLORER],
+              }],
+            });
+          } else throw sw;
+        }
+      }
+
+      // Encode "GM YYYY-MM-DD" as calldata so it is visible on-chain
+      const gmStr   = 'GM ' + today;
+      const hexData = '0x' + Array.from(gmStr).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+
+      btn.textContent = 'Confirm in wallet';
+      hint.textContent = 'Approve the Arc Testnet transaction';
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer   = await provider.getSigner();
-      const sig      = await signer.signMessage(msg);
+      const tx       = await signer.sendTransaction({ to: a, value: 0n, data: hexData });
+      const txHash   = tx.hash;
 
+      // Show confirming state with explorer link while backend verifies
+      btn.textContent = 'Confirming on Arc...';
+      hint.innerHTML  = 'TX: <a href="' + ARC_EXPLORER + '/tx/' + txHash
+        + '" target="_blank" rel="noopener" style="color:var(--arc1);text-decoration:none">'
+        + txHash.slice(0, 16) + '...</a>';
+      setEnergy(0.85);
+
+      // Backend verifies tx via Arc RPC (retries up to ~10s)
       const res = await fetch('/auth/gm', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ address: a, signature: sig, date: today, nonce }),
+        body:    JSON.stringify({ address: a, txHash, date: today }),
       });
 
       const data = await res.json();
@@ -366,9 +404,9 @@
       drainEnergy();
       btn.disabled = false;
       const msg = e?.message || String(e);
-      if (/reject|denied|ACTION_REJECTED/i.test(msg)) {
+      if (/reject|denied|ACTION_REJECTED|user rejected/i.test(msg)) {
         btn.textContent = 'Hold to GM'; hint.textContent = 'Press and hold to check in';
-        ArcUI.toast('', 'Cancelled', 'Signature cancelled.');
+        ArcUI.toast('', 'Cancelled', 'Transaction cancelled.');
       } else {
         btn.textContent = 'Try again'; hint.textContent = msg.slice(0, 80);
         ArcUI.toast('error', 'Check-in failed', msg.slice(0, 60));
