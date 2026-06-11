@@ -12,26 +12,26 @@
 <title>GM | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.3"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.4"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0A1628;--bg2:#0F1E36;--surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;--arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;--display:'Space Grotesk','Inter',system-ui,sans-serif;--font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace}
 
 .gm-page{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:44px 24px 80px;display:flex;flex-direction:column;align-items:center;gap:22px}
 @media(max-width:900px){.gm-page{padding:72px 18px 60px}}
-.gm-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;width:100%}
+.gm-grid{display:grid;grid-template-columns:3fr 7fr;gap:24px;align-items:start;width:100%}
 @media(max-width:768px){.gm-grid{grid-template-columns:1fr}}
 .gm-checkin-col{display:flex;flex-direction:column;align-items:center;gap:22px;width:100%}
 
 /* HANG */
 .gm-hang{display:flex;flex-direction:column;align-items:center;gap:14px}
 .gm-rope-wrap{display:flex;flex-direction:column;align-items:center;animation:gm-sway 4s ease-in-out infinite;transform-origin:top center}
-.gm-rope{width:1px;height:60px;background:linear-gradient(to bottom,transparent,rgba(77,214,219,.3))}
-.gm-logo{width:58px;height:58px;border-radius:14px;box-shadow:0 8px 28px rgba(77,214,219,.25),0 3px 10px rgba(0,0,0,.45);animation:gm-bob 4s ease-in-out infinite}
+.gm-rope{width:1px;height:48px;background:linear-gradient(to bottom,transparent,rgba(77,214,219,.3))}
+.gm-logo{width:48px;height:48px;border-radius:12px;box-shadow:0 8px 28px rgba(77,214,219,.25),0 3px 10px rgba(0,0,0,.45);animation:gm-bob 4s ease-in-out infinite}
 @keyframes gm-sway{0%,100%{transform:rotate(-1.8deg)}50%{transform:rotate(1.8deg)}}
 @keyframes gm-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 .gm-energy-wrap{display:flex;flex-direction:column;align-items:center;gap:5px}
-.gm-energy-bar{width:160px;height:12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid var(--border);overflow:hidden}
+.gm-energy-bar{width:140px;height:12px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid var(--border);overflow:hidden}
 .gm-energy-fill{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--arc1),var(--arc2))}
 .gm-energy-pct{font-family:var(--mono);font-size:11px;color:var(--muted-soft);letter-spacing:.06em}
 
@@ -156,7 +156,7 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.0"></script>
 <script src="/assets/arc-core.js?v=9.8.4"></script>
-<script src="/assets/arc-ui.js?v=9.10.3"></script>
+<script src="/assets/arc-ui.js?v=9.10.4"></script>
 <script>
 (async () => {
   const ARC = window.ARC;
