@@ -101,7 +101,7 @@
     const addr = ARC.wallet.address;
     const ck = ARC.wallet.chainKey || 'arc';
     const explorerUrl = ARC.CHAINS[ck]?.explorerAddr?.(addr) || '#';
-    const savedX = localStorage.getItem('oneliq_profile_x_' + addr.toLowerCase()) || '';
+    const savedX = (localStorage.getItem('oneliq_profile_x_' + addr.toLowerCase()) || '').replace(/^@/, '');
     const clientId = document.querySelector('meta[name="oneliq-discord-client-id"]')?.content || '';
     const redirectUri = document.querySelector('meta[name="oneliq-discord-redirect"]')?.content
       || (window.location.origin + '/auth/discord/callback');
@@ -127,7 +127,7 @@
           <div>
             <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">X / Twitter</div>
             <div style="display:flex;gap:8px">
-              <input id="pm-x" type="text" placeholder="@handle" maxlength="50" value="${escapedX}" style="flex:1;padding:9px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border .15s"/>
+              <input id="pm-x" type="text" placeholder="your_handle" maxlength="50" value="${escapedX}" style="flex:1;padding:9px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border .15s"/>
               <button id="pm-x-save" style="padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap">Save</button>
             </div>
             <div id="pm-x-hint" style="font-size:11px;margin-top:5px;min-height:15px"></div>
@@ -148,8 +148,7 @@
         const xInp = document.getElementById('pm-x');
         const xHint = document.getElementById('pm-x-hint');
         const saveX = () => {
-          let v = xInp.value.trim();
-          if (v && !v.startsWith('@')) v = '@' + v;
+          const v = xInp.value.trim().replace(/^@/, '');
           xInp.value = v;
           localStorage.setItem('oneliq_profile_x_' + addr.toLowerCase(), v);
           xHint.textContent = v ? 'Saved.' : 'Cleared.';
@@ -182,7 +181,7 @@
           .then(r => r.ok ? r.json() : null)
           .then(profile => {
             if (profile && profile.discord_username) {
-              discordEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px"><span style="font-family:var(--mono);font-size:13px;color:var(--text)">@' + profile.discord_username + '</span><button id="pm-dc-unlink" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font);padding:2px 6px">Unlink</button></div>';
+              discordEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px"><span style="font-family:var(--mono);font-size:13px;color:var(--text)">' + (profile.discord_global_name || profile.discord_username) + '</span><button id="pm-dc-unlink" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font);padding:2px 6px">Unlink</button></div>';
               document.getElementById('pm-dc-unlink').onclick = () => {
                 fetch('/auth/profile/' + addr.toLowerCase(), { method: 'DELETE' }).catch(() => {});
                 toast('', 'Discord unlinked');
