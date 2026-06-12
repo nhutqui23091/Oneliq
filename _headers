@@ -30,6 +30,17 @@
 
 /*.html
   Content-Type: text/html; charset=utf-8
+  Cache-Control: no-store, must-revalidate
 
 /blog/*.html
   Content-Type: text/html; charset=utf-8
+  Cache-Control: no-store, must-revalidate
+
+/
+  Cache-Control: no-store, must-revalidate
+
+/assets/arc-core-v2.js
+  Cache-Control: no-store, must-revalidate
+
+/assets/arc-core.js
+  Cache-Control: no-store, must-revalidate
