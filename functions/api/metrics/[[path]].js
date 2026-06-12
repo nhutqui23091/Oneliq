@@ -421,17 +421,24 @@ export async function onRequest(context) {
     const day = utcDate(ts);
     const rand = Math.random().toString(36).slice(2, 10);
     const eventKey = `metric:event:${ts}:${rand}`;
-    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}) };
-    const fp = await fingerprint(request, body.address);
+    // Validate and normalise wallet address when provided. Stored in the event
+    // and in a dedicated per-wallet KV key so /summary can count distinct
+    // active wallets via kv.list — fully race-free unlike the fpToday JSON blob.
+    const walletAddr = typeof body.address === 'string' && /^0x[0-9a-f]{40}$/i.test(body.address)
+      ? body.address.toLowerCase() : null;
+    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}), ...(walletAddr ? { address: walletAddr } : {}) };
+    const fp = await fingerprint(request, walletAddr);
 
     // Raw audit-trail writes — kept for reconciliation. Best-effort, parallel.
-    // Counters use incr() (read-modify-write); event keys use simple put.
+    // metric:wallet:${day}:${addr} is written per unique wallet; /summary reads
+    // the count via kv.list so concurrent writes never race (one key per wallet).
     await Promise.all([
       kv.put(eventKey, JSON.stringify(eventData), { expirationTtl: 7 * 24 * 60 * 60 }),
       incr(kv, `metric:count:${day}:${event}`),
       incr(kv, `metric:count:${day}:${event}:${chain}`),
       incr(kv, `metric:total:${event}`),
       kv.put(`metric:user:${day}:${fp}`, '1', { expirationTtl: 35 * 24 * 60 * 60 }),
+      ...(walletAddr ? [kv.put(`metric:wallet:${day}:${walletAddr}`, '1', { expirationTtl: 35 * 24 * 60 * 60 })] : []),
     ]);
 
     // Hot-path pre-aggregates — what /summary and /recent actually read.
@@ -458,16 +465,24 @@ export async function onRequest(context) {
       await kv.put(SUMMARY_KEY, JSON.stringify(r));
     }
 
-    return new Response(JSON.stringify(shapeSummary(r)), {
+    const summary = shapeSummary(r);
+
+    // Override activeUsers with a race-free count from dedicated per-wallet KV keys.
+    // Each /track call with a known wallet address writes metric:wallet:${day}:${addr}.
+    // kv.list on this prefix gives the exact distinct-wallet count for today with no
+    // race condition — unlike the fpToday JSON blob which concurrent writes can corrupt.
+    // Falls back to fpToday fingerprint count when no wallet-keyed data exists yet.
+    try {
+      const today = utcDate();
+      const wl = await kv.list({ prefix: `metric:wallet:${today}:`, limit: 10000 });
+      if (wl.keys.length > 0) summary.activeUsers = wl.keys.length;
+    } catch {}
+
+    return new Response(JSON.stringify(summary), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         ...cors(origin),
-        // Edge-cache 2 minutes. Single-key reads are cheap so we don't
-        // need extreme caching, but edge cache still saves origin trips
-        // when many status-page tabs share an edge colo.
-        // NOTE: must come AFTER cors() spread — cors() sets a no-store
-        // default that would otherwise override this header.
         'Cache-Control': 'public, max-age=120, s-maxage=120',
       },
     });
