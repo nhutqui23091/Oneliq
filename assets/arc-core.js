@@ -798,7 +798,13 @@
   // even if the user navigates away immediately after.
   async function track(event, chain, amount = null, txHash = null, surface = null, extra = null) {
     try {
-      const walletAddr = wallet?.address?.toLowerCase?.() || null;
+      const walletAddr = (() => {
+        if (wallet?.address) return wallet.address.toLowerCase();
+        // Fallback: read directly from AppKit in case subscribeAccount hasn't
+        // propagated yet or was reset by a brief disconnect during a tx.
+        try { const a = wallet?._appkit?.getAccount?.()?.address; if (a) return a.toLowerCase(); } catch {}
+        return null;
+      })();
       const payload = { event, chain, amount, txHash, surface, ...(walletAddr ? { address: walletAddr } : {}) };
       if (extra && typeof extra === 'object') Object.assign(payload, extra);
       if (typeof console !== 'undefined') console.debug('[metrics] track', event, 'addr:', walletAddr ? walletAddr.slice(0, 8) : 'MISSING');
@@ -910,13 +916,22 @@
     appkit.subscribeAccount(async ({ address, isConnected }) => {
       if (isConnected && address) {
         if (wallet._intentionalDisconnect) return;
+        // Set address immediately from the callback arg BEFORE any provider check.
+        // getProvider('eip155') can return null on the first subscription event
+        // (provider not yet ready for the session). Previously this caused the
+        // entire try block to throw, skipping wallet.address assignment. The result
+        // was wallet.address=null even though the user was visibly connected, which
+        // broke ARC.track() and any address-dependent logic that runs after a tx.
+        try { wallet.address = GA(address); } catch {}
         try {
           const rawProvider = appkit.getProvider('eip155');
           const chainId = appkit.getChainId();
-          if (!rawProvider) throw new Error('No EIP-155 provider from AppKit');
+          if (!rawProvider) {
+            wallet._emit(); // address is set — UI updates; signer arrives on next event
+            return;
+          }
           wallet._eth = rawProvider;
           wallet._appkitManaging = true;
-          wallet.address = GA(address);
           wallet.chainKey = chainKeyById(chainId) || wallet.chainKey;
           wallet.provider = new BP(rawProvider, 'any');
           wallet.signer = await wallet.provider.getSigner();
