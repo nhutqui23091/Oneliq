@@ -426,7 +426,8 @@ export async function onRequest(context) {
     // active wallets via kv.list — fully race-free unlike the fpToday JSON blob.
     const walletAddr = typeof body.address === 'string' && /^0x[0-9a-f]{40}$/i.test(body.address)
       ? body.address.toLowerCase() : null;
-    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}), ...(walletAddr ? { address: walletAddr } : {}) };
+    const clientVer = typeof body._cv === 'string' ? body._cv.slice(0, 16) : null;
+    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}), ...(walletAddr ? { address: walletAddr } : {}), ...(clientVer ? { _cv: clientVer } : {}) };
     const fp = await fingerprint(request, walletAddr);
 
     // Raw audit-trail writes — kept for reconciliation. Best-effort, parallel.

@@ -933,7 +933,11 @@
         // entire try block to throw, skipping wallet.address assignment. The result
         // was wallet.address=null even though the user was visibly connected, which
         // broke ARC.track() and any address-dependent logic that runs after a tx.
-        try { wallet.address = GA(address); } catch {}
+        // Save raw address to localStorage FIRST — before GA() which can throw on
+        // non-checksum addresses. This guarantees ARC.track() fallback has data
+        // even if GA() or the provider check fails entirely.
+        try { if (address) localStorage.setItem('arc.wallet.lastAddr', address.toLowerCase()); } catch {}
+        try { wallet.address = GA(address); } catch { try { wallet.address = address?.toLowerCase(); } catch {} }
         try { if (wallet.address) localStorage.setItem('arc.wallet.lastAddr', wallet.address); } catch {}
         try {
           const rawProvider = appkit.getProvider('eip155');
