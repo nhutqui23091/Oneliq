@@ -154,8 +154,11 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {})
     // Do NOT call window.ethereum.request() here: that can hang if the wallet
     // extension is initializing, freezing the entire quote pipeline.
     const addr = '0x0000000000000000000000000000000000000001';
-    // Circle API amounts are always 6-decimal base units for USDC/EURC stablecoins
-    const amountBaseUnits = Math.round(parseFloat(amountIn) * 1e6).toString();
+    // Circle quote API expects amount as a human-readable decimal (same convention
+    // as kit.swap()). Passing base units (e.g. 1000000 for 1 USDC) causes Circle
+    // to quote for 1,000,000 USDC, exhausting the testnet pool and showing a wildly
+    // wrong rate. estimatedAmount in the response IS returned in base units (÷1e6).
+    const amountHuman = parseFloat(amountIn).toString();
     const qs = new URLSearchParams({
       tokenInAddress: opts.tokenInAddress,
       tokenInChain: chainName,
@@ -163,9 +166,9 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {})
       tokenOutChain: chainName,
       fromAddress: addr,
       toAddress: addr,
-      amount: amountBaseUnits,
+      amount: amountHuman,
     });
-    console.log('[arc-appkit] estimateSwap via GET /quote:', { tokenIn, tokenOut, amountBaseUnits, chainName });
+    console.log('[arc-appkit] estimateSwap via GET /quote:', { tokenIn, tokenOut, amountHuman, chainName });
     const resp = await fetch(`${PROXY_PREFIX}/v1/stablecoinKits/quote?${qs}`, {
       signal: AbortSignal.timeout(5000),
     });
