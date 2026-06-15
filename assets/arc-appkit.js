@@ -10,9 +10,16 @@
 
 // Lazy-load App Kit + adapter from CDN to avoid module-init failures crashing
 // the page. Pin to specific versions to avoid silent breakage on `@latest`.
-// Note: app-kit and adapter packages have INDEPENDENT versioning - don't share!
-const APPKIT_VERSION = '1.4.1';
-const ADAPTER_VERSION = '1.6.5';
+// Note: app-kit and adapter packages have INDEPENDENT version NUMBERS but Circle
+// publishes them in lockstep - always pair versions from the SAME release date.
+// app-kit 1.7.0 and adapter 1.8.2 were both published 2026-05-28.
+//
+// Upgraded from 1.4.1/1.6.5: that build's token registry lacked EURC on
+// Arc_Testnet, so kit.swap() mis-resolved EURC and the routed tx reverted on
+// simulation with InsufficientAmountOut (0xe52970aa). 1.7.0 includes EURC in the
+// Arc registry. swap()/bridge()/estimateSwap() call signatures are unchanged.
+const APPKIT_VERSION = '1.7.0';
+const ADAPTER_VERSION = '1.8.2';
 const APPKIT_URL = `https://esm.sh/@circle-fin/app-kit@${APPKIT_VERSION}`;
 const ADAPTER_URL = `https://esm.sh/@circle-fin/adapter-ethers-v6@${ADAPTER_VERSION}`;
 
