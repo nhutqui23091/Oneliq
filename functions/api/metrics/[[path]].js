@@ -153,8 +153,8 @@ function bad(msg, origin, status = 400) {
    ──────────────────────────────────────────────────────────────────────── */
 
 function emptyRollup(today) {
-  const r = { version: 1, computedAt: new Date().toISOString(), todayKey: today, lifetime: {}, byDay: {}, byChainToday: {}, fpToday: {} };
-  for (const e of EVENT_TYPES) r.lifetime[e] = 0;
+  const r = { version: 1, computedAt: new Date().toISOString(), todayKey: today, lifetime: {}, byDay: {}, byChainToday: {}, fpToday: {}, volumeLifetime: {}, totalUsers: 0 };
+  for (const e of EVENT_TYPES) { r.lifetime[e] = 0; r.volumeLifetime[e] = 0; }
   return r;
 }
 
@@ -164,7 +164,7 @@ function emptyRollup(today) {
  * existing today's byChain/fingerprint state is reset (it's archived in
  * byDay implicitly via per-event counts).
  */
-function applyIncrement(r, day, event, chain, fp) {
+function applyIncrement(r, day, event, chain, fp, amount, isNewUser) {
   // Day rollover: reset today-only state. byDay accumulates across days,
   // so we don't touch it here — yesterday's counts stay where they are.
   if (r.todayKey !== day) {
@@ -188,6 +188,11 @@ function applyIncrement(r, day, event, chain, fp) {
     r.byChainToday[chain][event] = (r.byChainToday[chain][event] || 0) + 1;
   }
   if (fp) r.fpToday[fp] = 1;
+  if (amount != null && Number.isFinite(amount) && amount > 0) {
+    r.volumeLifetime = r.volumeLifetime || {};
+    r.volumeLifetime[event] = (r.volumeLifetime[event] || 0) + amount;
+  }
+  if (isNewUser) r.totalUsers = (r.totalUsers || 0) + 1;
   r.computedAt = new Date().toISOString();
 }
 
@@ -196,12 +201,12 @@ function applyIncrement(r, day, event, chain, fp) {
  * Race-tolerant: concurrent writers may lose ≤1 increment per race — daily
  * reconcile cron repairs drift. Never throws (analytics must not block UX).
  */
-async function updateRollupCache(kv, day, event, chain, fp) {
+async function updateRollupCache(kv, day, event, chain, fp, amount, isNewUser) {
   try {
     let r;
     try { r = JSON.parse((await kv.get(SUMMARY_KEY)) || 'null'); } catch { r = null; }
     if (!r || r.version !== 1) r = emptyRollup(day);
-    applyIncrement(r, day, event, chain, fp);
+    applyIncrement(r, day, event, chain, fp, amount, isNewUser);
     await kv.put(SUMMARY_KEY, JSON.stringify(r));
   } catch (e) {
     // Don't break /track if rollup write fails — raw counters are still authoritative.
@@ -334,15 +339,17 @@ function shapeSummary(r) {
     byChain[c] = n;
   }
 
-  const activeUsers = Object.keys(r.fpToday || {}).length;
-  const grandTotal  = Object.values(totals).reduce((a, b) => a + b, 0);
-  const todayTotal  = series[today] || 0;
+  const activeUsers  = Object.keys(r.fpToday || {}).length;
+  const grandTotal   = Object.values(totals).reduce((a, b) => a + b, 0);
+  const todayTotal   = series[today] || 0;
+  const totalVolume  = Object.values(r.volumeLifetime || {}).reduce((a, b) => a + b, 0);
+  const totalUsers   = r.totalUsers || 0;
 
   return {
     ready: true,
     totals, last30, last24h, byChain,
     activeUsers, grandTotal, todayTotal,
-    series,
+    series, totalVolume, totalUsers,
     asOf: new Date().toISOString(),
   };
 }
@@ -431,6 +438,15 @@ export async function onRequest(context) {
     const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}), ...(walletAddr ? { address: walletAddr } : {}), ...(clientVer ? { _cv: clientVer } : {}) };
     const fp = await fingerprint(request, walletAddr);
 
+    // Check if this is the first time we've seen this wallet (for totalUsers lifetime count).
+    // Race-tolerant: two concurrent first-events from the same wallet may both see "not seen",
+    // incrementing totalUsers twice — acceptable single-event drift, same as other counters.
+    let isNewUser = false;
+    if (walletAddr) {
+      const seen = await kv.get(`metric:wallet:seen:${walletAddr}`);
+      isNewUser = !seen;
+    }
+
     // Raw audit-trail writes — kept for reconciliation. Best-effort, parallel.
     // metric:wallet:${day}:${addr} is written per unique wallet; /summary reads
     // the count via kv.list so concurrent writes never race (one key per wallet).
@@ -441,12 +457,13 @@ export async function onRequest(context) {
       incr(kv, `metric:total:${event}`),
       kv.put(`metric:user:${day}:${fp}`, '1', { expirationTtl: 35 * 24 * 60 * 60 }),
       ...(walletAddr ? [kv.put(`metric:wallet:${day}:${walletAddr}`, '1', { expirationTtl: 35 * 24 * 60 * 60 })] : []),
+      ...(isNewUser ? [kv.put(`metric:wallet:seen:${walletAddr}`, '1')] : []),
     ]);
 
     // Hot-path pre-aggregates — what /summary and /recent actually read.
     // Parallel because they touch different keys.
     await Promise.all([
-      updateRollupCache(kv, day, event, chain, fp),
+      updateRollupCache(kv, day, event, chain, fp, amount, isNewUser),
       pushRecentRing(kv, eventData),
     ]);
 

@@ -196,14 +196,15 @@ async function renderHeroAndStats() {
     A.mountDataBadge({ status: 'live', detail: 'updated ' + new Date(real.asOf).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) });
 
     const stats = [
+      { lbl: 'Total Transactions',   ic: '∑', val: A.fmtNum(grandTotal) },
+      { lbl: 'Total Volume',         ic: '$', val: A.fmtNum(Math.round(real.totalVolume || 0)) + ' USDC' },
       { lbl: 'Trade Txns',           ic: '⇄', val: A.fmtNum(totals.trade || 0) },
       { lbl: 'Balance Deposits',     ic: '↓', val: A.fmtNum(totals.deposit || 0) },
       { lbl: 'Cross-chain Spends',   ic: '↗', val: A.fmtNum(totals.spend || 0) },
       { lbl: 'Agent Executions',     ic: '◆', val: A.fmtNum(totals['agent-exec'] || 0) },
       { lbl: 'Bridge Txns',          ic: '⇌', val: A.fmtNum(totals.bridge || 0) },
       { lbl: 'Agents Created',       ic: '⊞', val: A.fmtNum(totals['agent-create'] || 0) },
-      { lbl: 'Active Users · today', ic: '◉', val: A.fmtNum(real.activeUsers || 0) },
-      { lbl: 'Total · last 30d',     ic: '∑', val: A.fmtNum(seriesVals.reduce((a,b)=>a+b,0)) },
+      { lbl: 'Total Users',          ic: '◉', val: A.fmtNum(real.totalUsers || 0) },
     ];
     document.getElementById('key-stats').innerHTML = stats.map(s => `
       <div class="stat-card">
@@ -225,14 +226,15 @@ async function renderHeroAndStats() {
   A.mountDataBadge({ status: 'demo', detail: 'metrics API unreachable' });
 
   const stats = [
-    { lbl: 'Trade Txns',           ic: '⇄', val: A.fmtNum(4_280 + A.ri(0, 360)),  tr: '+22.1%' },
-    { lbl: 'Balance Deposits',     ic: '↓', val: A.fmtNum(2_120 + A.ri(0, 180)),  tr: '+11.8%' },
-    { lbl: 'Cross-chain Spends',   ic: '↗', val: A.fmtNum(1_840 + A.ri(0, 160)),  tr: '+27.6%' },
-    { lbl: 'Agent Executions',     ic: '◆', val: A.fmtNum(3_120 + A.ri(0, 240)),  tr: '+34.2%' },
-    { lbl: 'Bridge Txns',          ic: '⇌', val: A.fmtNum(680 + A.ri(0, 80)),     tr: '+18.4%' },
-    { lbl: 'Agents Created',       ic: '⊞', val: A.fmtNum(184 + A.ri(0, 16)),     tr: '+9.4%'  },
-    { lbl: 'Active Users',         ic: '◉', val: A.fmtNum(742 + A.ri(0, 60)),     tr: '+13.5%' },
-    { lbl: 'Total · last 30d',     ic: '∑', val: A.fmtNum(13_800 + A.ri(0, 900)), tr: '+21.0%' },
+    { lbl: 'Total Transactions',   ic: '∑', val: A.fmtNum(total),                              tr: '+16.0%' },
+    { lbl: 'Total Volume',         ic: '$', val: A.fmtNum(2_840_000 + A.ri(0, 120_000)) + ' USDC', tr: '+19.3%' },
+    { lbl: 'Trade Txns',           ic: '⇄', val: A.fmtNum(4_280 + A.ri(0, 360)),               tr: '+22.1%' },
+    { lbl: 'Balance Deposits',     ic: '↓', val: A.fmtNum(2_120 + A.ri(0, 180)),               tr: '+11.8%' },
+    { lbl: 'Cross-chain Spends',   ic: '↗', val: A.fmtNum(1_840 + A.ri(0, 160)),               tr: '+27.6%' },
+    { lbl: 'Agent Executions',     ic: '◆', val: A.fmtNum(3_120 + A.ri(0, 240)),               tr: '+34.2%' },
+    { lbl: 'Bridge Txns',          ic: '⇌', val: A.fmtNum(680 + A.ri(0, 80)),                  tr: '+18.4%' },
+    { lbl: 'Agents Created',       ic: '⊞', val: A.fmtNum(184 + A.ri(0, 16)),                  tr: '+9.4%'  },
+    { lbl: 'Total Users',          ic: '◉', val: A.fmtNum(742 + A.ri(0, 60)),                  tr: '+13.5%' },
   ];
   document.getElementById('key-stats').innerHTML = stats.map(s => `
     <div class="stat-card">
