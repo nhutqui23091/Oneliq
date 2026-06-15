@@ -177,10 +177,10 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {})
     // Do NOT call window.ethereum.request() here: that can hang if the wallet
     // extension is initializing, freezing the entire quote pipeline.
     const addr = '0x0000000000000000000000000000000000000001';
-    // REQUEST scale: human-readable decimal (same convention as kit.swap()).
-    // Confirmed empirically - sending base units ("1000000") made Circle quote for
-    // 1,000,000 USDC, exhausting the testnet pool and returning ~79 EURC.
-    const amountHuman = parseFloat(amountIn).toString();
+    // REQUEST scale: 6-decimal base units (1 USDC = "1000000"). This is the format
+    // that reliably returns a parseable body from the Arc Testnet /quote endpoint;
+    // a human-readable "1" made it error out -> "No route".
+    const amountBaseUnits = Math.round(parseFloat(amountIn) * 1e6).toString();
     const qs = new URLSearchParams({
       tokenInAddress: opts.tokenInAddress,
       tokenInChain: chainName,
@@ -188,32 +188,39 @@ export async function estimateAppKitSwap(tokenIn, tokenOut, amountIn, opts = {})
       tokenOutChain: chainName,
       fromAddress: addr,
       toAddress: addr,
-      amount: amountHuman,
+      amount: amountBaseUnits,
     });
-    console.log('[arc-appkit] estimateSwap via GET /quote:', { tokenIn, tokenOut, amountHuman, chainName });
-    const resp = await fetch(`${PROXY_PREFIX}/v1/stablecoinKits/quote?${qs}`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    const json = await resp.json();
-    if (!resp.ok) throw new Error(`Circle quote ${resp.status}: ${json.message || JSON.stringify(json)}`);
+    console.log('[arc-appkit] estimateSwap via GET /quote:', { tokenIn, tokenOut, amountBaseUnits, chainName });
+    // RESILIENT: never throw from here - the testnet /quote pool is flaky and can
+    // error or return an unusable number. On any failure, return lowConfidence so
+    // the caller shows a peg estimate and the user can still attempt the swap
+    // (execution uses Circle's own LiFi->Curve routing, not this quote).
+    const _lowConf = () => ({ estimatedOutput: { amount: '0', token: tokenOut }, fees: [], lowConfidence: true });
+    let json = null;
+    try {
+      const resp = await fetch(`${PROXY_PREFIX}/v1/stablecoinKits/quote?${qs}`, { signal: AbortSignal.timeout(5000) });
+      json = await resp.json().catch(() => null);
+      if (!resp.ok) { console.warn('[arc-appkit] /quote HTTP', resp.status, json?.message); return _lowConf(); }
+    } catch (e) {
+      console.warn('[arc-appkit] /quote fetch failed:', e?.message); return _lowConf();
+    }
     const q = json?.quote;
-    if (!q || !q.estimatedAmount) throw new Error(`No route: ${JSON.stringify(json)}`);
+    const raw = q?.estimatedAmount;
     // RESPONSE scale: NOT documented for Arc Testnet and has flip-flopped between
-    // releases. Instead of hard-coding a divisor, auto-detect it: try the raw value
-    // and common base-unit scales, then keep whichever yields a rate inside the
-    // plausible stablecoin-FX band. We always return Circle's REAL number - just
-    // correctly scaled - never a faked peg.
-    const _pick = _pickQuoteScale(q.estimatedAmount, parseFloat(amountIn));
-    if (!_pick) throw new Error(`Circle quote invalid (raw=${q.estimatedAmount}, in=${amountIn})`);
-    const humanOut = (parseFloat(q.estimatedAmount) / _pick.scale).toFixed(6);
+    // releases. Auto-detect the divisor (raw / 6-dec / 18-dec) and pick whichever
+    // yields a rate inside the plausible stablecoin-FX band. If none does, flag
+    // lowConfidence so the caller shows a peg estimate - never a fabricated rate.
+    const _pick = raw ? _pickQuoteScale(raw, parseFloat(amountIn)) : null;
+    if (!_pick) { console.warn('[arc-appkit] /quote unusable estimatedAmount:', raw); return _lowConf(); }
+    const humanOut = (parseFloat(raw) / _pick.scale).toFixed(6);
     const humanMin = q.minAmount ? (parseFloat(q.minAmount) / _pick.scale).toFixed(6) : undefined;
-    console.log('[arc-appkit] quote result:', { estimatedAmount: q.estimatedAmount, scale: _pick.scale, inBand: _pick.inBand, humanOut, humanMin });
+    console.log('[arc-appkit] quote result:', { estimatedAmount: raw, scale: _pick.scale, inBand: _pick.inBand, humanOut, humanMin });
     return {
       estimatedOutput: { amount: humanOut, token: tokenOut },
       stopLimit: humanMin ? { amount: humanMin, token: tokenOut } : undefined,
       fees: q.fees || [],
-      // Testnet /quote returned an out-of-band rate - caller should show a peg
-      // estimate for display; the real swap still routes through Circle.
+      // Out-of-band rate -> caller shows a peg estimate for display; real swap still
+      // routes through Circle regardless.
       lowConfidence: !_pick.inBand,
     };
   }
