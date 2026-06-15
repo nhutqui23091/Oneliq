@@ -196,7 +196,7 @@ async function renderHeroAndStats() {
     A.mountDataBadge({ status: 'live', detail: 'updated ' + new Date(real.asOf).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) });
 
     const stats = [
-      { lbl: 'Total Transactions',   ic: '∑', val: A.fmtNum(grandTotal) },
+      { lbl: 'Total Transactions',   ic: '∑', val: A.fmtNum(total) },
       { lbl: 'Total Volume',         ic: '$', val: A.fmtNum(Math.round(real.totalVolume || 0)) + ' USDC' },
       { lbl: 'Trade Txns',           ic: '⇄', val: A.fmtNum(totals.trade || 0) },
       { lbl: 'Balance Deposits',     ic: '↓', val: A.fmtNum(totals.deposit || 0) },
