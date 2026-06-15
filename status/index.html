@@ -10,12 +10,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="description" content="Oneliq Status: testnet explorer + realtime infrastructure dashboard. Track every transaction, deposit, swap, and agent execution across Arc and 7 EVM testnets."/>
 <meta name="theme-color" content="#0A1628"/>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
+<link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
 <title>Oneliq Status: Testnet Explorer + Network Operations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/status.css?v=9"/>
+<link rel="stylesheet" href="/assets/status.css?v=10"/>
 </head>
 <body>
 
@@ -138,7 +139,7 @@
   <div id="footer-mount"></div>
 </div>
 
-<script src="/assets/status-shared.js?v=9"></script>
+<script src="/assets/status-shared.js?v=10"></script>
 <script>
 'use strict';
 const A = window.ArcStatus;
@@ -359,37 +360,15 @@ async function renderFeed() {
 
   // API reachable (any state) → render real data or empty state. No seeded fakes.
   if (real) {
-    if (real.events && real.events.length > 0) {
-      // Group consecutive agent-exec events into a single summary row so they
-      // don't crowd out GM check-ins, trades, and other activity.
-      const grouped = [];
-      let agentBatch = null;
-      for (const e of real.events) {
-        if (e.event === 'agent-exec') {
-          if (agentBatch && Date.now() - e.ts < 10 * 60 * 1000) {
-            agentBatch.count++;
-            agentBatch.totalAmount += e.amount != null ? Number(e.amount) : 0;
-          } else {
-            if (agentBatch) grouped.push(agentBatch);
-            agentBatch = { _batch: true, count: 1, ago: Date.now() - e.ts, totalAmount: e.amount != null ? Number(e.amount) : 0 };
-          }
-        } else {
-          if (agentBatch) { grouped.push(agentBatch); agentBatch = null; }
-          grouped.push(e);
-        }
-      }
-      if (agentBatch) grouped.push(agentBatch);
-
-      const items = grouped.slice(0, 20).map(e => {
-        if (e._batch) {
-          return {
-            type: 'agent', icon: '◆',
-            label: e.count > 1 ? `${e.count} Agent executions` : 'Agent execution',
-            amount: e.totalAmount > 0 ? e.totalAmount.toFixed(2) : null,
-            chainKey: 'arc', chainLabel: 'Arc Testnet',
-            hash: null, ago: e.ago, sources: null, _batch: true,
-          };
-        }
+    // "Latest Activity" shows on-chain-verifiable transactions only. Agent
+    // activity (agent-exec / agent-create) is written server-side without a
+    // transaction hash, so it can't be verified here — it lives on the Agents
+    // page instead. Filter it out so the overview feed stays clean.
+    const feedEvents = (real.events || []).filter(
+      e => e.event !== 'agent-exec' && e.event !== 'agent-create'
+    );
+    if (feedEvents.length > 0) {
+      const items = feedEvents.slice(0, 20).map(e => {
         const meta = EV_MAP[e.event] || { type: 'route', icon: '•', label: e.event };
         const chainLabel = (A.CHAINS.find(c => c.key === e.chain)?.label) || e.chain;
         return {

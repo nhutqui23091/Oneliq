@@ -373,7 +373,12 @@ function shapeSummary(r) {
   const activeUsers  = Object.keys(r.fpToday || {}).length;
   const grandTotal   = Object.values(totals).reduce((a, b) => a + b, 0);
   const todayTotal   = series[today] || 0;
-  const totalVolume  = Object.values(r.volumeLifetime || {}).reduce((a, b) => a + b, 0);
+  // Headline volume counts ONLY on-chain-verifiable events. `agent-exec` amounts
+  // are written server-side by the cron with no transaction hash, so they can't
+  // be verified on-chain and must not inflate Total Volume. Sum the verifiable
+  // surfaces explicitly rather than every volumeLifetime bucket.
+  const ONCHAIN_VOLUME_EVENTS = ['trade', 'deposit', 'spend', 'bridge', 'gm-checkin'];
+  const totalVolume  = ONCHAIN_VOLUME_EVENTS.reduce((a, e) => a + ((r.volumeLifetime || {})[e] || 0), 0);
   const totalUsers   = r.totalUsers || 0;
 
   return {

@@ -8,12 +8,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="description" content="Oneliq System Status: realtime health probes of 8 infrastructure services: Frontend, Unified Balance API, Trade Engine, Agent System, Circle Gateway/App Kit proxies, Automation Workers, Settlement Services."/>
 <meta name="theme-color" content="#0A1628"/>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
+<link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
 <title>System Status | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/status.css?v=9"/>
+<link rel="stylesheet" href="/assets/status.css?v=10"/>
 </head>
 <body>
 
@@ -49,12 +50,12 @@
     <h2><span class="ix">02</span> Service Endpoints</h2>
     <div class="sub"><span class="live">live</span> click any card to retry probe</div>
   </div>
-  <div class="services-grid" id="services-grid"><!-- injected --></div>
+  <div class="svc-list" id="services-grid"><!-- injected --></div>
 
   <div id="footer-mount"></div>
 </div>
 
-<script src="/assets/status-shared.js?v=9"></script>
+<script src="/assets/status-shared.js?v=10"></script>
 <script>
 'use strict';
 const A = window.ArcStatus;
@@ -69,19 +70,18 @@ function renderServices(results) {
     const cls = A.classifyResult(r);
     const lat = r.latencyMs ? r.latencyMs + 'ms' : '-';
     const latClass = r.ok ? A.latBucket(r.latencyMs) : 'lat-bad';
-    const incidentDays = A.ri(7, 88);
     return `
-      <button class="svc-card" data-idx="${i}" type="button">
-        <div class="svc-top">
-          <div class="svc-name">${svc.name}</div>
-          <span class="svc-badge ${cls}"><span class="d"></span>${STATUS_LABEL[cls]}</span>
+      <button class="svc-item" data-idx="${i}" type="button">
+        <div class="svc-id">
+          <span class="svc-dot ${cls}"></span>
+          <div>
+            <div class="nm">${svc.name}</div>
+            <div class="pv">${svc.hint}</div>
+          </div>
         </div>
-        <div class="svc-rows">
-          <div class="svc-row"><span>Latency</span><span class="${latClass}">${lat}</span></div>
-          <div class="svc-row"><span>Uptime · 30d</span><span>${svc.uptime.toFixed(2)}%</span></div>
-          <div class="svc-row"><span>Last incident</span><span>${incidentDays}d ago</span></div>
-          <div class="svc-row"><span>Provider</span><span>${svc.hint}</span></div>
-        </div>
+        <div class="svc-metric"><div class="mv ${latClass}">${lat}</div><div class="mk">Latency</div></div>
+        <div class="svc-metric"><div class="mv">${svc.uptime.toFixed(2)}%</div><div class="mk">Uptime · 30d</div></div>
+        <span class="svc-badge ${cls}"><span class="d"></span>${STATUS_LABEL[cls]}</span>
       </button>`;
   }).join('');
   root.querySelectorAll('[data-idx]').forEach(btn => btn.addEventListener('click', probeAll));
@@ -89,14 +89,14 @@ function renderServices(results) {
 
 async function probeAll() {
   document.getElementById('services-grid').innerHTML = A.SERVICES.map(svc => `
-    <div class="svc-card">
-      <div class="svc-top"><div class="svc-name">${svc.name}</div><span class="svc-badge unk"><span class="d"></span>Probing</span></div>
-      <div class="svc-rows">
-        <div class="svc-row"><span>Latency</span><span class="skel" style="width:48px"></span></div>
-        <div class="svc-row"><span>Uptime · 30d</span><span>${svc.uptime.toFixed(2)}%</span></div>
-        <div class="svc-row"><span>Last incident</span><span class="skel" style="width:48px"></span></div>
-        <div class="svc-row"><span>Provider</span><span>${svc.hint}</span></div>
+    <div class="svc-item">
+      <div class="svc-id">
+        <span class="svc-dot unk"></span>
+        <div><div class="nm">${svc.name}</div><div class="pv">${svc.hint}</div></div>
       </div>
+      <div class="svc-metric"><div class="mv skel" style="width:42px"></div><div class="mk">Latency</div></div>
+      <div class="svc-metric"><div class="mv">${svc.uptime.toFixed(2)}%</div><div class="mk">Uptime · 30d</div></div>
+      <span class="svc-badge unk"><span class="d"></span>Probing</span>
     </div>`).join('');
 
   const results = await Promise.all(A.SERVICES.map(s => s.probe().catch(() => ({ ok: false, latencyMs: 0, err: 'unreachable' }))));

@@ -183,9 +183,8 @@
   const SUBNAV_PAGES = [
     { id: 'overview',  ix: '01', label: 'Overview',   href: '/' },
     { id: 'services',  ix: '02', label: 'Services',   href: '/services' },
-    { id: 'chains',    ix: '03', label: 'Chains',     href: '/chains' },
-    { id: 'agents',    ix: '04', label: 'Agents',     href: '/agents' },
-    { id: 'incidents', ix: '05', label: 'Incidents',  href: '/incidents' },
+    { id: 'agents',    ix: '03', label: 'Agents',     href: '/agents' },
+    { id: 'incidents', ix: '04', label: 'Incidents',  href: '/incidents' },
   ];
 
   function renderSubNav(activeId) {

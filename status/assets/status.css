@@ -49,7 +49,7 @@ nav.topnav.scrolled{background:rgba(10,22,40,0.88);backdrop-filter:blur(20px);-w
 .tnet-dot{width:6px;height:6px;border-radius:50%;background:var(--arc4);box-shadow:0 0 8px rgba(123,228,149,.7);animation:pulse-dot 2s infinite}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.55}}
 
-/* ═══ SUB-NAV (status pages: Overview · Services · Chains · Agents · Incidents) */
+/* ═══ SUB-NAV (status pages: Overview · Services · Agents · Incidents) */
 .subnav{position:relative;z-index:1;border-bottom:1px solid var(--border);margin-top:64px;padding:0 24px;background:rgba(10,22,40,0.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .subnav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:4px;overflow-x:auto;padding:8px 0}
 .subnav-inner::-webkit-scrollbar{display:none}
@@ -221,6 +221,34 @@ nav.topnav.scrolled{background:rgba(10,22,40,0.88);backdrop-filter:blur(20px);-w
 .svc-row .lat-fast{color:var(--green)}
 .svc-row .lat-slow{color:var(--yellow)}
 .svc-row .lat-bad{color:var(--red)}
+
+/* Service list — clean one-row-per-service layout (Services page) */
+.svc-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.025);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.svc-item{display:grid;grid-template-columns:1fr auto auto 128px;gap:24px;align-items:center;width:100%;text-align:left;padding:16px 22px;border-bottom:1px solid var(--border);background:none;font-family:var(--font);transition:background .15s}
+.svc-item:last-child{border-bottom:none}
+.svc-item:hover{background:var(--surface)}
+.svc-id{display:flex;align-items:center;gap:13px;min-width:0;grid-row:1;grid-column:1}
+.svc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor;animation:glow-pulse 2.4s ease-in-out infinite}
+.svc-dot.op{background:var(--green);color:var(--green)}
+.svc-dot.deg{background:var(--yellow);color:var(--yellow)}
+.svc-dot.dn{background:var(--red);color:var(--red)}
+.svc-dot.unk{background:var(--muted);color:transparent;box-shadow:none;animation:none}
+.svc-id .nm{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.svc-id .pv{font-size:11px;color:var(--muted-soft);font-family:var(--mono);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svc-metric{text-align:right;min-width:58px}
+.svc-metric .mv{font-size:13.5px;font-weight:600;color:var(--text);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.svc-metric .mv.lat-fast{color:var(--green)}
+.svc-metric .mv.lat-slow{color:var(--yellow)}
+.svc-metric .mv.lat-bad{color:var(--red)}
+.svc-metric .mk{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;font-family:var(--mono)}
+.svc-item .svc-badge{justify-self:end;grid-row:1;grid-column:4}
+@media(max-width:720px){
+  .svc-item{grid-template-columns:1fr auto;gap:10px 18px;padding:14px 16px}
+  .svc-item .svc-id{grid-column:1;grid-row:1}
+  .svc-item .svc-badge{grid-column:2;grid-row:1}
+  .svc-item .svc-metric{grid-row:2;text-align:left;min-width:0}
+  .svc-metric .mk{margin-top:1px}
+}
 
 /* Overall status hero (Services page) */
 .overall-card{padding:22px 26px;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px;position:relative;overflow:hidden}
