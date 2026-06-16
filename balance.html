@@ -304,7 +304,7 @@ html{scroll-behavior:smooth}
       <select id="spend-src" class="gw-select"></select>
     </div>
 
-    <div class="gw-label">To (destination chain - USDC will be minted here)</div>
+    <div class="gw-label">Destination chain</div>
     <select id="spend-dst" class="gw-select"></select>
     <div class="gw-label" style="display:flex;justify-content:space-between;align-items:center">Amount<button id="spend-max" class="max-btn" type="button">Max</button></div>
     <input id="spend-amount" class="gw-input amount" type="text" inputmode="decimal" placeholder="0.00"/>
@@ -315,9 +315,10 @@ html{scroll-behavior:smooth}
          When on, Circle submits gatewayMint on the destination for the user, so
          no destination gas is needed (esp. Arc, where gas IS USDC). Off ⇒ legacy
          self-mint path (unchanged). -->
-    <label id="spend-forwarder-row" style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:12px;color:var(--muted);cursor:pointer;line-height:1.5">
-      <input id="spend-forwarder" type="checkbox" checked style="width:15px;height:15px;margin-top:1px;accent-color:var(--arc1);cursor:pointer;flex-shrink:0"/>
-      <span><strong style="color:var(--text)">Gasless mint</strong> — Circle's Forwarder mints on the destination for you, so you don't need gas there. A small forwarding fee applies.</span>
+    <label id="spend-forwarder-row" style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--muted);cursor:pointer;line-height:1.5">
+      <input id="spend-forwarder" type="checkbox" checked style="width:15px;height:15px;accent-color:var(--arc1);cursor:pointer;flex-shrink:0"/>
+      <span style="color:var(--text);font-weight:600">Gasless mint</span>
+      <span title="Circle's Forwarder mints on the destination for you, so you don't need gas there. A small forwarding fee applies." style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--border);font-size:10px;font-weight:700;color:var(--muted);cursor:help;flex-shrink:0">?</span>
     </label>
 
     <!-- Source breakdown (Unified mode) - shows which chains will be drawn from -->
@@ -350,7 +351,7 @@ html{scroll-behavior:smooth}
     <div id="spend-trade-cta" style="display:none;margin-top:8px;text-align:center">
       <a href="/trade" style="display:inline-block;padding:8px 20px;border-radius:10px;background:rgba(77,214,219,.1);border:1px solid rgba(77,214,219,.3);color:var(--arc1);font-size:13px;font-weight:600;text-decoration:none;transition:all .15s">→ Trade on Arc</a>
     </div>
-    <div id="spend-mode-explanation" style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.55">
+    <div id="spend-mode-explanation" style="display:none;margin-top:10px;font-size:11px;color:var(--muted);line-height:1.55">
       <strong style="color:var(--text)">Unified mode</strong> spends from multiple chains in one transfer. You'll sign once per source chain (e.g. 3 sigs if 3 chains contribute), then receive ONE attestation that mints the combined amount on the destination - exactly like having a single cross-chain balance.
     </div>
   </div>
@@ -965,7 +966,6 @@ html{scroll-behavior:smooth}
     document.getElementById('spend-manual-section').style.display = mode === 'manual' ? 'block' : 'none';
     document.getElementById('spend-srcbal-row').style.display = mode === 'single' ? 'flex' : 'none';
     document.getElementById('spend-totals-row').style.display = mode === 'unified' ? 'flex' : 'none';
-    document.getElementById('spend-mode-explanation').style.display = mode === 'unified' ? 'block' : 'none';
     document.getElementById('spend-max').style.display = mode === 'manual' ? 'none' : '';
     // Manual mode: button stays disabled until syncManualTotal confirms exact allocation.
     // Auto/single: button is always enabled (validation is on-click).
