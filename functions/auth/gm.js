@@ -39,11 +39,15 @@ async function handleGet(request, env) {
     if (profileRaw) saidGm = JSON.parse(profileRaw).said_gm || false;
   } catch {}
 
+  // Live on-chain tx count drives the "100 Transactions" badge progress bar.
+  const txCount = await getArcTxCount(addr);
+
   return jsonRes({
     ...state,
     already_checked_in: state.last_checkin === today,
     daily_count: dailyCount,
     said_gm: saidGm,
+    tx_count: txCount,
   });
 }
 
