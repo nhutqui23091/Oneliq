@@ -103,11 +103,13 @@
 .gm-ref-count-lbl{font-size:10.5px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .gm-ref-blurb{font-size:13px;color:var(--muted);line-height:1.55}
 .gm-ref-blurb strong{color:var(--text);font-weight:600}
-.gm-ref-linkrow{display:flex;gap:8px}
-.gm-ref-input{flex:1;min-width:0;height:42px;padding:0 13px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.18);color:var(--text);font-family:var(--mono);font-size:12.5px;outline:none}
+.gm-ref-linkrow{display:flex;gap:8px;flex-wrap:wrap}
+.gm-ref-input{flex:1 1 220px;min-width:0;height:42px;padding:0 13px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.18);color:var(--text);font-family:var(--mono);font-size:12.5px;outline:none}
 .gm-ref-input:focus{border-color:rgba(77,214,219,.4)}
 .gm-ref-copy{flex-shrink:0;height:42px;padding:0 18px;border-radius:10px;border:1px solid rgba(77,214,219,.3);background:rgba(77,214,219,.1);color:var(--arc1);font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .15s}
 .gm-ref-copy:hover{background:rgba(77,214,219,.18);border-color:rgba(77,214,219,.5)}
+.gm-ref-share{flex-shrink:0;height:42px;padding:0 16px;border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,.06);color:var(--text);font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.gm-ref-share:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
 .gm-ref-prog{display:flex;flex-direction:column;gap:6px}
 .gm-ref-prog-track{width:100%;height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
 .gm-ref-prog-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--arc1),var(--arc2));transition:width .6s ease;min-width:0}
@@ -218,15 +220,16 @@
     <div class="gm-ref-card">
       <div class="gm-ref-top">
         <div class="gm-ref-count"><span id="refnum">0</span><span class="gm-ref-count-lbl">invited</span></div>
-        <div class="gm-ref-blurb">Share your Portal link. Invite <strong>3</strong> friends to earn the <strong>Connector</strong> badge. Testnet only — no rewards, just bragging rights.</div>
+        <div class="gm-ref-blurb">Share your Portal link. Invite <strong>10</strong> friends who complete onboarding to earn the <strong>Connector</strong> badge. Testnet only — no rewards, just bragging rights.</div>
       </div>
       <div class="gm-ref-linkrow">
         <input id="reflink" class="gm-ref-input" readonly value="Connect wallet to get your link"/>
         <button id="refcopy" class="gm-ref-copy" type="button">Copy</button>
+        <button id="refshare" class="gm-ref-share" type="button">Share on 𝕏</button>
       </div>
       <div class="gm-ref-prog">
         <div class="gm-ref-prog-track"><div class="gm-ref-prog-fill" id="reffill" style="width:0%"></div></div>
-        <div class="gm-ref-prog-label" id="reflbl">0 / 3 invited</div>
+        <div class="gm-ref-prog-label" id="reflbl">0 / 10 invited</div>
       </div>
     </div>
   </div>
@@ -250,7 +253,7 @@
   const ARC = window.ARC;
   await ArcUI.bootApp('portal');
 
-  const REFERRAL_GOAL = 3;
+  const REFERRAL_GOAL = 10;
 
   // Capture an incoming referral (?ref=<code>, or a legacy 0x address) before
   // the wallet connects, then strip it from the URL so it doesn't linger.
@@ -283,9 +286,9 @@
 
   // -- Badge definitions --
   const BADGE_META = {
-    welcome:  { img: '/assets/badges/welcome.svg',      name: 'Welcome to Oneliq', tip: 'Complete all five onboarding tasks' },
-    referral: { img: '/assets/badges/referral.svg',     name: 'Connector',         tip: 'Invite 3 friends through your Portal link',
-                goal: 3,   unit: 'invites', stat: s => s?.referral_count || 0 },
+    welcome:  { img: '/assets/badges/logoO.png',        name: 'Welcome to Oneliq', tip: 'Complete all five onboarding tasks', fallback: '/assets/badges/welcome.svg' },
+    referral: { img: '/assets/badges/referral.svg',     name: 'Connector',         tip: 'Invite 10 friends who join through your Portal link',
+                goal: 10,  unit: 'invites', stat: s => s?.referral_count || 0 },
     streak7: { img: '/assets/badges/streak7.png?v=2', name: '7-Day Streak',      tip: 'Check in 7 days in a row',
                goal: 7,   unit: 'days', stat: s => s?.streak   || 0 },
     tx100:   { img: '/assets/badges/tx100.png?v=2',   name: '100 Transactions',  tip: '100 on-chain transactions on Arc Testnet',
@@ -373,9 +376,10 @@
           + '<div class="gm-badge-prog-label">' + shown + ' / ' + m.goal + ' ' + m.unit + '</div>'
           + '</div>';
       }
+      const imgErr = m.fallback ? ' onerror="this.onerror=null;this.src=\'' + m.fallback + '\'"' : '';
       html += '<div class="' + cls + '" onclick="this.classList.toggle(\'tip-open\')">'
         + '<div class="gm-badge-halo">'
-        + '<img src="' + m.img + '" class="gm-badge-img" alt="' + m.name + '" loading="lazy"/>'
+        + '<img src="' + m.img + '" class="gm-badge-img" alt="' + m.name + '" loading="lazy"' + imgErr + '/>'
         + lockIcon
         + '</div>'
         + '<span class="gm-badge-name">' + m.name + '</span>'
@@ -602,6 +606,15 @@
     }
     refCopyBtn.textContent = 'Copied';
     setTimeout(() => { refCopyBtn.textContent = 'Copy'; }, 1500);
+  };
+
+  const refShareBtn = document.getElementById('refshare');
+  if (refShareBtn) refShareBtn.onclick = () => {
+    if (!addr())    { ArcUI.toast('', 'Connect wallet', 'Connect to get your referral link.'); return; }
+    if (!refCode()) { ArcUI.toast('', 'One sec', 'Your link is still being generated.'); return; }
+    const text = 'Exploring Arc Testnet the easy way with @oneliq_ Portal — daily check-ins, streaks, and badges. Jump in 👇';
+    const url  = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(refLink());
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Submit a pending referral once, after the wallet is connected. The backend

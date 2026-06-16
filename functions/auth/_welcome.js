@@ -21,6 +21,8 @@
  * the call, the badge is still awarded and roleAssigned is returned false.
  */
 
+import { creditReferrerOnWelcome } from './_referral.js';
+
 export async function maybeAwardWelcome(env, kv, addr) {
   const gmRaw = await kv.get('gm:' + addr);
   let gm = {};
@@ -47,7 +49,13 @@ export async function maybeAwardWelcome(env, kv, addr) {
   }
 
   const newBadges = [...badges, 'welcome'];
-  await kv.put('gm:' + addr, JSON.stringify({ ...gm, badges: newBadges }));
+  const gmAfter   = { ...gm, badges: newBadges };
+  await kv.put('gm:' + addr, JSON.stringify(gmAfter));
+
+  // Earning Welcome is what makes this wallet "count" as a referral — credit
+  // whoever referred them (once).
+  try { await creditReferrerOnWelcome(kv, addr, gmAfter); }
+  catch (e) { console.error('[welcome] referral credit failed:', e?.message); }
 
   let roleAssigned = false;
   try { roleAssigned = await assignEarlyRole(env, prof.discord_id); }

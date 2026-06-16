@@ -309,6 +309,7 @@ function defaultState() {
     x_follow_done:  false,
     badges:         [],
     referred_by:    null,
+    referral_credited: false,
     referrals:      [],
     referral_count: 0,
     ref_code:       null,
