@@ -17,8 +17,8 @@
     return [
       { id: 'trade',     label: 'Trade',        href: '/trade'   },
       { id: 'balance',   label: 'Balance',      href: '/balance' },
-      { id: 'agent',     label: 'Agent',        href: '/agent', newBadge: true },
-      { id: 'history',   label: 'History',      href: '/history', newBadge: true },
+      { id: 'agent',     label: 'Agent',        href: '/agent'   },
+      { id: 'history',   label: 'History',      href: '/history' },
       { id: 'token',     label: 'Create Token', href: '/token'   },
     ];
   }
@@ -377,9 +377,9 @@
       items: [
         { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
         { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
-        { id: 'agent',     label: 'Agent',     icon: '∞', href: '/agent',   badge: 'NEW'  },
-        { id: 'history',   label: 'History',   icon: svgClock, href: '/history', badge: 'NEW'  },
-        { id: 'portal',    label: 'Portal',    icon: '◎', href: '/portal', badge: 'NEW'  },
+        { id: 'agent',     label: 'Agent',     icon: '∞', href: '/agent'   },
+        { id: 'history',   label: 'History',   icon: svgClock, href: '/history' },
+        { id: 'portal',    label: 'Portal',    icon: '◎', href: '/portal' },
         { id: 'payment',   label: 'Payment',   icon: '⇢',                    badge: 'SOON', soon: true },
         { id: 'dashboard', label: 'Dashboard', icon: '▦',                    badge: 'SOON', soon: true },
       ],
