@@ -116,17 +116,86 @@
 .gm-ref-prog-label{font-size:10.5px;font-family:var(--mono);color:var(--muted);letter-spacing:.03em}
 
 .gm-foot{font-size:12px;font-family:var(--mono);color:var(--muted-soft);text-align:center}
+
+/* DASHBOARD (expanded Daily Portal) */
+.gm-dash{width:100%;display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 22px;border-radius:18px;background:linear-gradient(135deg,rgba(77,214,219,.08),rgba(74,123,236,.08)) padding-box,linear-gradient(135deg,rgba(77,214,219,.24),rgba(74,123,236,.24)) border-box;border:1px solid transparent;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 36px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.05)}
+.gm-dash-main{display:flex;align-items:center;gap:13px;flex-shrink:0}
+.gm-dash-logo{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(77,214,219,.28);background:radial-gradient(circle,rgba(77,214,219,.14),transparent 70%);flex-shrink:0}
+.gm-dash-logo img{width:32px;height:32px;border-radius:9px}
+.gm-dash-eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(77,214,219,.7)}
+.gm-dash-title{font-family:var(--display);font-size:17px;font-weight:700;color:var(--text);margin-top:2px;line-height:1.2}
+.gm-dash-stats{display:flex;gap:9px;flex:1;flex-wrap:wrap;justify-content:center;min-width:240px}
+.gm-stat{flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 8px;border-radius:13px;background:rgba(255,255,255,.035);border:1px solid var(--border)}
+.gm-stat-num{font-family:var(--display);font-size:25px;font-weight:800;letter-spacing:-.02em;line-height:1;color:var(--text)}
+.gm-stat.is-stars{background:rgba(244,200,154,.06);border-color:rgba(244,200,154,.22)}
+.gm-stat.is-stars .gm-stat-num{background:linear-gradient(90deg,#F4C89A,#4DD6DB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gm-stat-lbl{font-size:9.5px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.gm-dash-right{display:flex;flex-direction:column;align-items:stretch;gap:6px;flex-shrink:0}
+.gm-dash-lb{height:42px;padding:0 18px;border-radius:11px;border:1px solid rgba(244,200,154,.35);background:rgba(244,200,154,.1);color:var(--arc3);font-size:13.5px;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .15s;white-space:nowrap}
+.gm-dash-lb:hover{background:rgba(244,200,154,.18);border-color:rgba(244,200,154,.55)}
+.gm-dash-rank{font-size:10.5px;font-family:var(--mono);color:var(--muted);text-align:center;min-height:13px}
+@media(max-width:680px){.gm-dash{justify-content:center;text-align:center}.gm-dash-main{order:1}.gm-dash-right{order:2}.gm-dash-stats{order:3;width:100%}}
+
+/* TASK STAR TAG */
+.t-star{flex-shrink:0;font-size:11px;font-weight:700;font-family:var(--mono);color:var(--arc3);background:rgba(244,200,154,.1);border:1px solid rgba(244,200,154,.25);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.gm-task.done .t-star{color:var(--arc4);background:rgba(123,228,149,.1);border-color:rgba(123,228,149,.28)}
+
+/* LEADERBOARD MODAL */
+.lb-tabs{display:flex;gap:8px;margin-bottom:14px}
+.lb-tab{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .15s}
+.lb-tab.active{border-color:rgba(77,214,219,.4);background:rgba(77,214,219,.1);color:var(--arc1)}
+.lb-list{display:flex;flex-direction:column;gap:6px;max-height:54vh;overflow:auto}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;background:var(--surface);border:1px solid var(--border)}
+.lb-row.me{border-color:rgba(77,214,219,.45);background:rgba(77,214,219,.07)}
+.lb-rank{width:30px;flex-shrink:0;font-family:var(--display);font-weight:800;font-size:15px;color:var(--muted-soft);text-align:center}
+.lb-rank.top{font-size:18px}
+.lb-name{flex:1;min-width:0;font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-me-tag{font-size:10px;font-family:var(--mono);color:var(--arc1);margin-left:6px}
+.lb-val{flex-shrink:0;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--arc1)}
+.lb-empty{padding:34px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
+
+/* FAQ */
+.gm-faq{display:flex;flex-direction:column;gap:9px}
+.gm-faq details{border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;transition:border-color .15s}
+.gm-faq details[open]{border-color:var(--border2)}
+.gm-faq summary{list-style:none;cursor:pointer;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.gm-faq summary::-webkit-details-marker{display:none}
+.gm-faq summary::after{content:'+';font-size:19px;color:var(--muted);font-weight:400;transition:transform .2s;flex-shrink:0}
+.gm-faq details[open] summary::after{transform:rotate(45deg)}
+.gm-faq-a{padding:0 16px 14px;font-size:13px;color:var(--muted);line-height:1.6}
+.gm-faq-a strong{color:var(--text);font-weight:600}
+.gm-faq-a a{color:var(--arc1);text-decoration:none}
 </style>
 </head>
 <body>
 
 <div class="gm-page">
 
+  <div class="gm-dash">
+    <div class="gm-dash-main">
+      <div class="gm-dash-logo"><img src="/assets/logos/mark-oneliq.png" alt="Oneliq"/></div>
+      <div>
+        <div class="gm-dash-eyebrow">Daily Portal</div>
+        <div class="gm-dash-title">Your Oneliq journey</div>
+      </div>
+    </div>
+    <div class="gm-dash-stats">
+      <div class="gm-stat is-stars"><span class="gm-stat-num" id="dash-stars">0</span><span class="gm-stat-lbl">★ Star Points</span></div>
+      <div class="gm-stat"><span class="gm-stat-num" id="dash-streak">0</span><span class="gm-stat-lbl">Day Streak</span></div>
+      <div class="gm-stat"><span class="gm-stat-num" id="dash-invites">0</span><span class="gm-stat-lbl">Invites</span></div>
+      <div class="gm-stat"><span class="gm-stat-num" id="dash-badges">0</span><span class="gm-stat-lbl">Badges</span></div>
+    </div>
+    <div class="gm-dash-right">
+      <button class="gm-dash-lb" id="dash-lb-btn" type="button">🏆 Leaderboard</button>
+      <div class="gm-dash-rank" id="dash-rank"></div>
+    </div>
+  </div>
+
   <div class="gm-grid">
     <div class="gm-checkin-col">
 
       <div class="gm-hero-card">
-        <div class="gm-hero-eyebrow">DAILY PORTAL</div>
+        <div class="gm-hero-eyebrow">DAILY CHECK-IN</div>
 
         <div class="gm-hero-logo-wrap">
           <img src="/assets/logos/mark-oneliq.png" class="gm-logo" alt="Oneliq"/>
@@ -163,6 +232,7 @@
           <div class="t-name">Follow Oneliq on X</div>
           <div class="t-sub" id="tx-sub">Set X handle in Profile first</div>
         </div>
+        <span class="t-star">★ 20</span>
         <div class="t-acts" id="tx-acts">
           <a href="https://x.com/intent/user?screen_name=oneliq_" target="_blank" rel="noopener noreferrer">Open X</a>
         </div>
@@ -174,6 +244,7 @@
           <div class="t-name">Like our launch tweet</div>
           <div class="t-sub" id="tlk-sub">Like the Portal launch tweet on X</div>
         </div>
+        <span class="t-star">★ 5</span>
         <div class="t-acts" id="tlk-acts">
           <a href="https://x.com/intent/like?tweet_id=2066850786232123432" target="_blank" rel="noopener noreferrer">Like</a>
         </div>
@@ -185,6 +256,7 @@
           <div class="t-name">Retweet our launch tweet</div>
           <div class="t-sub" id="trt-sub">Retweet the Portal launch tweet on X</div>
         </div>
+        <span class="t-star">★ 5</span>
         <div class="t-acts" id="trt-acts">
           <a href="https://x.com/intent/retweet?tweet_id=2066850786232123432" target="_blank" rel="noopener noreferrer">Retweet</a>
         </div>
@@ -196,6 +268,7 @@
           <div class="t-name">Join Oneliq Discord</div>
           <div class="t-sub" id="td-sub">Link Discord in Profile after joining</div>
         </div>
+        <span class="t-star">★ 20</span>
         <div class="t-acts" id="td-acts">
           <a href="https://discord.com/invite/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Join</a>
         </div>
@@ -207,6 +280,7 @@
           <div class="t-name">Say GM on Discord</div>
           <div class="t-sub" id="tg-sub">Post any message in #gm-gn channel</div>
         </div>
+        <span class="t-star">★ 5</span>
         <div class="t-acts" id="tg-acts">
           <a href="https://discord.com/invite/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Open</a>
         </div>
@@ -239,6 +313,40 @@
     <div class="gm-badge-grid" id="gbadges"></div>
   </div>
 
+  <div class="gm-faq-section" style="width:100%">
+    <div class="gm-sec-label">FAQ</div>
+    <div class="gm-faq">
+      <details>
+        <summary>What is the Oneliq Portal?</summary>
+        <div class="gm-faq-a">The Portal is your home base on <strong>Arc Testnet</strong>. Check in daily (a real on-chain transaction) to build a streak, finish onboarding tasks, collect badges, invite friends, and climb the leaderboard. It's testnet only — no token, no rewards, just bragging rights.</div>
+      </details>
+      <details>
+        <summary>What are Star Points?</summary>
+        <div class="gm-faq-a">Star Points (★) are a single score that measures how active you are. You earn them from onboarding tasks, badges, referrals, and daily check-ins. Your total is shown at the top and powers the <strong>Top Stars</strong> leaderboard.</div>
+      </details>
+      <details>
+        <summary>How are Star Points calculated?</summary>
+        <div class="gm-faq-a">
+          <strong>Onboarding tasks:</strong> Follow on X +20, Join Discord +20, Like +5, Retweet +5, Say GM +5.<br/>
+          <strong>Badges:</strong> Welcome +50, 7-Day Streak +40, 100 Transactions +150, Connector +200, OG +75.<br/>
+          <strong>Referrals:</strong> +30 for each friend who finishes onboarding.<br/>
+          <strong>Daily check-in:</strong> +3 each day you check in.
+        </div>
+      </details>
+      <details>
+        <summary>How do referrals work?</summary>
+        <div class="gm-faq-a">Share your Portal link from the <strong>Referral</strong> section. When a friend opens it and completes all five onboarding tasks (earning the Welcome badge), they count as an invite — you get <strong>+30 Star Points</strong> per friend, and reaching <strong>10</strong> unlocks the <strong>Connector</strong> badge. Invites only count once a friend finishes onboarding, so a click alone isn't enough.</div>
+      </details>
+      <details>
+        <summary>What is the leaderboard?</summary>
+        <div class="gm-faq-a">Tap <strong>🏆 Leaderboard</strong> at the top to see two rankings: <strong>Top Stars</strong> (most Star Points) and <strong>Top Invites</strong> (most friends invited). To show up with your X username, save your handle in <strong>Profile</strong>; otherwise a shortened wallet address is shown.</div>
+      </details>
+      <details>
+        <summary>What is a streak and how do freezes work?</summary>
+        <div class="gm-faq-a">Your streak counts consecutive days you check in. Miss a day and a <strong>freeze</strong> saves your streak automatically (you start with 3, and earn a bonus one at days 7, 30, and 100). Run out of freezes and miss a day, and the streak resets to 1.</div>
+      </details>
+    </div>
+  </div>
 
 </div>
 
@@ -283,6 +391,121 @@
 
   function addr()    { return ARC.wallet.address?.toLowerCase(); }
   function utcDay()  { return new Date().toISOString().slice(0, 10); }
+
+  // -- Star Points (mirror of functions/auth/_stars.js — keep in sync) --
+  const STAR_VALUES = {
+    x_follow: 20, discord: 20, like: 5, retweet: 5, gm: 5,
+    badge: { welcome: 50, streak7: 40, tx100: 150, referral: 200, og: 75 },
+    referral: 30, checkin: 3,
+  };
+  function computeStars(gm, disc) {
+    let s = 0;
+    if (gm?.x_follow_done)                       s += STAR_VALUES.x_follow;
+    if (disc?.discord_id || disc?.discord_username) s += STAR_VALUES.discord;
+    if (gm?.like_done)                           s += STAR_VALUES.like;
+    if (gm?.retweet_done)                        s += STAR_VALUES.retweet;
+    if (disc?.said_gm || gm?.said_gm)            s += STAR_VALUES.gm;
+    for (const b of (gm?.badges || [])) if (STAR_VALUES.badge[b]) s += STAR_VALUES.badge[b];
+    s += Math.max(0, gm?.referral_count || 0) * STAR_VALUES.referral;
+    s += Math.max(0, gm?.total_checkins || 0) * STAR_VALUES.checkin;
+    return s;
+  }
+
+  // -- Dashboard --
+  function renderDash() {
+    const stars   = computeStars(gmState, discState);
+    const streak  = gmState?.streak || 0;
+    const invites = gmState?.referral_count || 0;
+    const badges  = (gmState?.badges || []).length;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('dash-stars', stars);
+    set('dash-streak', streak);
+    set('dash-invites', invites);
+    set('dash-badges', badges);
+    renderRank();
+  }
+
+  // -- Leaderboard --
+  let lbData = null;
+  async function loadLeaderboard(force) {
+    if (lbData && !force) return lbData;
+    try {
+      const r = await fetch('/auth/leaderboard');
+      if (r.ok) lbData = await r.json();
+    } catch {}
+    return lbData;
+  }
+  function renderRank() {
+    const el = document.getElementById('dash-rank');
+    if (!el) return;
+    const a = addr();
+    if (!a || !lbData?.stars) { el.textContent = ''; return; }
+    const i = lbData.stars.findIndex(r => r.addr === a);
+    el.textContent = i >= 0 ? ('Your rank #' + (i + 1)) : '';
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+  function lbRows(list, kind, me) {
+    if (!list || !list.length) {
+      return '<div class="lb-empty">No one on the board yet — be the first!</div>';
+    }
+    return list.map((r, i) => {
+      const medal   = ['🥇','🥈','🥉'][i] || (i + 1);
+      const rankCls = i < 3 ? 'lb-rank top' : 'lb-rank';
+      const val     = kind === 'stars' ? ('★ ' + r.stars) : (r.invites + (r.invites === 1 ? ' invite' : ' invites'));
+      const isMe    = me && r.addr === me;
+      return '<div class="lb-row' + (isMe ? ' me' : '') + '">'
+        + '<div class="' + rankCls + '">' + medal + '</div>'
+        + '<div class="lb-name">' + esc(r.name) + (isMe ? '<span class="lb-me-tag">you</span>' : '') + '</div>'
+        + '<div class="lb-val">' + val + '</div>'
+        + '</div>';
+    }).join('');
+  }
+  function openLeaderboard() {
+    ArcUI.openModal({
+      title: '🏆 Leaderboard',
+      body:
+        '<div class="lb-tabs">'
+        + '<button class="lb-tab active" data-pane="stars" type="button">★ Top Stars</button>'
+        + '<button class="lb-tab" data-pane="invites" type="button">Top Invites</button>'
+        + '</div>'
+        + '<div id="lb-pane-stars" class="lb-list"><div class="lb-empty">Loading…</div></div>'
+        + '<div id="lb-pane-invites" class="lb-list" style="display:none"><div class="lb-empty">Loading…</div></div>',
+      onOpen: (m) => {
+        const card = m.querySelector('.arc-modal');
+        if (card) card.style.maxWidth = '640px';
+        // Tab switching
+        m.querySelectorAll('.lb-tab').forEach(t => {
+          t.onclick = () => {
+            m.querySelectorAll('.lb-tab').forEach(x => x.classList.toggle('active', x === t));
+            const pane = t.dataset.pane;
+            const sEl = m.querySelector('#lb-pane-stars');
+            const iEl = m.querySelector('#lb-pane-invites');
+            if (sEl) sEl.style.display = pane === 'stars'   ? 'flex' : 'none';
+            if (iEl) iEl.style.display = pane === 'invites' ? 'flex' : 'none';
+          };
+        });
+        // Fill once data arrives
+        loadLeaderboard(true).then(data => {
+          const me  = addr();
+          const sEl = m.querySelector('#lb-pane-stars');
+          const iEl = m.querySelector('#lb-pane-invites');
+          if (!data) {
+            const err = '<div class="lb-empty">Couldn\'t load the leaderboard. Try again in a moment.</div>';
+            if (sEl) sEl.innerHTML = err;
+            if (iEl) iEl.innerHTML = err;
+            return;
+          }
+          if (sEl) sEl.innerHTML = lbRows(data.stars,   'stars',   me);
+          if (iEl) iEl.innerHTML = lbRows(data.invites, 'invites', me);
+          renderRank();
+        });
+      },
+    });
+  }
+  document.getElementById('dash-lb-btn')?.addEventListener('click', openLeaderboard);
 
   // -- Badge definitions --
   const BADGE_META = {
@@ -412,6 +635,7 @@
       if (data.awarded) {
         gmState = { ...gmState, badges: data.badges };
         renderBadges(gmState.badges);
+        renderDash();
         ArcUI.toast('success', 'OG Badge Earned!', 'Welcome to the OG club.');
       } else {
         ArcUI.toast('', 'Not OG', data.message || 'OG role not found.');
@@ -550,6 +774,7 @@
               gmState = await r.json();
               renderTasks();
               renderBadges(gmState.badges);
+              renderDash();
               if (gmState.welcome_awarded) {
                 ArcUI.toast('success', 'Welcome to Oneliq!', gmState.role_assigned ? 'Badge earned + Early Oneliq role granted in Discord.' : 'Welcome badge earned.');
               } else {
@@ -657,6 +882,7 @@
         gmState = await r.json();
         renderTasks();
         renderBadges(gmState.badges);
+        renderDash();
         if (gmState.welcome_awarded) {
           ArcUI.toast('success', 'Welcome to Oneliq!', gmState.role_assigned ? 'Badge earned + Early Oneliq role granted in Discord.' : 'Welcome badge earned.');
         } else {
@@ -685,6 +911,7 @@
         gmState = { ...gmState, said_gm: true, badges: data.badges || gmState?.badges };
         renderTasks();
         renderBadges(data.badges || gmState?.badges);
+        renderDash();
         if (data.welcome_awarded) ArcUI.toast('success', 'Welcome to Oneliq!', data.role_assigned ? 'Badge earned + Early Oneliq role granted in Discord.' : 'Welcome badge earned.');
         else ArcUI.toast('success', 'Verified!', 'GM message confirmed in #gm-gn.');
       } else {
@@ -807,6 +1034,7 @@
       hint.textContent = data.streak + ' day streak' + (data.freeze_used ? ' · freeze used' : '');
       renderStreak(data);
       renderBadges(data.badges);
+      renderDash();
 
       setTimeout(() => {
         drainEnergy();
@@ -837,7 +1065,7 @@
     const a = addr();
     if (!a) {
       gmState = discState = null;
-      renderStreak(null); renderTasks(); renderBadges([]); renderReferral();
+      renderStreak(null); renderTasks(); renderBadges([]); renderReferral(); renderDash();
       btn.disabled = true; btn.className = 'gm-btn';
       btn.textContent = 'Hold to Enter'; hint.textContent = 'Connect wallet to check in';
       return;
@@ -856,6 +1084,22 @@
     renderBadges(gmState?.badges);
     await maybeSubmitReferral();
     renderReferral();
+
+    // Push any locally-saved X handle to the server once, so the invite
+    // leaderboard can display the username instead of a raw address.
+    try {
+      const xh = (localStorage.getItem('oneliq_profile_x_' + a) || '').replace(/^@/, '');
+      if (xh && xh !== (gmState?.x_handle || '')) {
+        fetch('/auth/gm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'set_x', address: a, handle: xh }),
+        }).then(() => { if (gmState) gmState.x_handle = xh; }).catch(() => {});
+      }
+    } catch {}
+
+    renderDash();
+    loadLeaderboard().then(renderRank);
 
     if (gmState?.already_checked_in) {
       btn.disabled = true; btn.className = 'gm-btn checked';

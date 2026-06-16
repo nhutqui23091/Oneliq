@@ -12,6 +12,7 @@
 
 import { maybeAwardWelcome, reconcileLegacyWelcome } from './_welcome.js';
 import { recordReferral } from './_referral.js';
+import { computeStars } from './_stars.js';
 
 const ARC_RPC = 'https://rpc.testnet.arc.network';
 
@@ -36,13 +37,14 @@ async function handleGet(request, env) {
   const today      = utcToday();
   const dailyCount = parseInt(await kv.get('gm:daily:' + today) || '0', 10);
 
-  let saidGm = false, discordId = null;
+  let saidGm = false, discordId = null, discordName = null;
   try {
     const profileRaw = await kv.get('profile:' + addr);
     if (profileRaw) {
       const p = JSON.parse(profileRaw);
-      saidGm    = p.said_gm || false;
-      discordId = p.discord_id || null;
+      saidGm      = p.said_gm || false;
+      discordId   = p.discord_id || null;
+      discordName = p.discord_global_name || p.discord_username || null;
     }
   } catch {}
 
@@ -56,12 +58,30 @@ async function handleGet(request, env) {
   // Live on-chain tx count drives the "100 Transactions" badge progress bar.
   const txCount = await getArcTxCount(addr);
 
+  // Star Points — computed deterministically (see _stars.js). Denormalize the
+  // total, the two profile-side facts it depends on (discord_done, said_gm),
+  // and the Discord name onto the gm record so the leaderboard can rank — and
+  // recompute fresh stars — from a single key scan without re-reading profiles.
+  const discordDone = !!discordId;
+  const stars = computeStars(state, { discord_id: discordId, said_gm: saidGm });
+  if (state.stars !== stars
+      || state.discord_done !== discordDone
+      || state.said_gm !== saidGm
+      || (discordName && state.discord_name !== discordName)) {
+    state = {
+      ...state, stars, discord_done: discordDone, said_gm: saidGm,
+      ...(discordName ? { discord_name: discordName } : {}),
+    };
+    await kv.put('gm:' + addr, JSON.stringify(state));
+  }
+
   return jsonRes({
     ...state,
     already_checked_in: state.last_checkin === today,
     daily_count: dailyCount,
     said_gm: saidGm,
     tx_count: txCount,
+    stars,
   });
 }
 
@@ -79,6 +99,16 @@ async function handlePost(request, env, context) {
 
   const today = utcToday();
   const state = await getState(kv, addr);
+
+  // Persist the wallet's X/Twitter handle so the invite leaderboard can show a
+  // username instead of a raw address. Trust-based, sanitised, can be cleared.
+  if (body.action === 'set_x') {
+    const handle = String(body.handle || '').trim().replace(/^@/, '').slice(0, 30).replace(/[^A-Za-z0-9_]/g, '');
+    if ((state.x_handle || '') !== handle) {
+      await kv.put('gm:' + addr, JSON.stringify({ ...state, x_handle: handle }));
+    }
+    return jsonRes({ ok: true, x_handle: handle });
+  }
 
   // Portal referral: bind referrer once, bump their count, maybe award badge.
   if (body.action === 'referral') {
