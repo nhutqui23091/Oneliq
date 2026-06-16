@@ -29,6 +29,17 @@
       <feGaussianBlur stdDeviation="3" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <radialGradient id="cardGlow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#4A7BEC" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#4A7BEC" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="cardShadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#000000" flood-opacity="0.50"/>
+    </filter>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".08"/>
+      <stop offset=".45" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
   </defs>
 
   <rect width="1200" height="600" fill="url(#bg)"/>
@@ -37,9 +48,14 @@
   <rect width="1200" height="600" fill="url(#orb2)"/>
   <rect width="1200" height="600" fill="url(#orb3)"/>
 
+  <!-- Soft glow behind the card cluster -->
+  <ellipse cx="932" cy="285" rx="300" ry="285" fill="url(#cardGlow)"/>
+
   <!-- Right side: three route cards -->
   <!-- Card 1: Swap (coral) -->
+  <rect x="728" y="66" width="408" height="130" rx="14" fill="#0C1A30" filter="url(#cardShadow)"/>
   <rect x="728" y="66" width="408" height="130" rx="14" fill="rgba(255,111,97,0.10)" stroke="rgba(255,111,97,0.42)" stroke-width="1.5"/>
+  <rect x="728" y="66" width="408" height="130" rx="14" fill="url(#sheen)"/>
   <text x="756" y="103" font-family="DM Mono, monospace" font-size="10" fill="#FF6F61" font-weight="700" letter-spacing="2">// SWAP</text>
   <text x="756" y="129" font-family="Inter, sans-serif" font-size="17" fill="#F5F7FB" font-weight="700">EURC</text>
   <text x="820" y="130" font-family="DM Mono, monospace" font-size="15" fill="rgba(255,111,97,.75)">→</text>
@@ -49,7 +65,9 @@
   <text x="786" y="181" font-family="DM Mono, monospace" font-size="9" fill="#FF6F61" text-anchor="middle" font-weight="700">LIVE FX</text>
 
   <!-- Card 2: Bridge (cyan) -->
+  <rect x="728" y="220" width="408" height="130" rx="14" fill="#0C1A30" filter="url(#cardShadow)"/>
   <rect x="728" y="220" width="408" height="130" rx="14" fill="rgba(77,214,219,0.08)" stroke="rgba(77,214,219,0.38)" stroke-width="1.5"/>
+  <rect x="728" y="220" width="408" height="130" rx="14" fill="url(#sheen)"/>
   <text x="756" y="257" font-family="DM Mono, monospace" font-size="10" fill="#4DD6DB" font-weight="700" letter-spacing="2">// BRIDGE</text>
   <text x="756" y="283" font-family="Inter, sans-serif" font-size="17" fill="#F5F7FB" font-weight="700">USDC</text>
   <text x="820" y="284" font-family="DM Mono, monospace" font-size="15" fill="rgba(77,214,219,.75)">→</text>
@@ -59,7 +77,9 @@
   <text x="795" y="335" font-family="DM Mono, monospace" font-size="9" fill="#4DD6DB" text-anchor="middle" font-weight="700">1:1 NATIVE</text>
 
   <!-- Card 3: Spend (amber) -->
+  <rect x="728" y="374" width="408" height="130" rx="14" fill="#0C1A30" filter="url(#cardShadow)"/>
   <rect x="728" y="374" width="408" height="130" rx="14" fill="rgba(244,200,154,0.08)" stroke="rgba(244,200,154,0.38)" stroke-width="1.5"/>
+  <rect x="728" y="374" width="408" height="130" rx="14" fill="url(#sheen)"/>
   <text x="756" y="411" font-family="DM Mono, monospace" font-size="10" fill="#F4C89A" font-weight="700" letter-spacing="2">// SPEND</text>
   <text x="756" y="437" font-family="Inter, sans-serif" font-size="17" fill="#F5F7FB" font-weight="700">Gateway</text>
   <text x="860" y="438" font-family="DM Mono, monospace" font-size="15" fill="rgba(244,200,154,.75)">→</text>
