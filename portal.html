@@ -286,14 +286,14 @@
 
   // -- Badge definitions --
   const BADGE_META = {
-    welcome:  { img: '/assets/social/LogoWelcome.png',  name: 'Welcome to Oneliq', tip: 'Complete all five onboarding tasks', fallback: '/assets/badges/welcome.svg' },
-    referral: { img: '/assets/badges/referral.svg',     name: 'Connector',         tip: 'Invite 10 friends who join through your Portal link',
+    welcome:  { img: '/assets/badges/welcomeO.png',     name: 'Welcome to Oneliq', tip: 'Complete all five onboarding tasks' },
+    referral: { img: '/assets/badges/Connector.png',    name: 'Connector',         tip: 'Invite 10 friends who join through your Portal link',
                 goal: 10,  unit: 'invites', stat: s => s?.referral_count || 0 },
-    streak7: { img: '/assets/badges/streak7.png?v=2', name: '7-Day Streak',      tip: 'Check in 7 days in a row',
+    streak7: { img: '/assets/badges/7days.png',       name: '7-Day Streak',      tip: 'Check in 7 days in a row',
                goal: 7,   unit: 'days', stat: s => s?.streak   || 0 },
-    tx100:   { img: '/assets/badges/tx100.png?v=2',   name: '100 Transactions',  tip: '100 on-chain transactions on Arc Testnet',
+    tx100:   { img: '/assets/badges/100txns.png',     name: '100 Transactions',  tip: '100 on-chain transactions on Arc Testnet',
                goal: 100, unit: 'txs',  stat: s => s?.tx_count || 0 },
-    og:      { img: '/assets/badges/og.png?v=2',      name: 'OG',                tip: 'Verified OG role in Oneliq Discord' },
+    og:      { img: '/assets/badges/og.png?v=3',      name: 'OG',                tip: 'Verified OG role in Oneliq Discord' },
   };
 
   // -- Streak display --
