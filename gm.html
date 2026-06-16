@@ -470,8 +470,17 @@
         card.classList.remove('done'); ico.classList.remove('done');
         ico.textContent = t.icon;
         sub.textContent = t.sub; sub.classList.remove('ok');
-        acts.innerHTML = '<a href="' + t.url + '" target="_blank" rel="noopener noreferrer">' + t.label + '</a><button class="smark">Mark done</button>';
-        acts.querySelector('.smark').onclick = () => {
+        // "Mark done" only appears after the user has opened the X intent.
+        const clicked = localStorage.getItem('oneliq_gm_' + t.key + '_clicked_' + a) === '1';
+        let html = '<a class="slink" href="' + t.url + '" target="_blank" rel="noopener noreferrer">' + t.label + '</a>';
+        if (clicked) html += '<button class="smark">Mark done</button>';
+        acts.innerHTML = html;
+        acts.querySelector('.slink').onclick = () => {
+          localStorage.setItem('oneliq_gm_' + t.key + '_clicked_' + a, '1');
+          setTimeout(renderSocialTasks, 0);
+        };
+        const mk = acts.querySelector('.smark');
+        if (mk) mk.onclick = () => {
           localStorage.setItem('oneliq_gm_' + t.key + '_' + a, '1');
           renderSocialTasks();
           ArcUI.toast('success', 'Done!', t.label + ' marked.');
