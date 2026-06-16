@@ -10,7 +10,7 @@
  * Arc Testnet RPC: https://rpc.testnet.arc.network (chainId 5042002)
  */
 
-import { maybeAwardWelcome } from './_welcome.js';
+import { maybeAwardWelcome, reconcileLegacyWelcome } from './_welcome.js';
 
 const ARC_RPC = 'https://rpc.testnet.arc.network';
 
@@ -31,15 +31,23 @@ async function handleGet(request, env) {
   const kv = env.PROFILE_KV;
   if (!kv) return jsonRes({ error: 'KV not configured' }, 503);
 
-  const state      = await getState(kv, addr);
+  let state        = await getState(kv, addr);
   const today      = utcToday();
   const dailyCount = parseInt(await kv.get('gm:daily:' + today) || '0', 10);
 
-  let saidGm = false;
+  let saidGm = false, discordId = null;
   try {
     const profileRaw = await kv.get('profile:' + addr);
-    if (profileRaw) saidGm = JSON.parse(profileRaw).said_gm || false;
+    if (profileRaw) {
+      const p = JSON.parse(profileRaw);
+      saidGm    = p.said_gm || false;
+      discordId = p.discord_id || null;
+    }
   } catch {}
+
+  // Backfill wallets that earned Welcome under the old 3-task rule: complete
+  // the new X tasks and grant the Early Oneliq role once.
+  state = await reconcileLegacyWelcome(env, kv, addr, state, discordId);
 
   // Live on-chain tx count drives the "100 Transactions" badge progress bar.
   const txCount = await getArcTxCount(addr);

@@ -56,6 +56,34 @@ export async function maybeAwardWelcome(env, kv, addr) {
   return { awarded: true, badges: newBadges, roleAssigned };
 }
 
+/**
+ * Backfill wallets that earned the Welcome badge under the old 3-task rule:
+ * mark the newer X tasks complete (so the UI shows all five done) and grant
+ * the Early Oneliq role once. Runs lazily on GET, so each holder is fixed on
+ * their next visit. Only writes KV when something actually changes.
+ */
+export async function reconcileLegacyWelcome(env, kv, addr, gm, discordId) {
+  const badges = Array.isArray(gm.badges) ? gm.badges : [];
+  if (!badges.includes('welcome')) return gm;
+
+  const next = { ...gm };
+  let changed = false;
+
+  if (!next.x_follow_done) { next.x_follow_done = true; changed = true; }
+  if (!next.like_done)     { next.like_done     = true; changed = true; }
+  if (!next.retweet_done)  { next.retweet_done  = true; changed = true; }
+
+  if (!next.early_role_granted) {
+    let ok = false;
+    try { ok = await assignEarlyRole(env, discordId); }
+    catch (e) { console.error('[welcome] backfill role failed:', e?.message); }
+    if (ok) { next.early_role_granted = true; changed = true; }
+  }
+
+  if (changed) await kv.put('gm:' + addr, JSON.stringify(next));
+  return next;
+}
+
 async function assignEarlyRole(env, discordId) {
   const guildId  = env.ONELIQ_GUILD_ID;
   const roleId   = env.ONELIQ_EARLY_ROLE_ID;
