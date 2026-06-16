@@ -143,80 +143,95 @@ code{font-family:var(--mono);font-size:14px;background:rgba(77,214,219,0.08);bor
   <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; Oneliq GM</div>
   <div class="eyebrow">Announcement · Arc Testnet</div>
   <h1 class="title"><span class="grad">Oneliq GM</span> is now live</h1>
-  <p class="lead">GM is now a real on-chain action on Oneliq. One tap a day signs a transaction on Arc Testnet, builds your streak, and unlocks badges — the lowest-effort way to actually use the network.</p>
+  <p class="lead">Oneliq GM is a daily check-in built on Arc Testnet. Each check-in is a real transaction on Arc, verified on-chain before it counts toward your streak — a simple, repeatable way to get familiar with the network.</p>
 
   <div class="byline">
     <span class="byline-author">Oneliq Team</span>
     <span class="byline-sep">·</span>
     <span>June 16, 2026</span>
     <span class="byline-sep">·</span>
-    <span>4 min read</span>
+    <span>5 min read</span>
   </div>
 
   <img class="banner" src="/assets/social/blog-gm-banner.webp" alt="Oneliq GM — say GM on Arc Testnet."/>
 
   <article>
 
-    <p>"GM" is the oldest ritual in crypto — it costs nothing, means everything, and shows up in every Discord and every timeline at sunrise. We gave it a job. On Oneliq, saying <strong>GM</strong> now sends a real transaction to <strong>Arc Testnet</strong>. The greeting stays the same; underneath it, you are quietly getting comfortable with the network.</p>
+    <p>Oneliq GM is a daily check-in experience built on <strong>Arc Testnet</strong>. Each check-in is recorded as a real transaction on Arc and verified on-chain before it contributes to your streak.</p>
 
-    <p>Most people never touch a new chain because the first transaction feels like a chore — pick an app, sort out the network, find something worth doing. <strong>Oneliq GM</strong> collapses all of that into one button you hold for a second a day. Nothing to type, no token to pick, no destination to fill in. Just GM.</p>
+    <p>The campaign is designed to make interacting with Arc simple and repeatable. Instead of asking people to learn a new network through tutorials, Oneliq GM offers a lightweight way to build familiarity through consistent, everyday use.</p>
 
-    <h2>The mission</h2>
+    <h2>Why we built it</h2>
 
-    <p>Arc is Circle's settlement layer for stablecoins, and the best way to understand a chain is to put transactions through it. GM exists to make that first — and hundredth — interaction effortless: you show up, you say GM, and over a week or two Arc stops feeling foreign. Streaks, freezes, and badges turn a one-off click into a habit, and the habit is what builds the familiarity.</p>
+    <p>One of the biggest challenges for any new network is onboarding. Many users create a wallet, claim testnet assets, and stop there — the first meaningful interaction usually means understanding how the network works, finding an application to use, and completing a transaction.</p>
 
-    <h2>How a GM works</h2>
+    <p>Oneliq GM was created to lower that barrier. The experience is intentionally simple: open the page, complete a daily check-in, and record activity on Arc Testnet. Over time, those repeated interactions help users grow comfortable with the network and its ecosystem.</p>
 
-    <p>Hold the button on the <a href="/gm">GM page</a> and your wallet signs one tiny transaction on Arc Testnet: a zero-value send to your own address, carrying the text <code>GM 2026-06-16</code> as calldata. Your wallet takes care of the network for you — if it needs Arc (chain ID <code>5042002</code>) it switches on its own. Nothing leaves your wallet but the dust of gas, and the greeting is written permanently on-chain.</p>
+    <h2>How it works</h2>
 
-    <p>From there the backend reads the transaction straight from Arc's RPC, confirms it came from your wallet, and only then counts the check-in. No transaction, no GM — the streak is earned on-chain, not on trust. And because USDC is Arc's native gas token, the whole thing settles in USDC with no second fee token to manage. The transaction is real, public, and yours: click straight through to it on the explorer the moment it lands.</p>
+    <p>You can complete one GM check-in per day. When you check in, your wallet signs a transaction on Arc Testnet; once that transaction is confirmed and verified, the check-in is counted and your streak is updated.</p>
+
+    <p>Every streak is therefore backed by actual on-chain activity rather than off-chain actions. The transaction stays visible on Arc and can be viewed through the network explorer like any other transaction.</p>
 
     <h2>Streaks and freezes</h2>
 
-    <p>Every consecutive day adds to your streak. Miss a day and, instead of resetting to zero, Oneliq spends one of your <strong>freezes</strong> to keep the chain alive — you start with three, and hitting milestone days tops you back up. It is a small bit of forgiveness so one busy day does not erase two weeks of showing up. Cross seven days and the flame changes color; the longer you go, the hotter it gets.</p>
+    <p>Oneliq GM includes a streak system to encourage consistent participation: every successful daily check-in increases your streak count.</p>
 
-    <div class="callout">
-      <div class="callout-title">Earned on-chain, not on vibes</div>
-      <div class="callout-body">A check-in only counts after the backend finds your transaction on Arc Testnet and matches the sender to your wallet. The streak number reflects real on-chain activity — that is what makes it worth anything.</div>
-    </div>
+    <p>To keep an occasional missed day from resetting your progress, each account has a limited number of <strong>freeze</strong> credits. If you miss a day, an available freeze is used automatically and your streak continues. Additional freezes can be earned through milestones and future community activities.</p>
 
-    <h2>Badges and progress</h2>
+    <h2>Badges and milestones</h2>
 
-    <p>Showing up earns badges. Two of them are milestones with a live progress bar, so you always know exactly how close you are:</p>
+    <p>You can unlock badges by taking part in the campaign and interacting with the broader Oneliq ecosystem. Progress toward milestone badges is shown directly in the interface.</p>
 
     <ul class="badge-list">
       <li>
         <div class="bn">Welcome to Oneliq</div>
-        <div class="bd">Your first badge — earned on your first GM, once you've linked Discord and said GM in <code>#gm-gn</code>.</div>
+        <div class="bd">Awarded after completing the onboarding steps and submitting your first GM check-in.</div>
       </li>
       <li>
         <div class="bn">7-Day Streak</div>
-        <div class="bd">Check in seven days in a row. The bar fills with every GM until it reaches seven.</div>
+        <div class="bd">Awarded after maintaining a streak for seven consecutive days.</div>
       </li>
       <li>
         <div class="bn">100 Transactions</div>
-        <div class="bd">Reach 100 real transactions on Arc Testnet. Every swap, bridge, and GM pushes it forward toward the hundred mark.</div>
+        <div class="bd">Awarded after reaching one hundred verified transactions on Arc Testnet.</div>
       </li>
       <li>
         <div class="bn">OG</div>
-        <div class="bd">Reserved for verified OG members of the Oneliq Discord.</div>
+        <div class="bd">Reserved for verified OG members of the Oneliq community.</div>
       </li>
     </ul>
 
-    <p>And this is only the opening line-up — <strong>more badges are on the way</strong>, so it pays to start your streak now and keep it alive.</p>
+    <p>This is the current line-up — <strong>additional badges will be introduced over time</strong>.</p>
 
     <h2>Getting started</h2>
 
-    <p>There is a short onboarding strip next to the check-in: follow Oneliq on X, join the Discord, and say GM in <code>#gm-gn</code>. Those three steps wire your wallet to your social identity and set up the Welcome badge. After that, the routine is just: open the page, hold to GM, come back tomorrow.</p>
+    <p>Getting set up takes less than a minute:</p>
+
+    <ol class="steps">
+      <li><strong>Connect your wallet.</strong> Any EVM wallet works.</li>
+      <li><strong>Join the Oneliq Discord</strong> and link it from your profile.</li>
+      <li><strong>Follow Oneliq on X</strong> and mark the step complete.</li>
+      <li><strong>Complete your first GM check-in</strong> — hold the button and sign.</li>
+      <li><strong>Return each day</strong> to continue your streak.</li>
+    </ol>
+
+    <h2>Why this matters</h2>
+
+    <p>Arc is designed as a stablecoin-native settlement layer, and the best way to understand a network is to use it. Oneliq GM is a simple entry point for anyone who wants to start interacting with Arc without performing swaps, bridging assets, or configuring complex workflows.</p>
+
+    <p>A single GM is a small action. Weeks of consistent participation add up to real familiarity with the network.</p>
+
+    <h2>Testnet only</h2>
 
     <div class="callout warn">
-      <div class="callout-title">Testnet only. No airdrop. No promises.</div>
-      <div class="callout-body">Oneliq GM runs entirely on <strong>Arc Testnet</strong> with testnet USDC that has no monetary value. This is a community and onboarding campaign, nothing more. <strong>We are not promising an airdrop, points with future value, tokens, or any reward of any kind.</strong> Streaks and badges are cosmetic. Do not check in expecting a payout — check in because using Arc is the point. <strong>Never send mainnet USDC to a testnet address;</strong> funds sent to a testnet address are unrecoverable.</div>
+      <div class="callout-title">No token. No airdrop. No promises.</div>
+      <div class="callout-body">Oneliq GM operates entirely on <strong>Arc Testnet</strong> (chain ID 5042002) using testnet assets with no monetary value. It is an onboarding and community campaign — <strong>there is no token, no points program, no airdrop, and no promise of future rewards.</strong> Streaks and badges exist to encourage engagement and help you build a history of on-chain activity while exploring Arc. <strong>Never send mainnet USDC to a testnet address;</strong> funds sent to a testnet address are unrecoverable.</div>
     </div>
 
     <div class="cta-card">
-      <h3>Say GM. Keep the streak. Learn Arc.</h3>
-      <p>One tap a day on Arc Testnet. Connect any EVM wallet and start your streak.</p>
+      <h3>Start your streak today. Say GM on Arc.</h3>
+      <p>One check-in a day on Arc Testnet. Connect any EVM wallet to begin.</p>
       <a href="/gm">Say GM</a>
       <a class="alt" href="/trade">Open Oneliq</a>
     </div>
@@ -263,8 +278,6 @@ code{font-family:var(--mono);font-size:14px;background:rgba(77,214,219,0.08);bor
         </span>
       </a>
     </div>
-
-    <p>Oneliq GM is live on Arc Testnet (chain ID 5042002). It is a testnet campaign with no monetary component and no promised rewards.</p>
 
     <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend on Arc Testnet. Nothing here is real money or financial advice, and nothing in this campaign promises an airdrop or any reward. We do not custody funds; you always retain control of your wallet.</em></p>
 
