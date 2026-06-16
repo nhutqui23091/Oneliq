@@ -146,6 +146,28 @@
         </div>
       </div>
 
+      <div class="gm-task" id="tlk">
+        <div class="t-ico" id="tlk-ico">♥</div>
+        <div class="t-body">
+          <div class="t-name">Like our GM launch tweet</div>
+          <div class="t-sub" id="tlk-sub">Like the GM launch tweet on X</div>
+        </div>
+        <div class="t-acts" id="tlk-acts">
+          <a href="https://x.com/intent/like?tweet_id=2066850786232123432" target="_blank" rel="noopener noreferrer">Like</a>
+        </div>
+      </div>
+
+      <div class="gm-task" id="trt">
+        <div class="t-ico" id="trt-ico">🔁</div>
+        <div class="t-body">
+          <div class="t-name">Retweet our GM launch tweet</div>
+          <div class="t-sub" id="trt-sub">Retweet the GM launch tweet on X</div>
+        </div>
+        <div class="t-acts" id="trt-acts">
+          <a href="https://x.com/intent/retweet?tweet_id=2066850786232123432" target="_blank" rel="noopener noreferrer">Retweet</a>
+        </div>
+      </div>
+
       <div class="gm-task" id="td">
         <div class="t-ico" id="td-ico">💬</div>
         <div class="t-body">
@@ -416,6 +438,44 @@
           ? '<a href="https://discord.com/invite/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Open</a><button id="gmvbtn">Verify</button>'
           : '<a href="https://discord.com/invite/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Join</a>';
         if (dcDone) document.getElementById('gmvbtn').onclick = verifyGmMsg;
+      }
+    }
+
+    renderSocialTasks();
+  }
+
+  // Trust-based X engagement tasks (like / retweet). X exposes no API to
+  // verify these, so completion is stored per-wallet in localStorage.
+  const SOCIAL_TASKS = [
+    { prefix: 'tlk', key: 'like',    icon: '♥', label: 'Like',    sub: 'Like the GM launch tweet on X',    url: 'https://x.com/intent/like?tweet_id=2066850786232123432' },
+    { prefix: 'trt', key: 'retweet', icon: '🔁', label: 'Retweet', sub: 'Retweet the GM launch tweet on X', url: 'https://x.com/intent/retweet?tweet_id=2066850786232123432' },
+  ];
+
+  function renderSocialTasks() {
+    const a = addr();
+    if (!a) return;
+    for (const t of SOCIAL_TASKS) {
+      const card = document.getElementById(t.prefix);
+      const ico  = document.getElementById(t.prefix + '-ico');
+      const sub  = document.getElementById(t.prefix + '-sub');
+      const acts = document.getElementById(t.prefix + '-acts');
+      if (!card) continue;
+      const done = localStorage.getItem('oneliq_gm_' + t.key + '_' + a) === '1';
+      if (done) {
+        card.classList.add('done'); ico.classList.add('done');
+        ico.textContent = '✓';
+        sub.textContent = 'Done'; sub.classList.add('ok');
+        acts.innerHTML = '';
+      } else {
+        card.classList.remove('done'); ico.classList.remove('done');
+        ico.textContent = t.icon;
+        sub.textContent = t.sub; sub.classList.remove('ok');
+        acts.innerHTML = '<a href="' + t.url + '" target="_blank" rel="noopener noreferrer">' + t.label + '</a><button class="smark">Mark done</button>';
+        acts.querySelector('.smark').onclick = () => {
+          localStorage.setItem('oneliq_gm_' + t.key + '_' + a, '1');
+          renderSocialTasks();
+          ArcUI.toast('success', 'Done!', t.label + ' marked.');
+        };
       }
     }
   }
