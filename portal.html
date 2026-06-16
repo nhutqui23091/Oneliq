@@ -286,7 +286,7 @@
 
   // -- Badge definitions --
   const BADGE_META = {
-    welcome:  { img: '/assets/badges/logoO.png',        name: 'Welcome to Oneliq', tip: 'Complete all five onboarding tasks', fallback: '/assets/badges/welcome.svg' },
+    welcome:  { img: '/assets/social/LogoWelcome.png',  name: 'Welcome to Oneliq', tip: 'Complete all five onboarding tasks', fallback: '/assets/badges/welcome.svg' },
     referral: { img: '/assets/badges/referral.svg',     name: 'Connector',         tip: 'Invite 10 friends who join through your Portal link',
                 goal: 10,  unit: 'invites', stat: s => s?.referral_count || 0 },
     streak7: { img: '/assets/badges/streak7.png?v=2', name: '7-Day Streak',      tip: 'Check in 7 days in a row',
@@ -612,8 +612,11 @@
   if (refShareBtn) refShareBtn.onclick = () => {
     if (!addr())    { ArcUI.toast('', 'Connect wallet', 'Connect to get your referral link.'); return; }
     if (!refCode()) { ArcUI.toast('', 'One sec', 'Your link is still being generated.'); return; }
-    const text = 'Exploring Arc Testnet the easy way with @oneliq_ Portal — daily check-ins, streaks, and badges. Jump in 👇';
-    const url  = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(refLink());
+    const text =
+      'Exploring Arc Testnet the easy way with @oneliq_\n\n' +
+      'Portal makes it simple: daily check-ins, streaks, and badges.\n\n' +
+      'Jump in 👇 ' + refLink();
+    const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
