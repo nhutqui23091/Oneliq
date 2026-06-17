@@ -15,7 +15,7 @@
 
 import { computeStars } from './_stars.js';
 
-const CACHE_KEY = 'lb:cache:v2';
+const CACHE_KEY = 'lb:cache:v3';
 const CACHE_TTL = 60;   // seconds
 const TOP_N     = 25;
 
@@ -55,10 +55,16 @@ async function buildBoard(kv) {
       let st;
       try { st = JSON.parse(await kv.get(name) || '{}'); } catch { continue; }
 
-      // Recompute fresh from the gm record (gm GET denormalises discord_done +
-      // said_gm), so referral credits and badges earned since the user's last
-      // visit are always reflected — never a stale denormalised total.
-      const stars = computeStars(st, { discord_id: st.discord_done, said_gm: st.said_gm });
+      // Read the Discord profile directly (source of truth for discord +
+      // said_gm) and treat a Welcome badge as implying the X tasks — mirroring
+      // reconcileLegacyWelcome. This makes the total accurate for EVERY wallet,
+      // even ones that haven't reopened the Portal since the last deploy (whose
+      // gm record may still lack the denormalised discord_done/said_gm fields).
+      let profile = {};
+      try { profile = JSON.parse(await kv.get('profile:' + addr) || '{}'); } catch {}
+      const hasWelcome = Array.isArray(st.badges) && st.badges.includes('welcome');
+      const eff = hasWelcome ? { ...st, x_follow_done: true, like_done: true, retweet_done: true } : st;
+      const stars = computeStars(eff, { discord_id: profile.discord_id, said_gm: profile.said_gm });
       const invites = Math.max(0, st.referral_count || 0);
       if (stars <= 0 && invites <= 0) continue;
 

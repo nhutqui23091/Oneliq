@@ -104,7 +104,7 @@ async function restoreAll(kv, request) {
   }
 
   // Derived cache will rebuild on next leaderboard read.
-  if (apply) { try { await kv.delete('lb:cache:v2'); } catch {} }
+  if (apply) { try { await kv.delete('lb:cache:v3'); } catch {} }
 
   return json(200, {
     applied: apply,

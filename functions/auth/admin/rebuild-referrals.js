@@ -99,7 +99,7 @@ export async function onRequest(context) {
       }
     }
     // Drop the cached leaderboard so corrected counts show right away.
-    try { await kv.delete('lb:cache:v2'); } catch {}
+    try { await kv.delete('lb:cache:v3'); } catch {}
   }
 
   return json(200, {
