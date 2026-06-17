@@ -15,7 +15,7 @@
 
 import { computeStars } from './_stars.js';
 
-const CACHE_KEY = 'lb:cache:v1';
+const CACHE_KEY = 'lb:cache:v2';
 const CACHE_TTL = 60;   // seconds
 const TOP_N     = 25;
 

@@ -198,7 +198,12 @@ async function handlePost(request, env, context) {
     if (txCount >= 100) badges.push('tx100');
   }
 
+  // IMPORTANT: spread the existing state first so a check-in never drops the
+  // trust flags (like_done/retweet_done), denormalized fields (discord_done,
+  // said_gm, stars, x_handle, discord_name) or referral data (referrals,
+  // referral_count, ref_code). Only the check-in/streak fields are overwritten.
   const newState = {
+    ...state,
     last_checkin:   today,
     last_tx_hash:   txHash,
     streak,
@@ -206,7 +211,6 @@ async function handlePost(request, env, context) {
     points:         (state.points || 0) + streak,
     history,
     total_checkins: totalCheckins,
-    x_follow_done:  state.x_follow_done || false,
     badges,
   };
 

@@ -135,7 +135,18 @@
 .gm-stat-hero .gm-stat-lbl{font-size:11px}
 .gm-dash-lb{margin-top:2px;height:44px;padding:0 18px;border-radius:11px;border:1px solid rgba(244,200,154,.35);background:rgba(244,200,154,.1);color:var(--arc3);font-size:13.5px;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .15s}
 .gm-dash-lb:hover{background:rgba(244,200,154,.18);border-color:rgba(244,200,154,.55)}
-.gm-dash-rank{font-size:11px;font-family:var(--mono);color:var(--muted);text-align:center;min-height:14px}
+.gm-dash-activity{height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12.5px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .15s}
+.gm-dash-activity:hover{color:var(--text);border-color:var(--border2);background:var(--surface2)}
+.gm-dash-rank{font-size:11px;font-family:var(--mono);color:var(--muted);text-align:center;min-height:14px;margin-top:2px}
+
+/* ACTIVITY MODAL */
+.act-list{display:flex;flex-direction:column;gap:7px}
+.act-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border-radius:10px;background:var(--surface);border:1px solid var(--border)}
+.act-label{font-size:13px;color:var(--text)}
+.act-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--arc3);white-space:nowrap}
+.act-total{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:12px 13px;border-radius:10px;background:rgba(244,200,154,.08);border:1px solid rgba(244,200,154,.25)}
+.act-total span:first-child{font-size:13px;font-weight:700;color:var(--text)}
+.act-total span:last-child{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--arc3)}
 
 /* CHECK-IN CARD (logo beside the big streak number; label + flame centered below) */
 .gm-checkin-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px}
@@ -198,6 +209,7 @@
         <div class="gm-stat"><span class="gm-stat-num" id="dash-badges">0</span><span class="gm-stat-lbl">Badges</span></div>
       </div>
       <button class="gm-dash-lb" id="dash-lb-btn" type="button">🏆 Leaderboard</button>
+      <button class="gm-dash-activity" id="dash-activity-btn" type="button">📋 Activity</button>
       <div class="gm-dash-rank" id="dash-rank"></div>
     </div>
 
@@ -404,22 +416,57 @@
     badge: { welcome: 50, streak7: 40, tx100: 150, referral: 200, og: 75 },
     referral: 30, checkin: 3,
   };
-  function computeStars(gm, disc) {
+  // Compute from gm state alone (discord_done + said_gm are denormalized onto it
+  // by the GET handler), so a failed profile fetch can't make the total swing.
+  function computeStars(gm) {
     let s = 0;
-    if (gm?.x_follow_done)                       s += STAR_VALUES.x_follow;
-    if (disc?.discord_id || disc?.discord_username) s += STAR_VALUES.discord;
-    if (gm?.like_done)                           s += STAR_VALUES.like;
-    if (gm?.retweet_done)                        s += STAR_VALUES.retweet;
-    if (disc?.said_gm || gm?.said_gm)            s += STAR_VALUES.gm;
+    if (gm?.x_follow_done) s += STAR_VALUES.x_follow;
+    if (gm?.discord_done)  s += STAR_VALUES.discord;
+    if (gm?.like_done)     s += STAR_VALUES.like;
+    if (gm?.retweet_done)  s += STAR_VALUES.retweet;
+    if (gm?.said_gm)       s += STAR_VALUES.gm;
     for (const b of (gm?.badges || [])) if (STAR_VALUES.badge[b]) s += STAR_VALUES.badge[b];
     s += Math.max(0, gm?.referral_count || 0) * STAR_VALUES.referral;
     s += Math.max(0, gm?.total_checkins || 0) * STAR_VALUES.checkin;
     return s;
   }
 
+  // Per-source breakdown for the Activity modal — sums to computeStars(gm).
+  const BADGE_LABELS = { welcome: 'Welcome badge', streak7: '7-Day Streak badge', tx100: '100 Transactions badge', referral: 'Connector badge', og: 'OG badge' };
+  function activityRows(gm) {
+    const V = STAR_VALUES, rows = [];
+    if (gm?.x_follow_done) rows.push(['Followed Oneliq on X', V.x_follow]);
+    if (gm?.discord_done)  rows.push(['Joined Oneliq Discord', V.discord]);
+    if (gm?.like_done)     rows.push(['Liked the launch tweet', V.like]);
+    if (gm?.retweet_done)  rows.push(['Retweeted the launch tweet', V.retweet]);
+    if (gm?.said_gm)       rows.push(['Said GM in #gm-gn', V.gm]);
+    for (const b of (gm?.badges || [])) if (V.badge[b]) rows.push([BADGE_LABELS[b] || (b + ' badge'), V.badge[b]]);
+    const inv = Math.max(0, gm?.referral_count || 0);
+    if (inv > 0) rows.push(['Invited ' + inv + ' friend' + (inv > 1 ? 's' : '') + ' (+' + V.referral + ' each)', inv * V.referral]);
+    const ci = Math.max(0, gm?.total_checkins || 0);
+    if (ci > 0) rows.push(['Daily check-ins ×' + ci + ' (+' + V.checkin + ' each)', ci * V.checkin]);
+    return rows;
+  }
+  function openActivity() {
+    let html;
+    if (!addr()) {
+      html = '<div style="padding:24px 12px;text-align:center;color:var(--muted);font-size:13px">Connect your wallet to see your Star Points activity.</div>';
+    } else {
+      const rows = activityRows(gmState);
+      if (!rows.length) {
+        html = '<div style="padding:24px 12px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5">No Star Points yet.<br/>Finish an onboarding task or check in to start earning ★.</div>';
+      } else {
+        html = '<div class="act-list">'
+          + rows.map(([label, val]) => '<div class="act-row"><span class="act-label">' + esc(label) + '</span><span class="act-val">+' + val + ' ★</span></div>').join('')
+          + '</div><div class="act-total"><span>Total</span><span>' + computeStars(gmState) + ' ★</span></div>';
+      }
+    }
+    ArcUI.openModal({ title: '★ Star Points', body: html });
+  }
+
   // -- Dashboard --
   function renderDash() {
-    const stars   = computeStars(gmState, discState);
+    const stars   = computeStars(gmState);
     const streak  = gmState?.streak || 0;
     const invites = gmState?.referral_count || 0;
     const badges  = (gmState?.badges || []).length;
@@ -512,6 +559,7 @@
     });
   }
   document.getElementById('dash-lb-btn')?.addEventListener('click', openLeaderboard);
+  document.getElementById('dash-activity-btn')?.addEventListener('click', openActivity);
 
   // -- Badge definitions --
   const BADGE_META = {
