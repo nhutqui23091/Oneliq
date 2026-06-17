@@ -7,5 +7,10 @@
     "@reown/appkit": "latest",
     "@reown/appkit-adapter-ethers": "latest",
     "ethers": "^6.0.0"
+  },
+  "comment_overrides": "Force patched transitive deps without downgrading ethers v6. ws<8.18 (GHSA-96hv-2xvq-fx4p DoS, GHSA-58qx-3vcg-4xpx) and form-data<4.0.4 (GHSA-hmw2-7cc7-3qxx) are build-time only (not in the deployed bundle), pinned here to clear Dependabot.",
+  "overrides": {
+    "ws": "^8.18.0",
+    "form-data": "^4.0.4"
   }
 }
