@@ -30,6 +30,12 @@ export async function onRequestGet(context) {
   if (!code)  return errPage('Missing OAuth code from Discord. Please try connecting again.', 400);
   if (!state) return errPage('Missing state parameter. Please try connecting again.', 400);
 
+  // state is the wallet address, optionally with a return-page hint after "|"
+  // (e.g. "0xabc...|portal"). Default return is /balance for back-compat.
+  const [stateAddr, returnTo] = String(state).split('|');
+  const walletAddr = (stateAddr || '').toLowerCase();
+  const destPath = returnTo === 'portal' ? '/portal' : '/balance';
+
   const clientId     = env.DISCORD_CLIENT_ID;
   const clientSecret = env.DISCORD_CLIENT_SECRET;
   const redirectUri  = env.DISCORD_REDIRECT_URI;
@@ -109,11 +115,15 @@ export async function onRequestGet(context) {
 
     console.log('[discord-cb] linked Discord user', user.username, 'to wallet', state.slice(0, 10) + '...');
 
-    // Store wallet <-> Discord mapping in KV
+    // Store wallet <-> Discord mapping in KV. Preserve any existing profile
+    // fields (e.g. said_gm) by merging rather than overwriting.
     if (env.PROFILE_KV) {
+      let prev = {};
+      try { const r = await env.PROFILE_KV.get('profile:' + walletAddr); if (r) prev = JSON.parse(r); } catch {}
       await env.PROFILE_KV.put(
-        'profile:' + state.toLowerCase(),
+        'profile:' + walletAddr,
         JSON.stringify({
+          ...prev,
           discord_id:          user.id,
           discord_username:    user.username,
           discord_global_name: user.global_name || user.username,
@@ -125,9 +135,9 @@ export async function onRequestGet(context) {
         'Add a KV namespace binding named PROFILE_KV in Cloudflare Pages > Settings > Functions.');
     }
 
-    // Redirect back with success flag
+    // Redirect back to the page the user started from, with a success flag.
     const origin = new URL(request.url).origin;
-    return Response.redirect(origin + '/balance?discord_linked=1', 302);
+    return Response.redirect(origin + destPath + '?discord_linked=1', 302);
 
   } catch (err) {
     console.error('[discord-cb] unexpected error:', err && err.message, err && err.stack);

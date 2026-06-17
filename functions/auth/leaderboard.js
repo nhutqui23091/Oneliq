@@ -55,6 +55,12 @@ async function buildBoard(kv) {
       let st;
       try { st = JSON.parse(await kv.get(name) || '{}'); } catch { continue; }
 
+      // Legacy records predate total_checkins — derive it from history so their
+      // check-in stars count here too (mirrors getState in gm.js).
+      if (typeof st.total_checkins !== 'number' && Array.isArray(st.history)) {
+        st.total_checkins = st.history.length;
+      }
+
       // Read the Discord profile directly (source of truth for discord +
       // said_gm) and treat a Welcome badge as implying the X tasks — mirroring
       // reconcileLegacyWelcome. This makes the total accurate for EVERY wallet,

@@ -381,6 +381,7 @@
   await ArcUI.bootApp('portal');
 
   const REFERRAL_GOAL = 10;
+  const DISCORD_INVITE = 'https://discord.com/invite/7XUPdWWrGk';
 
   // Capture an incoming referral (?ref=<code>, or a legacy 0x address) before
   // the wallet connects, then strip it from the URL so it doesn't linger.
@@ -391,6 +392,22 @@
       const u = new URL(location.href);
       u.searchParams.delete('ref');
       history.replaceState(null, '', u.pathname + u.search + u.hash);
+    }
+  } catch {}
+
+  // Returned from the Discord OAuth link flow: confirm, then nudge to the
+  // actual server so they can say GM next.
+  try {
+    const sp = new URLSearchParams(location.search);
+    if (sp.get('discord_linked') === '1') {
+      const u = new URL(location.href);
+      u.searchParams.delete('discord_linked');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+      ArcUI.toast('success', 'Discord connected', 'Now join the server and say GM in #gm-gn.');
+      if (localStorage.getItem('oneliq_join_server_after') === '1') {
+        localStorage.removeItem('oneliq_join_server_after');
+        window.open(DISCORD_INVITE, '_blank', 'noopener');
+      }
     }
   } catch {}
 
@@ -463,6 +480,22 @@
       }
     }
     ArcUI.openModal({ title: '★ Star Points', body: html });
+  }
+
+  // Start the Discord OAuth link flow and return to the Portal. Linking the
+  // account is what completes the "Join Oneliq Discord" task; once back, we
+  // open the server invite so they can actually join + say GM.
+  function connectDiscord() {
+    const a = addr();
+    if (!a) { ArcUI.toast('', 'Connect wallet', 'Connect your wallet first.'); return; }
+    const clientId = document.querySelector('meta[name="oneliq-discord-client-id"]')?.content || '';
+    if (!clientId) { window.open(DISCORD_INVITE, '_blank', 'noopener'); return; }
+    const redirectUri = document.querySelector('meta[name="oneliq-discord-redirect"]')?.content
+      || (location.origin + '/auth/discord/callback');
+    try { localStorage.setItem('oneliq_join_server_after', '1'); } catch {}
+    location.href = 'https://discord.com/oauth2/authorize?client_id=' + encodeURIComponent(clientId)
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&response_type=code&scope=identify&state=' + encodeURIComponent(a + '|portal');
   }
 
   // -- Dashboard --
@@ -725,8 +758,12 @@
       tdCard.classList.remove('done'); tdIco.classList.remove('done');
       tdIco.textContent = '💬';
       tdSub.classList.remove('ok');
-      tdSub.textContent = 'Link Discord via Profile after joining';
-      tdActs.innerHTML  = '<a href="https://discord.com/invite/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Join</a>';
+      tdSub.textContent = 'Connect Discord, then join the server';
+      const hasOauth = !!(document.querySelector('meta[name="oneliq-discord-client-id"]')?.content);
+      tdActs.innerHTML = (hasOauth ? '<button id="td-connect">Connect</button>' : '')
+        + '<a href="' + DISCORD_INVITE + '" target="_blank" rel="noopener noreferrer">Join</a>';
+      const cbtn = document.getElementById('td-connect');
+      if (cbtn) cbtn.onclick = connectDiscord;
     }
 
     // X task

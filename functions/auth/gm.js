@@ -326,7 +326,17 @@ function genRefCode() {
 async function getState(kv, addr) {
   try {
     const raw = await kv.get('gm:' + addr);
-    if (raw) return { ...defaultState(), ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Legacy records predate the total_checkins counter; derive it from the
+      // check-in history so their per-check-in stars are always counted. (The
+      // history array is capped at ~90; any wallet past that already has an
+      // authoritative total_checkins, so this only ever fills in old records.)
+      if (typeof parsed.total_checkins !== 'number' && Array.isArray(parsed.history)) {
+        parsed.total_checkins = parsed.history.length;
+      }
+      return { ...defaultState(), ...parsed };
+    }
   } catch {}
   return defaultState();
 }
