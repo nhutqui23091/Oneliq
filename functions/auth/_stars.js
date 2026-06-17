@@ -23,6 +23,10 @@ export const STAR_VALUES = {
   retweet:   5, // Retweet the launch tweet
   gm:        5, // Say GM in #gm-gn
 
+  // Bonus tasks (one-time; do NOT count toward the Welcome badge)
+  like2:     5, // Like the latest tweet
+  retweet2:  5, // Retweet the latest tweet
+
   // Badges (one-time bonus on top of the tasks that unlock them)
   badge: {
     welcome:  50,
@@ -51,6 +55,10 @@ export function computeStars(gm = {}, profile = {}) {
   if (gm.like_done)        stars += STAR_VALUES.like;
   if (gm.retweet_done)     stars += STAR_VALUES.retweet;
   if (profile?.said_gm)    stars += STAR_VALUES.gm;
+
+  // -- Bonus tasks --
+  if (gm.like2_done)       stars += STAR_VALUES.like2;
+  if (gm.retweet2_done)    stars += STAR_VALUES.retweet2;
 
   // -- Badges --
   const badges = Array.isArray(gm.badges) ? gm.badges : [];

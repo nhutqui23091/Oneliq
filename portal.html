@@ -308,6 +308,34 @@
 
     </div>
 
+  <div class="gm-tasks-wrap">
+    <div class="gm-sec-label">Bonus</div>
+
+    <div class="gm-task" id="tlk2">
+      <div class="t-ico" id="tlk2-ico">♥</div>
+      <div class="t-body">
+        <div class="t-name">Like our latest tweet</div>
+        <div class="t-sub" id="tlk2-sub">Like the latest Oneliq tweet on X</div>
+      </div>
+      <span class="t-star">★ 5</span>
+      <div class="t-acts" id="tlk2-acts">
+        <a href="https://x.com/intent/like?tweet_id=2067150066692006239" target="_blank" rel="noopener noreferrer">Like</a>
+      </div>
+    </div>
+
+    <div class="gm-task" id="trt2">
+      <div class="t-ico" id="trt2-ico">🔁</div>
+      <div class="t-body">
+        <div class="t-name">Retweet our latest tweet</div>
+        <div class="t-sub" id="trt2-sub">Retweet the latest Oneliq tweet on X</div>
+      </div>
+      <span class="t-star">★ 5</span>
+      <div class="t-acts" id="trt2-acts">
+        <a href="https://x.com/intent/retweet?tweet_id=2067150066692006239" target="_blank" rel="noopener noreferrer">Retweet</a>
+      </div>
+    </div>
+  </div>
+
   <div class="gm-referral-section">
     <div class="gm-sec-label">Referral</div>
     <div class="gm-ref-card">
@@ -431,6 +459,7 @@
   // -- Star Points (mirror of functions/auth/_stars.js — keep in sync) --
   const STAR_VALUES = {
     x_follow: 20, discord: 20, like: 5, retweet: 5, gm: 5,
+    like2: 5, retweet2: 5,
     badge: { welcome: 50, streak7: 40, tx100: 150, referral: 200, og: 75 },
     referral: 30, checkin: 3,
   };
@@ -443,6 +472,8 @@
     if (gm?.like_done)     s += STAR_VALUES.like;
     if (gm?.retweet_done)  s += STAR_VALUES.retweet;
     if (gm?.said_gm)       s += STAR_VALUES.gm;
+    if (gm?.like2_done)    s += STAR_VALUES.like2;
+    if (gm?.retweet2_done) s += STAR_VALUES.retweet2;
     for (const b of (gm?.badges || [])) if (STAR_VALUES.badge[b]) s += STAR_VALUES.badge[b];
     s += Math.max(0, gm?.referral_count || 0) * STAR_VALUES.referral;
     s += Math.max(0, gm?.total_checkins || 0) * STAR_VALUES.checkin;
@@ -458,6 +489,8 @@
     if (gm?.like_done)     rows.push(['Liked the launch tweet', V.like]);
     if (gm?.retweet_done)  rows.push(['Retweeted the launch tweet', V.retweet]);
     if (gm?.said_gm)       rows.push(['Said GM in #gm-gn', V.gm]);
+    if (gm?.like2_done)    rows.push(['Liked the latest tweet', V.like2]);
+    if (gm?.retweet2_done) rows.push(['Retweeted the latest tweet', V.retweet2]);
     for (const b of (gm?.badges || [])) if (V.badge[b]) rows.push([BADGE_LABELS[b] || (b + ' badge'), V.badge[b]]);
     const inv = Math.max(0, gm?.referral_count || 0);
     if (inv > 0) rows.push(['Invited ' + inv + ' friend' + (inv > 1 ? 's' : '') + ' (+' + V.referral + ' each)', inv * V.referral]);
@@ -823,6 +856,8 @@
   const SOCIAL_TASKS = [
     { prefix: 'tlk', key: 'like',    flag: 'like_done',    icon: '♥', label: 'Like',    sub: 'Like the Portal launch tweet on X',    url: 'https://x.com/intent/like?tweet_id=2066850786232123432' },
     { prefix: 'trt', key: 'retweet', flag: 'retweet_done', icon: '🔁', label: 'Retweet', sub: 'Retweet the Portal launch tweet on X', url: 'https://x.com/intent/retweet?tweet_id=2066850786232123432' },
+    { prefix: 'tlk2', key: 'like2',    flag: 'like2_done',    icon: '♥', label: 'Like',    sub: 'Like the latest Oneliq tweet on X',    url: 'https://x.com/intent/like?tweet_id=2067150066692006239' },
+    { prefix: 'trt2', key: 'retweet2', flag: 'retweet2_done', icon: '🔁', label: 'Retweet', sub: 'Retweet the latest Oneliq tweet on X', url: 'https://x.com/intent/retweet?tweet_id=2067150066692006239' },
   ];
 
   function renderSocialTasks() {
