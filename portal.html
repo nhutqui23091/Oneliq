@@ -137,12 +137,11 @@
 .gm-dash-lb:hover{background:rgba(244,200,154,.18);border-color:rgba(244,200,154,.55)}
 .gm-dash-rank{font-size:11px;font-family:var(--mono);color:var(--muted);text-align:center;min-height:14px}
 
-/* CHECK-IN CARD (horizontal logo + streak) */
-.gm-checkin-top{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:6px}
-.gm-checkin-top .gm-hero-logo-wrap{margin-bottom:0}
-.gm-checkin-streak{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
-.gm-checkin-streak .gm-streak-lbl{margin-bottom:2px}
-.gm-checkin-streak .gm-flame-ico{margin-bottom:0}
+/* CHECK-IN CARD (logo beside the big streak number; label + flame centered below) */
+.gm-checkin-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px}
+.gm-checkin-row .gm-hero-logo-wrap{margin-bottom:0}
+.gm-checkin-row .gm-streak-num{margin:0}
+.gm-hint:empty{min-height:0;margin-bottom:0}
 
 /* TASK STAR TAG */
 .t-star{flex-shrink:0;font-size:11px;font-weight:700;font-family:var(--mono);color:var(--arc3);background:rgba(244,200,154,.1);border:1px solid rgba(244,200,154,.25);padding:3px 8px;border-radius:999px;white-space:nowrap}
@@ -206,16 +205,14 @@
       <div class="gm-hero-card">
         <div class="gm-hero-eyebrow">DAILY CHECK-IN</div>
 
-        <div class="gm-checkin-top">
+        <div class="gm-checkin-row">
           <div class="gm-hero-logo-wrap">
             <img src="/assets/logos/mark-oneliq.png" class="gm-logo" alt="Oneliq"/>
           </div>
-          <div class="gm-checkin-streak">
-            <div class="gm-streak-num" id="snum">00</div>
-            <div class="gm-streak-lbl">Day Streak</div>
-            <span id="gmflame" class="gm-flame-ico" style="display:none"></span>
-          </div>
+          <div class="gm-streak-num" id="snum">00</div>
         </div>
+        <div class="gm-streak-lbl">Day Streak</div>
+        <span id="gmflame" class="gm-flame-ico" style="display:none"></span>
 
         <div class="gm-hero-freezes" id="ftxt"></div>
 
