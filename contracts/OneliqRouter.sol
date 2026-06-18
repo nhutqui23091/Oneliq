@@ -47,7 +47,7 @@ contract OneliqRouter {
     uint16  public constant MAX_FEE_BPS = 100; // hard cap: protocol fee can never exceed 1.00%
 
     /// @notice Protocol fee in basis points (1 bps = 0.01%). Taken from the input token.
-    uint16 public feeBps = 10; // 0.10% default
+    uint16 public feeBps = 30; // 0.30% default
 
     /// @notice Owner (deployer): can tune the fee and withdraw collected fees.
     address public owner;

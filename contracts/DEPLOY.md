@@ -65,7 +65,7 @@ All amounts are in **6-decimal token units**: `1 USDC = 1000000`, `1 EURC = 1000
 3. (Optional) Call `quote(USDC, EURC, 1000000)` → shows expected EURC out + fee.
 4. Call `swap(tokenIn = 0x3600...0000, tokenOut = 0x89B5...D72a, amountIn = 1000000, minOut = 0)`.
    - `minOut = 0` is fine for a testnet test (no slippage protection). For production use the `quote` value minus slippage.
-5. Confirm in OKX → you now have a swap tx routed through YOUR contract, with the 0.10% fee held in the router.
+5. Confirm in OKX → you now have a swap tx routed through YOUR contract, with the 0.30% fee held in the router.
 
 ### Form answer (2 contracts)
 > **Contracts deployed on Arc Testnet (chainId 5042002):**
@@ -73,4 +73,4 @@ All amounts are in **6-decimal token units**: `1 USDC = 1000000`, `1 EURC = 1000
 > - OneliqRouter (USDC<->EURC fee-router over Circle/Curve pool): `0xb508F475230E4Ab876258B7DCaFbc182d806e1F7`
 > - Deployer: `0x738...bC762` *(your full address)*
 >
-> Self-contained, no factory. OneliqRouter forwards swaps to Circle's existing Curve StableSwap pool and takes a 0.10% protocol fee — Oneliq's own on-chain entry point without holding liquidity.
+> Self-contained, no factory. OneliqRouter forwards swaps to Circle's existing Curve StableSwap pool and takes a 0.30% protocol fee — Oneliq's own on-chain entry point without holding liquidity.
