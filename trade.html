@@ -337,16 +337,6 @@ main.trade-wrap{position:relative;z-index:2;max-width:560px;margin:0 auto;paddin
 </head>
 <body>
 <main class="trade-wrap">
-  <div class="hero-strip">
-    <div>
-      <h1>Trade</h1>
-      <p>Swap within Arc · Bridge USDC across chains · All-in-one</p>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <span class="hero-chip" id="gas-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="12" height="20" rx="2"/><rect x="5" y="6" width="5" height="4" rx="1"/><path d="M14 8h3v9l-2 2"/><path d="M17 8V6"/></svg><span id="gas-pill-txt">Arc base ≈ - Gwei</span></span>
-      <span class="hero-chip" id="block-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg><span id="block-pill-txt">block -</span></span>
-    </div>
-  </div>
 
   <!-- App Kit degraded-state warning (full-width above grid). Only renders when
        App Kit SDK fails to load OR config is missing - then Uniswap V2 fallback
@@ -2074,6 +2064,9 @@ main.trade-wrap{position:relative;z-index:2;max-width:560px;margin:0 auto;paddin
 
   // ── Gas / block tickers ──────────────────────────────
   async function tick() {
+    const gpEl = document.getElementById('gas-pill-txt');
+    const bnEl = document.getElementById('block-pill-txt');
+    if (!gpEl && !bnEl) return; // hero pills removed from Trade — skip the RPC poll entirely
     try {
       const p = rpcProvider('arc');
       const [feeData, bn] = await Promise.all([p.getFeeData(), p.getBlockNumber()]);
