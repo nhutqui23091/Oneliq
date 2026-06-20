@@ -667,6 +667,13 @@
       const out = [];
       for (let i = 0; i < intents.length; i++) {
         const s = sources[i];
+        // Some wallets (notably OKX) don't auto-resurface the next signature
+        // popup when typed-data requests are fired back-to-back — the previous
+        // popup's close animation swallows the new request, so the user has to
+        // manually toggle the wallet to sign each subsequent intent. Yield a
+        // short beat after the previous signature resolves so the popup fully
+        // closes before we request the next one. No effect on single-source.
+        if (i > 0) await new Promise(r => setTimeout(r, 450));
         onStep?.(`${label} ${i + 1}/${intents.length}: ${ARC.CHAINS[s.chainKey].short} → ${ARC.formatAmt(s.valueCanonical, 6, 4)} USDC`);
         const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, intents[i]);
         out.push({ burnIntent: burnIntentToJson(intents[i]), signature });
