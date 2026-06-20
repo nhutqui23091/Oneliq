@@ -434,10 +434,21 @@ html{scroll-behavior:smooth}
     if (!state.addr) return;
     lsSet(txPendingKey(), state.txPending);
   }
+  // Optimistic pending markers are UI-only — the real state is on-chain/Gateway.
+  // A cross-chain deposit credits in ≤~15min and a forwarded spend lands in
+  // minutes, so any marker older than this has definitively resolved (or failed)
+  // and must be dropped even when the balance heuristic below never matches.
+  // Without this hard age cap, a snapshot/timing mismatch (e.g. the Gateway
+  // available balance updating before our snapshot, common on unified/forwarder
+  // spends) could strand a "… pending ⚠" badge in localStorage forever.
+  const MAX_PENDING_AGE_MS = 45 * 60 * 1000;
   function pruneTxPending() {
     if (!state.addr || !state.txPending.length) return;
     let changed = false;
+    const now = Date.now();
     state.txPending = state.txPending.filter(p => {
+      // Hard expiry: no startedAt (legacy entry) or too old → drop regardless of balance.
+      if (!p.startedAt || now - p.startedAt > MAX_PENDING_AGE_MS) { changed = true; return false; }
       const bal = state.balances.find(b => b.chainKey === p.chainKey);
       if (!bal) return true;
       const cur = bal.canonical;
