@@ -691,28 +691,50 @@
     return tx.hash;
   }
 
+  // OP-Stack testnets whose injected-wallet gas/fee estimation is unreliable.
+  // For these we hand the wallet a FULLY-described tx (gasLimit + 1559 fee
+  // fields) so it never has to estimate anything itself.
+  //   1) "intrinsic gas too high" — bad auto gas-limit estimate (block limits
+  //      here are huge: 40M–1.2B, so it's an estimation quirk, not a real cap).
+  //   2) Disabled "Confirm" with a blank network-fee row — the wallet can't
+  //      fetch fee data from its own RPC, so it won't let the user submit.
+  const FEE_HINT_CHAINS = new Set(['optimismSepolia', 'unichainSepolia']);
+
   /**
-   * Compute an explicit { gasLimit } override for a write call.
+   * Compute explicit gas/fee overrides for a write call.
    *
-   * WHY: some OP-Stack testnets (OP Sepolia, Unichain Sepolia) reject txs sent
-   * with the injected wallet's auto-estimated gas — surfaced to the user as
-   * "intrinsic gas too high". Their block limits are huge (40M–1.2B), so the
-   * rejection is an estimation-pathway quirk, not a real limit. We sidestep the
-   * wallet/node estimateGas by estimating against our own reliable read-only RPC
-   * and passing an explicit gasLimit (+30% headroom). Once gasLimit is set,
-   * ethers/the wallet skip their own estimation and just use our value.
+   * Always sets an explicit gasLimit (estimated against our own reliable
+   * read-only RPC, +30% headroom) so ethers/the wallet skip their own
+   * estimateGas. For FEE_HINT_CHAINS it additionally supplies EIP-1559 fee
+   * fields (from getFeeData, 2× headroom) so the wallet's Confirm button isn't
+   * stuck waiting on a fee estimate it can't load. The user can still edit fees
+   * in their wallet.
    *
    * Best-effort: if the local estimate fails (e.g. an allowance not yet mined),
    * fall back to a generous fixed limit so the call still goes through.
    */
   async function gasOverrides(chainKey, address, abi, method, args, fallbackGas) {
+    const ov = {};
+    const prov = rpcProvider(chainKey);
     try {
-      const ro = new Contract(address, abi, rpcProvider(chainKey));
+      const ro = new Contract(address, abi, prov);
       const est = await ro[method].estimateGas(...args, { from: wallet.address });
-      return { gasLimit: est + (est * 30n) / 100n };
+      ov.gasLimit = est + (est * 30n) / 100n;
     } catch {
-      return fallbackGas ? { gasLimit: fallbackGas } : {};
+      if (fallbackGas) ov.gasLimit = fallbackGas;
     }
+    if (FEE_HINT_CHAINS.has(chainKey)) {
+      try {
+        const fd = await prov.getFeeData();
+        if (fd.maxFeePerGas) {
+          ov.maxFeePerGas = fd.maxFeePerGas * 2n;
+          ov.maxPriorityFeePerGas = (fd.maxPriorityFeePerGas && fd.maxPriorityFeePerGas > 0n)
+            ? fd.maxPriorityFeePerGas
+            : 1_000_000n; // ~0.001 gwei floor; these chains run near-zero priority
+        }
+      } catch { /* leave fees to the wallet */ }
+    }
+    return ov;
   }
 
   function formatAmt(v, decimals, maxFrac = 6) {
@@ -890,7 +912,7 @@
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.9.4',
+    version: '9.9.5',
   };
 
   // ───────── CHAIN ICONS ─────────
