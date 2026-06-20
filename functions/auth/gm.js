@@ -13,6 +13,7 @@
 import { maybeAwardWelcome, reconcileLegacyWelcome } from './_welcome.js';
 import { recordReferral } from './_referral.js';
 import { computeStars } from './_stars.js';
+import { computeStreak } from './_streak.js';
 
 const ARC_RPC = 'https://rpc.testnet.arc.network';
 // OneliqCheckIn contract — a valid check-in is a successful call to it
@@ -158,35 +159,20 @@ async function handlePost(request, env, context) {
     return jsonRes({ error: verify.error }, 400);
   }
 
-  // -- Streak logic --
-  const yesterday  = utcOffset(-1);
-  const twoDaysAgo = utcOffset(-2);
-
-  let streak     = state.streak || 0;
-  let freezes    = typeof state.freezes_left === 'number' ? state.freezes_left : 3;
-  let freezeUsed = false;
-
-  const isFirstCheckin = !state.last_checkin;
-
-  if (isFirstCheckin) {
-    streak = 1;
-  } else if (state.last_checkin === yesterday) {
-    streak += 1;
-  } else if (state.last_checkin === twoDaysAgo && freezes > 0) {
-    streak += 1;
-    freezes -= 1;
-    freezeUsed = true;
-  } else {
-    streak = 1;
-  }
-
-  // Bonus freeze at milestone days (capped at 5)
-  if ([7, 30, 100].includes(streak) && freezes < 5) {
-    freezes = Math.min(freezes + 1, 5);
-  }
-
+  // -- Streak logic (freeze-budget, recomputed from full history) --
+  // `history` is the source of truth; computeStreak() replays it
+  // deterministically (freeze-budget rule) so a single bad write can never
+  // permanently truncate a streak — the next check-in always rebuilds it.
   const history        = [...(state.history || []).slice(-89), today];
+  const prevLast       = state.last_checkin;
+  const { streak, freezes_left: freezes, longest } = computeStreak(history);
   const totalCheckins  = (state.total_checkins || 0) + 1;
+
+  // freeze_used is cosmetic (shown in the response): true when a gap was
+  // bridged by freezes on this check-in.
+  const dayIdx = d => Math.floor(Date.parse(d + 'T00:00:00Z') / 86400000);
+  const freezeUsed = !!prevLast && /^\d{4}-\d{2}-\d{2}$/.test(prevLast)
+    && (dayIdx(today) - dayIdx(prevLast)) > 1 && streak > 1;
 
   // -- Badge logic --
   // Welcome is awarded by the onboarding-task flow (see _welcome.js), not by
@@ -211,6 +197,7 @@ async function handlePost(request, env, context) {
     last_tx_hash:   txHash,
     streak,
     freezes_left:   freezes,
+    longest_streak: Math.max(state.longest_streak || 0, longest),
     points:         (state.points || 0) + streak,
     history,
     total_checkins: totalCheckins,
