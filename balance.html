@@ -372,7 +372,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=2"></script>
-<script src="/assets/arc-gateway.js?v=9.6.6"></script>
+<script src="/assets/arc-gateway.js?v=9.6.7"></script>
 <script src="/assets/arc-ui.js?v=9.10.25"></script>
 <script>
 (async () => {
@@ -983,7 +983,7 @@ html{scroll-behavior:smooth}
   // ───── Spend modal ─────
   // Two modes:
   //   Unified  → user enters amount; app auto-picks the minimum set of chains
-  //              (largest first) to cover it. N signatures → 1 attestation → 1 mint.
+  //              (largest first) to cover it. 1 signature (BurnIntentSet) → 1 attestation → 1 mint.
   //              This is what makes "Unified Balance" actually behave unified.
   //   Single   → classic single-chain burn (legacy fallback).
   let spendMode = 'unified';
@@ -1081,7 +1081,7 @@ html{scroll-behavior:smooth}
           <span>Max relayer fee (Circle Gateway)</span>
           <span style="font-family:var(--mono)">≤ ${ARC.formatAmt(totalFee,6,4)} USDC</span>
         </div>
-        <div style="margin-top:4px;font-size:11px;color:var(--muted)">${plan.length} signature${plan.length>1?'s':''} required → 1 attestation → 1 mint tx</div>
+        <div style="margin-top:4px;font-size:11px;color:var(--muted)">1 signature${plan.length>1?` (covers all ${plan.length} sources)`:''} → 1 attestation → 1 mint tx</div>
       </details>`;
   }
 

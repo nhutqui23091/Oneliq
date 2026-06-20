@@ -51,6 +51,21 @@
     ],
   };
 
+  // Circle Gateway lets N burn intents that share the same sourceSigner (always
+  // true for us — one user wallet) be packed into a BurnIntentSet and signed
+  // with a SINGLE EIP-712 signature (max 16 intents). This collapses a
+  // multi-source spend from N wallet popups down to ONE. Verified against the
+  // testnet API 2026-06-20: signing { intents: [...] } with these types and
+  // POSTing `[{ burnIntentSet: { intents:[...] }, signature }]` is accepted and
+  // the one signature verifies for every intent. (The old per-intent loop hit
+  // Chrome's transient-activation limit — only the first popup auto-opened;
+  // wallets like OKX just badged the rest. A single signature sidesteps that.)
+  const EIP712_TYPES_SET = {
+    BurnIntentSet: [{ name: 'intents', type: 'BurnIntent[]' }],
+    BurnIntent:    EIP712_TYPES.BurnIntent,
+    TransferSpec:  EIP712_TYPES.TransferSpec,
+  };
+
   const ZERO_BYTES32 = '0x' + '00'.repeat(32);
 
   // Circle Gateway enforces a per-intent minimum `maxFee` on /v1/transfer.
@@ -641,14 +656,14 @@
    *
    * Flow:
    *   1. Build N burn intents (1 per source chain, with that chain's value)
-   *   2. Sign each intent via wallet (user signs N times - one per source chain)
-   *      - each chain switch is needed because EIP-712 domain includes the
-   *        source chainId via `verifyingContract` semantics in some wallets.
-   *      Actually the domain is `{name:"GatewayWallet", version:"1"}` only -
-   *      no chainId, no verifyingContract - so we can sign all from any chain.
-   *   3. POST array of {burnIntent, signature} to /v1/transfer
+   *   2. Sign them with a SINGLE wallet signature via BurnIntentSet (one popup
+   *      for the whole spend; N≥2 → set, N==1 → plain burnIntent). The EIP-712
+   *      domain is `{name:"GatewayWallet", version:"1"}` (no chainId), so the
+   *      one signature is valid for every source regardless of current chain.
+   *   3. POST `[{ burnIntentSet:{intents}, signature }]` (or single burnIntent)
+   *      to /v1/transfer
    *   4. Receive ONE combined attestation
-   *   5. Switch to destination chain → call gatewayMint() once
+   *   5. Switch to destination chain → call gatewayMint() once (or forwarder)
    *
    * `sources`: [{chainKey, valueCanonical}] - produced by pickSources() or hand-picked
    * Returns { intents, attResp, mint }.
@@ -668,25 +683,27 @@
       maxFee: (maxFee == null || maxFee === 0n) ? defaultMaxFee(s.valueCanonical) : maxFee,
     }));
 
-    // Sign each + submit, with one auto-retry across ALL intents if Circle
-    // quotes a higher per-intent minimum than we picked. EIP-712 domain has
-    // no chainId so signatures are portable - wallet doesn't switch between sigs.
-    const signOnce = async (label) => {
-      const out = [];
-      for (let i = 0; i < intents.length; i++) {
-        const s = sources[i];
-        // Some wallets (notably OKX) don't auto-resurface the next signature
-        // popup when typed-data requests are fired back-to-back — the previous
-        // popup's close animation swallows the new request, so the user has to
-        // manually toggle the wallet to sign each subsequent intent. Yield a
-        // short beat after the previous signature resolves so the popup fully
-        // closes before we request the next one. No effect on single-source.
-        if (i > 0) await new Promise(r => setTimeout(r, 450));
-        onStep?.(`${label} ${i + 1}/${intents.length}: ${ARC.CHAINS[s.chainKey].short} → ${ARC.formatAmt(s.valueCanonical, 6, 4)} USDC`);
-        const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, intents[i]);
-        out.push({ burnIntent: burnIntentToJson(intents[i]), signature });
+    // Sign + submit, with one auto-retry across ALL intents if Circle quotes a
+    // higher per-intent minimum than we picked.
+    //
+    // Multi-source = ONE wallet signature via BurnIntentSet. The old approach
+    // signed each intent in its own popup, but Chrome only lets a wallet
+    // auto-open one popup per user gesture (transient activation, ~5s) — so
+    // after the first signature the gesture had expired and wallets like OKX
+    // just badged the queued request instead of surfacing it, forcing the user
+    // to click the extension for every source. Packing the intents into a
+    // BurnIntentSet (Circle verifies one signature for all of them) collapses
+    // the whole spend to a single popup. Single-source keeps the plain
+    // burnIntent format (one intent, already one popup).
+    const signBundle = async (label) => {
+      if (intents.length === 1) {
+        onStep?.(`${label} in your wallet…`);
+        const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, intents[0]);
+        return [{ burnIntent: burnIntentToJson(intents[0]), signature }];
       }
-      return out;
+      onStep?.(`${label} — one signature covers all ${intents.length} sources…`);
+      const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES_SET, { intents });
+      return [{ burnIntentSet: { intents: intents.map(burnIntentToJson) }, signature }];
     };
     const submit = async (signed) => {
       onStep?.('Submitting to Gateway API…');
@@ -698,7 +715,7 @@
       const txt = res.ok ? null : await res.text().catch(() => '');
       return { res, txt };
     };
-    let signed = await signOnce('Sign');
+    let signed = await signBundle('Sign burn intent');
     let { res, txt } = await submit(signed);
     if (!res.ok && res.status === 400) {
       const required = parseRequiredFee(txt);
@@ -710,7 +727,7 @@
         });
         if (bumpedAny) {
           onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
-          signed = await signOnce('Re-sign');
+          signed = await signBundle('Re-sign');
           ({ res, txt } = await submit(signed));
         }
       }
