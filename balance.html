@@ -593,20 +593,12 @@ html{scroll-behavior:smooth}
         ? 'Direct deposit unavailable on Arc - USDC here is the native gas token. Spend cross-chain to mint USDC on Arc instead.'
         : '';
       const pendingLines = [];
+      // Only Circle's own REST `pending` balance (pendDisp) is shown. We no
+      // longer keep optimistic localStorage deposit/spend "pending" markers:
+      // they stuck around when the user cancelled signing or reloaded, and
+      // accumulated across attempts ("+40 USDC deposit pending" after one real
+      // 20 deposit). The Gateway pending field is reliable and self-clearing.
       if (connected && pendDisp) pendingLines.push(`<div style="font-size:11px;color:#FFB454;font-weight:500;margin-top:2px">+ ${pendDisp} pending</div>`);
-      if (connected) {
-        const nowMs = Date.now();
-        const STALE_MS = 30 * 60 * 1000;
-        const depP = state.txPending.filter(p => p.chainKey === k && p.type === 'deposit');
-        if (depP.length) {
-          const tot = depP.reduce((a, p) => a + p.amountCanonical, 0n);
-          const stale = depP.some(p => nowMs - p.startedAt > STALE_MS);
-          pendingLines.push(`<div style="font-size:11px;color:${stale ? 'var(--muted)' : '#FFB454'};font-weight:500;margin-top:2px"${stale ? ' title="Taking longer than expected. Check transaction on explorer."' : ''}>+ ${fmtBig(tot)} USDC deposit pending${stale ? ' ⚠' : ''}</div>`);
-        }
-        // Spend-pending markers are intentionally not shown: the destination
-        // mint confirms in seconds and the source available balance reconciles
-        // unreliably, so the marker lingered after funds had already arrived.
-      }
       const d = state.chainDeltas?.[k];
       const deltaBadge = (d && d !== 0n)
         ? `<span class="delta-badge ${d > 0n ? 'pos' : 'neg'}">${d > 0n ? '+' : '-'}${fmtBig(d > 0n ? d : -d)}</span>`
@@ -876,19 +868,13 @@ html{scroll-behavior:smooth}
     if (value <= 0n) { setStatus('deposit-status', 'err', 'Invalid amount'); return; }
     const btn = document.getElementById('deposit-go');
     btn.disabled = true; btn.textContent = 'Working…';
-    // Normalize to 6-decimal canonical for Gateway balance comparison
-    let amtCanonical = value;
-    if (tok.decimals > 6) amtCanonical = value / (10n ** BigInt(tok.decimals - 6));
-    else if (tok.decimals < 6) amtCanonical = value * (10n ** BigInt(6 - tok.decimals));
-    const balSnap = state.balances.find(b => b.chainKey === k)?.canonical || 0n;
-    const pendingEntry = { chainKey: k, amountCanonical: amtCanonical, type: 'deposit', startedAt: Date.now(), txHash: null, balanceAtPending: balSnap };
-    state.txPending.push(pendingEntry);
-    saveTxPending();
-    renderTable();
+    // No optimistic "deposit pending" marker is created here. It used to be
+    // pushed (and persisted) BEFORE the wallet signature, so cancelling the
+    // sign or reloading left it stuck, and repeat attempts accumulated it.
+    // Circle's REST `pending` balance (shown after refreshAll) is the reliable
+    // signal instead.
     try {
       const result = await ARC.gateway.deposit(k, value, { onStep: (m) => setStatus('deposit-status', '', m) });
-      pendingEntry.txHash = result?.tx?.hash || null;
-      saveTxPending();
       setStatus('deposit-status', 'ok', '✅ Deposit confirmed');
       pushToHistory('bridge', k, result?.tx?.hash || null, `Deposit ${amtStr} USDC on ${chainName(k)}`);
       // Real-metrics telemetry - pass tx hash so the status page can deep-link
@@ -897,9 +883,6 @@ html{scroll-behavior:smooth}
       setTimeout(() => closeModal('modal-deposit'), 1200);
       refreshAll();
     } catch (e) {
-      state.txPending = state.txPending.filter(p => p !== pendingEntry);
-      saveTxPending();
-      renderTable();
       console.error(e); setStatus('deposit-status', 'err', '❌ ' + ARC.explainError(e));
     } finally {
       btn.disabled = false; btn.textContent = 'Deposit';
