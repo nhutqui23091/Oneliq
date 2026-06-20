@@ -782,6 +782,90 @@ export async function onRequest(context) {
     });
   }
 
+  // ─── GET /onchain ────────────────────────────────────────────────────────
+  // On-chain-VERIFIED activity (not telemetry): counts that can be checked on
+  // Arc by anyone. Oneliq's own contracts are the source of truth —
+  //   OneliqRouter  (swaps)     : successful swap() txs from the explorer
+  //   OneliqCheckIn (check-ins) : the contract's own totalCheckIns/uniqueUsers
+  // Cached in KV for 10 min so repeated loads don't hammer the explorer/RPC.
+  if (route === 'onchain' && request.method === 'GET') {
+    const ONCHAIN_KEY = 'metric:onchain:v1';
+    const FRESH_MS = 10 * 60 * 1000;
+    const force = url.searchParams.get('force') === '1';
+
+    if (!force) {
+      try {
+        const cached = JSON.parse((await kv.get(ONCHAIN_KEY)) || 'null');
+        if (cached && Date.now() - Date.parse(cached.computedAt) < FRESH_MS) {
+          return new Response(JSON.stringify({ ...cached, cached: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...cors(origin), 'Cache-Control': 'public, max-age=300' },
+          });
+        }
+      } catch {}
+    }
+
+    const ARC_RPC = 'https://rpc.testnet.arc.network';
+    const ROUTER  = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
+    const CHECKIN = '0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10';
+    const SWAP_SELECTOR = '0xfe029156';
+    const ARCSCAN = 'https://testnet.arcscan.app/api';
+
+    const ethCallUint = async (to, data) => {
+      try {
+        const res = await fetch(ARC_RPC, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] }),
+        });
+        const j = await res.json();
+        if (!j.result || j.result === '0x') return 0;
+        return Number(BigInt(j.result));
+      } catch { return 0; }
+    };
+
+    // OneliqCheckIn on-chain counters (exact, no paging).
+    const [checkinTotal, checkinUsers] = await Promise.all([
+      ethCallUint(CHECKIN, '0xa563eaa3'), // totalCheckIns()
+      ethCallUint(CHECKIN, '0x40aeff0e'), // uniqueUsers()
+    ]);
+
+    // OneliqRouter swaps from the explorer (paged).
+    let routerTxs = 0, routerSwapsOk = 0;
+    const swappers = new Set();
+    try {
+      for (let page = 1; page <= 30; page++) {
+        const u = `${ARCSCAN}?module=account&action=txlist&address=${ROUTER}&page=${page}&offset=1000&sort=asc`;
+        const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) break;
+        const d = await r.json();
+        if (!Array.isArray(d.result) || d.result.length === 0) break;
+        for (const tx of d.result) {
+          routerTxs++;
+          if (typeof tx.input === 'string' && tx.input.toLowerCase().startsWith(SWAP_SELECTOR) && String(tx.isError) === '0') {
+            routerSwapsOk++;
+            if (/^0x[0-9a-fA-F]{40}$/.test(tx.from || '')) swappers.add(tx.from.toLowerCase());
+          }
+        }
+        if (d.result.length < 1000) break;
+      }
+    } catch {}
+
+    const payload = {
+      computedAt: new Date().toISOString(),
+      verified_onchain_txs: routerSwapsOk + checkinTotal, // headline: provable Oneliq txs
+      router: { address: ROUTER, total_txs: routerTxs, successful_swaps: routerSwapsOk, distinct_swappers: swappers.size },
+      checkin: { address: CHECKIN, total_checkins: checkinTotal, unique_users: checkinUsers },
+      network: 'Arc Testnet (chainId 5042002)',
+      explorer: 'https://testnet.arcscan.app',
+    };
+    try { await kv.put(ONCHAIN_KEY, JSON.stringify(payload)); } catch {}
+
+    return new Response(JSON.stringify({ ...payload, cached: false }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...cors(origin), 'Cache-Control': 'public, max-age=300' },
+    });
+  }
+
   return bad('not_found', origin, 404);
 }
 
