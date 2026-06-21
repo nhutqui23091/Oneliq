@@ -85,8 +85,20 @@
   // Circle ever quotes higher at submit time, signAndSubmitBurnIntent /
   // multiSpend auto-bump +25% and re-sign once — so a lean floor is safe.
   // All values are in canonical 6-decimal USDC units.
-  const MAX_FEE_FLOOR = 50_000n;          // 0.05 USDC - clears max observed (0.02) with 2.5x margin
+  const MAX_FEE_FLOOR = 50_000n;          // 0.05 USDC - default floor (cheap L2s/sidechains)
   const MAX_FEE_BPS_DIVISOR = 1_000n;     // 0.1% = value / 1000 (hedge for large transfers)
+  // Per-chain burn-fee floor override. Circle's per-intent minimum maxFee is the
+  // SOURCE chain's gas cost priced in USDC, so it varies wildly: cheap L2s/sidechains
+  // sit near the 0.05 default, but Ethereum Sepolia (L1) has run ~1.0 USDC (observed
+  // 2026-06-22 via a 400 "expected at least ~1.0"). A too-low floor there makes Circle
+  // reject the first submit; our +25% bump can then exceed the (drained) balance →
+  // "Insufficient balance for depositor", failing the WHOLE batch. Reserve a realistic
+  // floor per chain so the first signature clears, AND so dust below the floor is
+  // auto-excluded (maxBurnable=0) instead of blocking everything. Keyed by ARC.CHAINS key.
+  const FEE_FLOOR_BY_CHAIN = { sepolia: 1_500_000n }; // Ethereum Sepolia: 1.5 USDC
+  function feeFloorFor(chainKey) {
+    return (chainKey && FEE_FLOOR_BY_CHAIN[chainKey] != null) ? FEE_FLOOR_BY_CHAIN[chainKey] : MAX_FEE_FLOOR;
+  }
   // Approximate forwarder (gasless) fee for the SINGLE destination mint, charged
   // SEPARATELY from the per-intent burn fee when useForwarder is on (see the
   // MAX_FEE note: observed ~0.0035 USDC). The EXACT figure is returned by
@@ -94,24 +106,26 @@
   // the pre-sign UI estimate (estimateSpend) so the user sees the gasless cost
   // before signing rather than after.
   const FORWARDER_FEE_EST = 3_500n;       // 0.0035 USDC canonical (estimate)
-  function defaultMaxFee(valueCanonical) {
+  function defaultMaxFee(valueCanonical, chainKey) {
+    const floor = feeFloorFor(chainKey);
     const proportional = valueCanonical / MAX_FEE_BPS_DIVISOR;
-    return proportional > MAX_FEE_FLOOR ? proportional : MAX_FEE_FLOOR;
+    return proportional > floor ? proportional : floor;
   }
 
   // Maximum amount actually burnable from a source given fee headroom needed.
   // Solves: burn + defaultMaxFee(burn) ≤ canonical, returning the largest burn.
   // Returns 0n when canonical can't even cover the fee floor.
-  function maxBurnableFromBalance(canonical) {
-    if (canonical <= MAX_FEE_FLOOR) return 0n;
+  function maxBurnableFromBalance(canonical, chainKey) {
+    const floor = feeFloorFor(chainKey);
+    if (canonical <= floor) return 0n;
     // Two regimes:
     //  · proportional binding: fee = burn / D → burn = canonical * D / (D+1)
     //  · floor binding:        fee = FLOOR    → burn = canonical - FLOOR
     // Whichever yields a *larger fee* is the actual binding constraint.
     const propBurn = (canonical * MAX_FEE_BPS_DIVISOR) / (MAX_FEE_BPS_DIVISOR + 1n);
     const propFee = propBurn / MAX_FEE_BPS_DIVISOR;
-    if (propFee > MAX_FEE_FLOOR) return propBurn;
-    return canonical - MAX_FEE_FLOOR;
+    if (propFee > floor) return propBurn;
+    return canonical - floor;
   }
 
   // Parse Circle's 400 hint: '...expected at least X, got Y' → BigInt(X canonical)
@@ -601,7 +615,7 @@
     await ARC.wallet.ensureChain(srcChainKey);
     // Circle's /v1/transfer rejects maxFee=0 with "Insufficient max fee".
     // Pick a safe default scaled to amount when caller didn't set one.
-    const fee = (maxFee == null || maxFee === 0n) ? defaultMaxFee(valueCanonical) : maxFee;
+    const fee = (maxFee == null || maxFee === 0n) ? defaultMaxFee(valueCanonical, srcChainKey) : maxFee;
     const intent = buildBurnIntent({ srcChainKey, dstChainKey, recipient, valueCanonical, maxFee: fee });
     const attResp = await signAndSubmitBurnIntent(intent, { onStep, useForwarder });
     if (useForwarder && attResp.transferId) {
@@ -630,7 +644,7 @@
     // Sources where canonical ≤ FLOOR contribute 0 (fee alone exceeds balance).
     const sorted = [...available]
       .filter(s => s.canonical && s.canonical > 0n && CHAINS_HAS_MINTER(s.chainKey))
-      .map(s => ({ ...s, burnable: maxBurnableFromBalance(s.canonical) }))
+      .map(s => ({ ...s, burnable: maxBurnableFromBalance(s.canonical, s.chainKey) }))
       .filter(s => s.burnable > 0n)
       .sort((a, b) => (b.burnable > a.burnable ? 1 : -1));
     const totalBurnable = sorted.reduce((acc, s) => acc + s.burnable, 0n);
@@ -653,7 +667,7 @@
   function totalSpendable(available) {
     return available
       .filter(s => CHAINS_HAS_MINTER(s.chainKey))
-      .reduce((acc, s) => acc + maxBurnableFromBalance(s.canonical || 0n), 0n);
+      .reduce((acc, s) => acc + maxBurnableFromBalance(s.canonical || 0n, s.chainKey), 0n);
   }
   // Helper: chain has a GatewayWallet (we can spend FROM it)
   function CHAINS_HAS_MINTER(k) {
@@ -719,7 +733,7 @@
         reason: `You hold ${ARC.formatAmt(rawTotal, CANONICAL_DECIMALS, 4)} USDC but only ${ARC.formatAmt(spendable, CANONICAL_DECIMALS, 4)} is routable to ${dstShort} (the rest sits on non-spendable chains or is reserved for Circle's per-intent fee).` };
     }
 
-    const burnFee = plan.reduce((acc, p) => acc + defaultMaxFee(p.valueCanonical), 0n);
+    const burnFee = plan.reduce((acc, p) => acc + defaultMaxFee(p.valueCanonical, p.chainKey), 0n);
     const forwardingFee = useForwarder ? FORWARDER_FEE_EST : 0n;
     const state = plan.length >= 2 ? 'fallback_required' : 'ok';
     return {
@@ -765,7 +779,7 @@
       dstChainKey,
       recipient,
       valueCanonical: s.valueCanonical,
-      maxFee: (maxFee == null || maxFee === 0n) ? defaultMaxFee(s.valueCanonical) : maxFee,
+      maxFee: (maxFee == null || maxFee === 0n) ? defaultMaxFee(s.valueCanonical, s.chainKey) : maxFee,
     }));
 
     // Sign + submit, with one auto-retry across ALL intents if Circle quotes a

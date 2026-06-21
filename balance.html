@@ -411,7 +411,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.7.1"></script>
+<script src="/assets/arc-gateway.js?v=9.7.2"></script>
 <script src="/assets/arc-ui.js?v=9.10.25"></script>
 <script>
 (async () => {
@@ -887,7 +887,7 @@ html{scroll-behavior:smooth}
   function buildConsolSources(dst) {
     return state.balances
       .filter(b => b.chainKey !== dst)
-      .map(b => ({ chainKey: b.chainKey, valueCanonical: ARC.gateway.maxBurnableFromBalance(b.canonical || 0n) }))
+      .map(b => ({ chainKey: b.chainKey, valueCanonical: ARC.gateway.maxBurnableFromBalance(b.canonical || 0n, b.chainKey) }))
       .filter(s => s.valueCanonical > 0n);
   }
 
@@ -895,6 +895,14 @@ html{scroll-behavior:smooth}
     const dst = document.getElementById('consol-dst').value;
     const useForwarder = true; // gasless mint is always on (no toggle)
     const sources = buildConsolSources(dst);
+    // Chains that hold USDC but whose balance can't cover that chain's burn fee
+    // (e.g. tiny amount stranded on pricey Ethereum Sepolia) → excluded, not failed.
+    const skipped = state.balances.filter(b =>
+      b.chainKey !== dst && (b.canonical || 0n) > 0n &&
+      ARC.gateway.maxBurnableFromBalance(b.canonical || 0n, b.chainKey) === 0n);
+    const skipNote = skipped.length
+      ? `<div style="margin-top:6px;font-size:11px;color:var(--muted)">⤳ Skipped (balance below that chain's burn fee): ${skipped.map(s => ARC.CHAINS[s.chainKey].name).join(', ')}</div>`
+      : '';
     const wrap = document.getElementById('consol-breakdown');
     const rows = document.getElementById('consol-breakdown-rows');
     const totalEl = document.getElementById('consol-total');
@@ -903,7 +911,7 @@ html{scroll-behavior:smooth}
     totalEl.textContent = ARC.formatAmt(total, 6, 4) + ' USDC';
     wrap.style.display = 'block';
     if (!sources.length) {
-      rows.innerHTML = `<div style="color:var(--muted)">Nothing to consolidate — your spendable balance is already on <strong style="color:var(--text)">${ARC.CHAINS[dst].name}</strong> (or other chains hold less than Circle's per-intent fee).</div>`;
+      rows.innerHTML = `<div style="color:var(--muted)">Nothing to consolidate — your spendable balance is already on <strong style="color:var(--text)">${ARC.CHAINS[dst].name}</strong> (or other chains hold less than Circle's per-intent fee).</div>` + skipNote;
       go.disabled = true;
       return;
     }
@@ -930,7 +938,7 @@ html{scroll-behavior:smooth}
         <span>Est. fee${useForwarder ? ' (incl. gasless)' : ''}</span>
         <span style="font-family:var(--mono)">≈ ${ARC.formatAmt(est.totalFee,6,4)} USDC</span>
       </div>
-      <div style="margin-top:4px;font-size:11px;color:var(--muted)">1 signature${sources.length>1?` covers all ${sources.length} chains`:''} → 1 attestation → 1 mint</div>`;
+      <div style="margin-top:4px;font-size:11px;color:var(--muted)">1 signature${sources.length>1?` covers all ${sources.length} chains`:''} → 1 attestation → 1 mint</div>` + skipNote;
   }
 
   function openConsolModal() {
@@ -1059,7 +1067,7 @@ html{scroll-behavior:smooth}
       const k = document.getElementById('spend-src').value;
       const bal = state.balances.find(b => b.chainKey === k);
       if (bal) {
-        const burnable = ARC.gateway.maxBurnableFromBalance(bal.canonical);
+        const burnable = ARC.gateway.maxBurnableFromBalance(bal.canonical, bal.chainKey);
         document.getElementById('spend-amount').value = ARC.formatAmt(burnable, 6, 4);
       }
     } else {
@@ -1249,7 +1257,7 @@ html{scroll-behavior:smooth}
       return;
     }
     eligible.forEach(b => {
-      const burnable = ARC.gateway.maxBurnableFromBalance(b.canonical);
+      const burnable = ARC.gateway.maxBurnableFromBalance(b.canonical, b.chainKey);
       const usable = burnable > 0n;
       const row = document.createElement('div');
       row.style.cssText = 'display:grid;grid-template-columns:18px 1fr 110px;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border)';
@@ -1309,14 +1317,14 @@ html{scroll-behavior:smooth}
       const inp = document.getElementById(`smi-${b.chainKey}`);
       if (!check?.checked) return;
       const val = ARC.parseAmt(inp.value.trim() || '0', 6);
-      const burnable = ARC.gateway.maxBurnableFromBalance(b.canonical);
+      const burnable = ARC.gateway.maxBurnableFromBalance(b.canonical, b.chainKey);
       if (val > burnable) {
         overCap = true;
         inp.style.borderColor = 'var(--danger)';
       } else {
         inp.style.borderColor = 'var(--border)';
       }
-      if (val > 0n) { allocated += val; totalFee += ARC.gateway.defaultMaxFee(val); }
+      if (val > 0n) { allocated += val; totalFee += ARC.gateway.defaultMaxFee(val, b.chainKey); }
     });
     totalEl.textContent = `${ARC.formatAmt(allocated, 6, 4)} / ${ARC.formatAmt(targetCanonical, 6, 4)} USDC`;
     if (overCap) {
