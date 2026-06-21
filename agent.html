@@ -190,6 +190,13 @@ select option:checked{background:#1a2c4a;color:#fff}
 .summary-caret{font-size:9px;color:var(--violet);transition:transform .15s;flex-shrink:0}
 .summary-toggle[aria-expanded="true"] .summary-caret{transform:rotate(90deg)}
 #summary-rows{margin-top:10px}
+
+/* PRE-FLIGHT CHECK - live reality check rendered above Deploy. */
+.preflight{margin-top:14px;padding:12px 14px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:12px}
+.pf-h{font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.pf-line{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;padding:3px 0}
+.pf-line strong{font-weight:700}
+.pf-ico{flex-shrink:0;width:15px;text-align:center;font-weight:700;font-family:var(--mono);font-size:11px;margin-top:1px}
 .summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;gap:12px;line-height:1.4}
 .summary-row .k{color:var(--muted);flex-shrink:0;font-weight:500}
 .summary-row .v{font-family:var(--mono);font-weight:700;text-align:right;color:var(--text);min-width:0;word-break:break-word;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1}
@@ -666,6 +673,9 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div id="summary-rows" style="display:none"></div>
       </div>
 
+      <!-- PRE-FLIGHT CHECK - reality-checks the rule against live balances before signing -->
+      <div id="preflight" class="preflight" style="display:none"></div>
+
       <button class="deploy-btn" id="deploy-btn" onclick="deployAgent()">
         Sign &amp; Deploy Agent
       </button>
@@ -916,6 +926,8 @@ select option:checked{background:#1a2c4a;color:#fff}
       }
     }));
     hint.textContent = 'wallet balances · live';
+    // Balances changed → refresh the pre-flight reality check (and summary).
+    updateSummary();
   }
 
   // Load when wallet connects/changes
@@ -1576,8 +1588,77 @@ select option:checked{background:#1a2c4a;color:#fff}
     } else {
       btn.innerHTML = 'Sign &amp; Deploy Agent';
     }
+    renderPreflight();
   }
   window.updateSummary = updateSummary;
+
+  /* ============================================================
+     PRE-FLIGHT REALITY CHECK - before the user signs, compare the rule
+     against the live wallet balances we already loaded. Surfaces blocking
+     issues (no funds / first fire can't cover), soft warnings (empty source,
+     Arc permit caveat, cross-chain delay) and an info projection.
+  ============================================================ */
+  function computeRealityCheck() {
+    const connected = !!ARC.wallet.address;
+    const srcChips = Array.from(state.sources);
+    const loaded = connected && srcChips.every(c => state.balances[c] !== undefined);
+    const srcTotal = srcChips.reduce((a, c) => a + (parseFloat(state.balances[c]) || 0), 0);
+    const validTargets = getValidTargets();
+    const issues = [], warns = [], infos = [];
+
+    // What a single fire needs + the projected spend.
+    let firstNeed = 0;
+    if (state.mode === 'topup') {
+      firstNeed = parseFloat(document.getElementById('refill-amt').value) || 0;
+      const cap = parseFloat(document.getElementById('cap-amt').value) || 0;
+      infos.push(`Refills <strong>$${firstNeed.toFixed(2)}</strong> at a time, up to <strong>$${cap.toFixed(2)}</strong>/day (your safety cap).`);
+    } else {
+      const amt = parseFloat(document.getElementById('send-amt').value) || 0;
+      const n = Math.max(validTargets.length, 1);
+      firstNeed = state.dist === 'each' ? amt * n : amt;
+      const cadLabel = { once: 'one time', daily: 'every day', weekly: 'every week', monthly: 'every month' }[document.getElementById('sched-cadence').value] || '';
+      infos.push(`Sends <strong>$${firstNeed.toFixed(2)}</strong> ${cadLabel}.`);
+    }
+
+    // Funding reality.
+    if (!connected) {
+      infos.push('Connect your wallet to verify source funding.');
+    } else if (!loaded) {
+      infos.push('Checking source balances…');
+    } else if (srcTotal <= 0) {
+      issues.push(`Your selected source chain${srcChips.length > 1 ? 's hold' : ' holds'} <strong>$0 USDC</strong> — the agent will have nothing to pull. Fund a source or pick the chain where your USDC lives.`);
+    } else if (firstNeed > srcTotal) {
+      issues.push(`The first ${state.mode === 'topup' ? 'refill' : 'send'} needs <strong>$${firstNeed.toFixed(2)}</strong> but your sources hold only <strong>$${srcTotal.toFixed(2)}</strong> — it may fail or only partially fill.`);
+    } else {
+      infos.push(`Sources hold <strong>$${srcTotal.toFixed(2)}</strong> — enough for the first ${state.mode === 'topup' ? 'refill' : 'send'}.`);
+      const empties = srcChips.filter(c => (parseFloat(state.balances[c]) || 0) <= 0).map(c => CHAIN_SHORT[c] || c);
+      if (empties.length) warns.push(`No USDC on ${empties.join(', ')} — those sources contribute nothing.`);
+    }
+
+    // Arc has no EIP-2612 permit → agent wallet must be pre-funded.
+    if (state.sources.has('arc')) warns.push(`Arc has no gasless permit — pulling from Arc needs the agent wallet pre-funded (other chains pull straight from your wallet).`);
+
+    // Cross-chain targets take ~30s via CCTP rather than landing instantly.
+    const crossN = state.targets
+      .map((t, i) => ({ addr: String(t || '').trim().replace(/^0x/i, ''), chain: state.targetChains[i] }))
+      .filter(x => /^[a-fA-F0-9]{40}$/.test(x.addr) && x.chain && !state.sources.has(x.chain)).length;
+    if (crossN) warns.push(`${crossN} target${crossN > 1 ? 's are' : ' is'} cross-chain — delivered via CCTP V2 (~30s per fire), not instant.`);
+
+    return { issues, warns, infos, blocking: issues.length > 0 };
+  }
+
+  function renderPreflight() {
+    const el = document.getElementById('preflight');
+    if (!el) return;
+    const { issues, warns, infos } = computeRealityCheck();
+    const line = (txt, color, ico) => `<div class="pf-line" style="color:${color}"><span class="pf-ico" style="color:${color}">${ico}</span><span>${txt}</span></div>`;
+    let html = '';
+    issues.forEach(t => html += line(t, '#FF8BA3', '✕'));
+    warns.forEach(t => html += line(t, '#FFC97A', '!'));
+    infos.forEach(t => html += line(t, 'var(--muted)', 'ℹ'));
+    el.style.display = 'block';
+    el.innerHTML = `<div class="pf-h">Pre-flight check</div>${html}`;
+  }
 
   /* ============================================================
      DEPLOY FLOW - real EIP-712 sign + POST /api/agent/create
@@ -1611,6 +1692,15 @@ select option:checked{background:#1a2c4a;color:#fff}
       if (btn) btn.click();
       ArcUI.toast('warn', 'Connect wallet first', 'Pick a wallet to sign the agent rule.');
       return;
+    }
+
+    // Pre-flight gate: if the live balances say this rule can't fire, confirm
+    // before letting the user sign a rule that would just sit there failing.
+    const rc = computeRealityCheck();
+    if (rc.blocking) {
+      const plain = rc.issues.map(s => '• ' + s.replace(/<[^>]+>/g, '')).join('\n\n');
+      const proceed = confirm('Pre-flight warning:\n\n' + plain + '\n\nDeploy this agent anyway?');
+      if (!proceed) return;
     }
 
     // Build the rule payload
