@@ -132,8 +132,19 @@ select option:checked{background:#1a2c4a;color:#fff}
 
 /* LABELED FIELD GROUP */
 .lbl-field{margin-bottom:14px}
-.lbl-field-label{font-size:11.5px;font-family:var(--mono);color:var(--text);letter-spacing:.04em;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.lbl-field-label{font-size:13px;font-family:var(--font);color:var(--text);letter-spacing:0;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;line-height:1.4}
 .lbl-field-label .req{color:var(--violet);font-size:10px}
+
+/* SOURCE CHAIN PICKER - collapsed by default to one row showing the current
+   selection; clicking expands the chip grid so the user only sees all 8 chains
+   when they actually want to change them. */
+.src-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;font-family:var(--font);color:var(--text);transition:border-color .15s;margin-top:4px}
+.src-toggle:hover{border-color:var(--border2)}
+.src-toggle-label{font-size:14px;font-weight:700;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.src-toggle-label .src-count{color:var(--muted);font-weight:600;font-size:12px;font-family:var(--mono)}
+.src-toggle-caret{font-size:9px;color:var(--violet);transition:transform .15s;flex-shrink:0}
+.src-toggle[aria-expanded="true"] .src-toggle-caret{transform:rotate(90deg)}
+.src-picker{margin-top:8px}
 
 /* CHAIN GRID (multi-select chips) */
 .chain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
@@ -421,6 +432,11 @@ select option:checked{background:#1a2c4a;color:#fff}
           </div>
           <div class="step-hint" id="balances-hint">connect wallet to load balances</div>
         </div>
+        <button class="src-toggle" type="button" id="src-toggle" onclick="toggleSrcPicker()" aria-expanded="false">
+          <span class="src-toggle-label" id="src-toggle-label">Base</span>
+          <span class="src-toggle-caret">▶</span>
+        </button>
+        <div class="src-picker" id="src-picker" style="display:none">
         <div class="chain-grid" id="chain-grid">
           <div class="chain-chip selected" data-chain="base" onclick="toggleChain('base')">
             <div class="chain-chip-name">Base</div>
@@ -454,6 +470,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             <div class="chain-chip-name">Avalanche</div>
             <div class="chain-chip-meta" data-bal="fuji">- USDC</div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -1264,6 +1281,35 @@ select option:checked{background:#1a2c4a;color:#fff}
   }
   window.toggleSummary = toggleSummary;
 
+  // Short chain names for the collapsed source-picker label (match the chips).
+  const CHAIN_SHORT = {
+    base: 'Base', arc: 'Arc', sepolia: 'Ethereum', arbitrum: 'Arbitrum',
+    optimism: 'Optimism', polygon: 'Polygon', unichain: 'Unichain', fuji: 'Avalanche',
+  };
+
+  // Source chains start collapsed to one summary row; expand on click so the
+  // full 8-chain grid only appears when the user wants to change the selection.
+  function toggleSrcPicker() {
+    const btn = document.getElementById('src-toggle');
+    const pick = document.getElementById('src-picker');
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    pick.style.display = open ? 'none' : 'block';
+  }
+  window.toggleSrcPicker = toggleSrcPicker;
+
+  // Keep the collapsed label in sync with the selected source chains.
+  function updateSrcToggleLabel() {
+    const el = document.getElementById('src-toggle-label');
+    if (!el) return;
+    const names = Array.from(state.sources).map(c => CHAIN_SHORT[c] || c);
+    if (names.length <= 3) {
+      el.textContent = names.join(', ');
+    } else {
+      el.innerHTML = `${names.slice(0, 2).join(', ')} <span class="src-count">+${names.length - 2} more</span>`;
+    }
+  }
+
   function toggleChain(c) {
     if (state.sources.has(c)) {
       if (state.sources.size === 1) return; // keep at least one
@@ -1274,6 +1320,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     document.querySelectorAll('.chain-chip').forEach(el => {
       el.classList.toggle('selected', state.sources.has(el.dataset.chain));
     });
+    updateSrcToggleLabel();
     // Target chains can now be EITHER same-chain (in sources) OR cross-chain
     // (any other CCTP-supported chain). Only snap if a target chain is
     // neither - which can only happen if we somehow get a non-CCTP chain
@@ -1321,19 +1368,15 @@ select option:checked{background:#1a2c4a;color:#fff}
     const list = document.getElementById('targets-list');
     list.innerHTML = state.targets.map((addr, i) => {
       const tc = state.targetChains[i] || Array.from(state.sources)[0];
-      const sameChain  = ALL_CCTP_CHAINS.filter(c => state.sources.has(c));
-      const crossChain = ALL_CCTP_CHAINS.filter(c => !state.sources.has(c));
-      const renderOpts = (chains) => chains
+      // Flatten to a single plain option list (same-chain sources first, then
+      // the rest) — no <optgroup> headers (they render as white bars on some
+      // OSes) and no CCTP badge. The same-chain vs cross-chain distinction is
+      // still surfaced in the deploy summary instead.
+      const ordered = [...ALL_CCTP_CHAINS.filter(c => state.sources.has(c)),
+                       ...ALL_CCTP_CHAINS.filter(c => !state.sources.has(c))];
+      const opts = ordered
         .map(c => `<option value="${c}"${c === tc ? ' selected' : ''}>${CHAIN_LABELS[c] || c}</option>`)
         .join('');
-      const opts = `
-        ${sameChain.length ? `<optgroup label="Same-chain (instant)">${renderOpts(sameChain)}</optgroup>` : ''}
-        ${crossChain.length ? `<optgroup label="Cross-chain via CCTP V2 (~30s)">${renderOpts(crossChain)}</optgroup>` : ''}
-      `;
-      const isCross = !state.sources.has(tc);
-      const crossPill = isCross
-        ? '<span title="Delivered via Circle CCTP V2 burn-and-mint - ~30s after schedule fires" style="display:inline-block;margin-left:6px;padding:2px 6px;border-radius:5px;background:rgba(108,63,255,.10);border:1px solid rgba(108,63,255,.32);color:#9D7BFF;font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">CCTP</span>'
-        : '';
       return `
       <div class="target-row">
         <div class="field">
@@ -1341,11 +1384,10 @@ select option:checked{background:#1a2c4a;color:#fff}
           <input class="field-input" type="text" placeholder="paste an address" value="${escapeHtml(addr)}" oninput="updateTarget(${i}, this.value)"/>
           <button class="target-mini" onclick="useMyAddress(${i})">USE MINE</button>
         </div>
-        <div style="display:flex;align-items:center;gap:0">
+        <div style="display:flex;align-items:center">
           <select class="target-chain-sel" onchange="updateTargetChain(${i}, this.value)" title="Chain this wallet receives USDC on">
             ${opts}
           </select>
-          ${crossPill}
         </div>
         ${state.targets.length > 1
           ? `<button class="target-remove" title="Remove" onclick="removeTarget(${i})">×</button>`
@@ -2723,6 +2765,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   renderExecLog();
   updateStats();
   updateSummary();
+  updateSrcToggleLabel();
 
   /* ============================================================
      HELP TOOLTIPS - wire the ? buttons. Mirrors trade.html src-help
