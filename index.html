@@ -74,6 +74,18 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     radial-gradient(ellipse 120% 40% at 50% 90%, rgba(77,214,219,0.25) 0%, rgba(74,123,236,0.12) 35%, transparent 65%),
     linear-gradient(180deg, #0A1628 0%, #0E1F39 40%, #133155 75%, #1E4A6E 100%);
 }
+/* Ambient moving gradient layer — gives the whole page a slow "breathing" wash
+   on top of the static aurora, without canvas/particles. */
+.aurora-bg::after{
+  content:'';position:absolute;inset:-25%;pointer-events:none;mix-blend-mode:screen;
+  background:
+    radial-gradient(circle at 28% 32%, rgba(77,214,219,0.10) 0%, transparent 42%),
+    radial-gradient(circle at 72% 58%, rgba(74,123,236,0.10) 0%, transparent 42%),
+    radial-gradient(circle at 50% 82%, rgba(244,200,154,0.10) 0%, transparent 44%);
+  background-size:200% 200%;
+  animation:aurora-shift 24s ease-in-out infinite alternate;
+}
+@keyframes aurora-shift{0%{background-position:0% 0%}100%{background-position:100% 100%}}
 .orb{position:absolute;border-radius:50%;filter:blur(150px);opacity:.06;animation:orb-drift 40s ease-in-out infinite alternate;mix-blend-mode:screen}
 .orb1{width:720px;height:500px;background:var(--arc1);top:-240px;left:-200px;animation-duration:40s}
 .orb2{width:620px;height:520px;background:var(--arc2);top:-160px;right:-220px;animation-duration:46s;animation-delay:-10s}
@@ -142,10 +154,13 @@ nav.scrolled{background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bo
   animation:fade-up .8s .1s ease both;
 }
 .hero-title span.grad{
-  background:linear-gradient(90deg,var(--arc1) 0%,var(--arc2) 60%,var(--peach) 100%);
+  background:linear-gradient(90deg,var(--arc1) 0%,var(--arc2) 30%,var(--peach) 55%,var(--arc2) 78%,var(--arc1) 100%);
+  background-size:200% auto;
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
+  animation:grad-flow 8s linear infinite;
 }
+@keyframes grad-flow{to{background-position:200% center}}
 .hero-title span.green{
   color:var(--arc1);
 }
@@ -212,9 +227,9 @@ section{position:relative;z-index:1}
 .feat-stat{border-top:1px solid var(--border);padding-top:20px;margin-top:auto}
 .feat-stat-num{font-size:28px;font-weight:800;letter-spacing:-1px}
 .feat-stat-label{font-size:13px;color:var(--muted);margin-top:2px}
-.grad-blue{background:linear-gradient(90deg,var(--arc2),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.grad-green{background:linear-gradient(90deg,var(--arc4),#00CFFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.grad-pink{background:linear-gradient(90deg,var(--arc3),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.grad-blue{background:linear-gradient(90deg,var(--arc2),var(--arc1),var(--arc2));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:grad-flow 11s linear infinite}
+.grad-green{background:linear-gradient(90deg,var(--arc4),#00CFFF,var(--arc4));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:grad-flow 11s linear infinite;animation-delay:-3.6s}
+.grad-pink{background:linear-gradient(90deg,var(--arc3),var(--arc1),var(--arc3));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:grad-flow 11s linear infinite;animation-delay:-7.2s}
 
 /* ===== SWAP APP ===== */
 .app-section{padding:120px 0}
@@ -370,6 +385,9 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
 @keyframes fade-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
 .reveal.visible{opacity:1;transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){
+  .aurora-bg::after,.hero-title span.grad,.grad-blue,.grad-green,.grad-pink,.orb{animation:none!important}
+}
 
 /* ===== RESPONSIVE ===== */
 @media(max-width:1024px){
