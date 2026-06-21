@@ -346,6 +346,21 @@
     merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
     state.txs = merged;
     render();
+    // One-time backfill: this browser may hold pre-sync local receipts that
+    // never reached the server. Push the ones the server doesn't have yet so
+    // they show up on the wallet's other browsers too. Idempotent (server
+    // merges by hash); self-limiting (next load finds them present → no-op).
+    backfillLocalToServer(server);
+  }
+
+  async function backfillLocalToServer(serverRows) {
+    if (!state.addr || !window.ARC?.history) return;
+    let raw = [];
+    try { raw = JSON.parse(localStorage.getItem('arc.trade.activity.v1') || '[]'); } catch { return; }
+    const have = new Set((serverRows || []).map(r => r.id));
+    // Only backfill rows with a real hash → stable id, no risk of duplicates.
+    const missing = raw.filter(x => x && x.hash && !have.has(`trade-${x.hash}-${x.at}`));
+    for (const row of missing) { try { await ARC.history.push(row); } catch {} }
   }
 
   function showSkeleton() {
