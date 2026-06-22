@@ -411,7 +411,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.7.2"></script>
+<script src="/assets/arc-gateway.js?v=9.7.3"></script>
 <script src="/assets/arc-ui.js?v=9.10.26"></script>
 <script>
 (async () => {
@@ -1039,14 +1039,29 @@ html{scroll-behavior:smooth}
     // sign or reloading left it stuck, and repeat attempts accumulated it.
     // Circle's REST `pending` balance (shown after refreshAll) is the reliable
     // signal instead.
+    const statusEl = document.getElementById('deposit-status');
+    const explTx = (h) => (h && ARC.CHAINS[k].explorerTx) ? ARC.CHAINS[k].explorerTx(h) : null;
+    const txLink = (url, label) => url ? ` · <a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">${label}</a>` : '';
     try {
-      const result = await ARC.gateway.deposit(k, value, { onStep: (m) => setStatus('deposit-status', '', m) });
-      setStatus('deposit-status', 'ok', '✅ Deposit confirmed');
+      const result = await ARC.gateway.deposit(k, value, {
+        onStep: (m) => setStatus('deposit-status', '', m),
+        // Show a clickable explorer link the moment the tx is submitted, so the
+        // user can watch confirmation (slow on some chains) instead of just waiting.
+        onSubmitted: (hash) => {
+          const url = explTx(hash);
+          statusEl.className = 'gw-status show';
+          statusEl.innerHTML = `⏳ Submitted — waiting for confirmation on ${chainName(k)}…` + txLink(url, 'View ↗');
+        },
+      });
+      // Keep the modal OPEN on success and show the confirmed tx link (the modal
+      // used to auto-close after 1.2s, hiding the result).
+      const url = explTx(result?.tx?.hash);
+      statusEl.className = 'gw-status show ok';
+      statusEl.innerHTML = '✅ Deposit confirmed' + txLink(url, 'View tx ↗');
       pushToHistory('bridge', k, result?.tx?.hash || null, `Deposit ${amtStr} USDC on ${chainName(k)}`);
       // Real-metrics telemetry - pass tx hash so the status page can deep-link
       // to the source chain's explorer ("view ↗" in Latest Activity).
       try { ARC.track('deposit', k, Number(amtStr), result?.tx?.hash || null, 'balance', state.addr ? { address: state.addr } : null); } catch {}
-      setTimeout(() => closeModal('modal-deposit'), 1200);
       refreshAll();
     } catch (e) {
       console.error(e); setStatus('deposit-status', 'err', '❌ ' + ARC.explainError(e));

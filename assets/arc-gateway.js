@@ -251,7 +251,10 @@
     // reject the wallet's auto-estimate with "intrinsic gas too high".
     const ov = await ARC.gasOverrides(chainKey, c.contracts.gatewayWallet, ARC.ABIS.gatewayWallet, 'deposit', [tok.address, value], 300_000n);
     const tx = await wallet.deposit(tok.address, value, ov);
-    onStep(`Submitted ${tx.hash.slice(0, 10)}…`);
+    // Surface the full hash immediately so the UI can show an explorer link while
+    // tx.wait() blocks — confirmation can be slow on some testnets (Sepolia L1).
+    opts.onSubmitted?.(tx.hash);
+    onStep(`Submitted ${tx.hash.slice(0, 10)}… waiting for confirmation on ${c.short || chainKey}`);
     const receipt = await tx.wait();
     return { tx, receipt };
   }
