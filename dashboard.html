@@ -44,6 +44,13 @@
 .db-change.down{color:#FF8BA3}
 .db-change .muted{color:var(--muted);font-weight:500}
 
+/* TOP ROW — profile hero (left) + allocation (right); stacks on narrow screens */
+.db-top{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-bottom:18px;align-items:start}
+.db-top .db-hero{margin-bottom:0}
+.db-top .db-alloc-card{margin-bottom:0}
+.db-top .db-alloc-card .db-card-body{display:flex;align-items:center;justify-content:center}
+@media(max-width:900px){.db-top{grid-template-columns:1fr}}
+
 /* SECTIONS — full-width, stacked, collapsible (click the header to toggle) */
 .db-card{position:relative;padding:0 30px;border-radius:20px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:18px}
 .db-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:24px 0 20px;cursor:pointer;user-select:none}
@@ -137,6 +144,8 @@
 
 <main class="db-wrap">
 
+  <!-- TOP ROW: profile hero (left) + allocation (right) -->
+  <div class="db-top">
   <!-- PROFILE HERO -->
   <section class="db-hero">
     <span class="db-hero-eyebrow">Dashboard</span>
@@ -154,6 +163,16 @@
     </div>
   </section>
 
+  <!-- ALLOCATION (right of the hero) -->
+  <section class="db-card db-alloc-card" data-card="alloc">
+    <div class="db-card-head">
+      <div class="db-card-title">Allocation</div>
+      <div class="db-head-r"><span class="db-chev">▾</span></div>
+    </div>
+    <div class="db-card-body"><div id="db-alloc"></div></div>
+  </section>
+  </div>
+
   <!-- HOLDINGS -->
   <section class="db-card" data-card="holdings">
     <div class="db-card-head">
@@ -164,15 +183,6 @@
       </div>
     </div>
     <div class="db-card-body"><div id="db-holdings"></div></div>
-  </section>
-
-  <!-- ALLOCATION -->
-  <section class="db-card" data-card="alloc">
-    <div class="db-card-head">
-      <div class="db-card-title">Allocation</div>
-      <div class="db-head-r"><span class="db-chev">▾</span></div>
-    </div>
-    <div class="db-card-body"><div id="db-alloc"></div></div>
   </section>
 
   <!-- CROSS-CHAIN -->
