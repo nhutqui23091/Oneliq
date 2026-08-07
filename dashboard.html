@@ -27,94 +27,95 @@
 .db-hero{position:relative;padding:32px 34px;border-radius:24px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:22px}
 .db-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 10%,rgba(77,214,219,.45) 50%,transparent 90%)}
 .db-hero::after{content:'';position:absolute;right:-160px;top:-160px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(77,214,219,.10) 0%,transparent 60%);pointer-events:none}
-.db-hero-eyebrow{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--arc1);margin-bottom:20px;display:inline-block}
-.db-id{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.db-avatar{width:78px;height:78px;border-radius:20px;flex-shrink:0;overflow:hidden;border:1px solid var(--border);background:var(--surface2)}
+.db-hero-eyebrow{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--arc1);margin-bottom:22px;display:inline-block}
+.db-id{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.db-avatar{width:88px;height:88px;border-radius:22px;flex-shrink:0;overflow:hidden;border:1px solid var(--border);background:var(--surface2)}
 .db-avatar svg{display:block;width:100%;height:100%}
 .db-id-main{min-width:0}
-.db-conn{display:inline-flex;align-items:center;gap:8px;margin-bottom:8px}
-.db-conn-dot{width:7px;height:7px;border-radius:50%;background:var(--arc4);box-shadow:0 0 8px var(--arc4)}
-.db-conn-txt{font-size:13px;font-weight:600;color:var(--text)}
-.db-addr{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;vertical-align:middle}
+.db-conn{display:inline-flex;align-items:center;gap:9px;margin-bottom:10px}
+.db-conn-dot{width:8px;height:8px;border-radius:50%;background:var(--arc4);box-shadow:0 0 8px var(--arc4)}
+.db-conn-txt{font-size:14.5px;font-weight:600;color:var(--text)}
+.db-addr{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);font-family:var(--mono);font-size:13.5px;color:var(--muted);cursor:pointer;transition:all .15s;vertical-align:middle}
 .db-addr:hover{color:var(--text);border-color:var(--border2)}
-.db-addr .cp{font-size:11px;opacity:.7}
-.db-total{font-family:var(--display);font-size:clamp(38px,5.2vw,60px);font-weight:700;letter-spacing:-.035em;line-height:1;color:var(--text);margin:6px 0 8px;font-variant-numeric:tabular-nums}
-.db-change{font-size:13.5px;font-family:var(--mono);font-weight:600;color:var(--muted)}
+.db-addr .cp{font-size:12px;opacity:.7}
+.db-total{font-family:var(--display);font-size:clamp(42px,5.6vw,66px);font-weight:700;letter-spacing:-.035em;line-height:1;color:var(--text);margin:8px 0 10px;font-variant-numeric:tabular-nums}
+.db-change{font-size:15px;font-family:var(--mono);font-weight:600;color:var(--muted)}
 .db-change.up{color:var(--arc4)}
 .db-change.down{color:#FF8BA3}
 .db-change .muted{color:var(--muted);font-weight:500}
 
-/* CARD GRID */
-.db-grid{display:grid;gap:18px;margin-bottom:18px}
-.db-grid.two{grid-template-columns:1.55fr 1fr}
-.db-grid.even{grid-template-columns:1fr 1fr}
-@media(max-width:900px){.db-grid.two,.db-grid.even{grid-template-columns:1fr}}
-
-.db-card{position:relative;padding:22px 24px;border-radius:20px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden}
-.db-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-.db-card-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
-.db-card-title .n{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);padding:2px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border)}
-.db-card-link{font-size:12px;font-weight:600;color:var(--arc1);text-decoration:none;transition:opacity .15s}
+/* SECTIONS — full-width, stacked, collapsible (click the header to toggle) */
+.db-card{position:relative;padding:0 30px;border-radius:20px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:18px}
+.db-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:24px 0 20px;cursor:pointer;user-select:none}
+.db-card-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+.db-card-title .n{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--muted);padding:3px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border)}
+.db-head-r{display:flex;align-items:center;gap:16px}
+.db-card-link{font-size:13.5px;font-weight:600;color:var(--arc1);text-decoration:none;transition:opacity .15s}
 .db-card-link:hover{opacity:.75}
+.db-chev{width:28px;height:28px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;transition:transform .2s,color .15s,border-color .15s;flex-shrink:0}
+.db-card-head:hover .db-chev{color:var(--text);border-color:var(--border2)}
+.db-card.collapsed .db-chev{transform:rotate(-90deg)}
+.db-card-body{padding:0 0 26px}
+.db-card.collapsed .db-card-body{display:none}
 
 /* HOLDINGS TABLE */
 .db-tbl{width:100%;border-collapse:collapse}
-.db-tbl th{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:0 0 12px;font-weight:600}
+.db-tbl th{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:0 0 14px}
 .db-tbl th:first-child{text-align:left}
-.db-tbl td{padding:14px 0;border-top:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.db-tbl td{padding:18px 0;border-top:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
 .db-tbl td:first-child{text-align:left}
-.db-tok{display:flex;align-items:center;gap:11px}
-.db-tok img{width:30px;height:30px;border-radius:50%;background:var(--surface2);flex-shrink:0}
-.db-tok-sym{font-size:14px;font-weight:700;color:var(--text)}
-.db-tok-name{font-size:11px;color:var(--muted);margin-top:1px}
-.db-bal{font-family:var(--mono);font-size:13.5px;color:var(--text)}
-.db-price{font-family:var(--mono);font-size:13px;color:var(--muted)}
-.db-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text)}
+.db-tok{display:flex;align-items:center;gap:14px}
+.db-tok img{width:40px;height:40px;border-radius:50%;background:var(--surface2);flex-shrink:0}
+.db-tok-sym{font-size:17px;font-weight:700;color:var(--text)}
+.db-tok-name{font-size:12.5px;color:var(--muted);margin-top:2px}
+.db-bal{font-family:var(--mono);font-size:16px;color:var(--text)}
+.db-price{font-family:var(--mono);font-size:15px;color:var(--muted)}
+.db-val{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--text)}
 
 /* ALLOCATION DONUT */
-.db-donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;justify-content:center}
-.db-donut{position:relative;width:150px;height:150px;flex-shrink:0}
+.db-donut-wrap{display:flex;align-items:center;gap:40px;flex-wrap:wrap;justify-content:center}
+.db-donut{position:relative;width:190px;height:190px;flex-shrink:0}
 .db-donut svg{transform:rotate(-90deg)}
 .db-donut-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.db-donut-mid .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.db-donut-mid .v{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.db-legend{display:flex;flex-direction:column;gap:11px;min-width:150px;flex:1}
-.db-leg-row{display:flex;align-items:center;gap:10px;font-size:13px}
-.db-leg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.db-donut-mid .l{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.db-donut-mid .v{font-size:25px;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.db-legend{display:flex;flex-direction:column;gap:16px;min-width:200px;flex:1}
+.db-leg-row{display:flex;align-items:center;gap:12px;font-size:15.5px}
+.db-leg-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0}
 .db-leg-sym{font-weight:600;color:var(--text)}
-.db-leg-pct{margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--text)}
-.db-leg-val{font-family:var(--mono);font-size:11px;color:var(--muted);width:100%;text-align:right;margin-top:-6px}
+.db-leg-pct{margin-left:auto;font-family:var(--mono);font-weight:700;color:var(--text);font-size:15.5px}
+.db-leg-val{font-family:var(--mono);font-size:13px;color:var(--muted);width:100%;text-align:right;margin-top:-8px}
 
 /* CROSS-CHAIN LIST */
-.db-cc-top{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
-.db-cc-total{font-family:var(--mono);font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.db-cc-total .u{font-size:12px;color:var(--muted);font-weight:600;margin-left:4px}
-.db-cc-sub{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
-.db-cc-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)}
-.db-cc-row img{width:24px;height:24px;border-radius:50%;flex-shrink:0}
-.db-cc-name{font-size:13px;font-weight:600;color:var(--text)}
-.db-cc-pend{font-size:10.5px;color:var(--yellow);font-family:var(--mono);margin-top:1px}
-.db-cc-amt{margin-left:auto;font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.db-cc-top{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+.db-cc-total{font-family:var(--mono);font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.db-cc-total .u{font-size:14px;color:var(--muted);font-weight:600;margin-left:5px}
+.db-cc-sub{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.db-cc-row{display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid var(--border)}
+.db-cc-row img{width:32px;height:32px;border-radius:50%;flex-shrink:0}
+.db-cc-name{font-size:15.5px;font-weight:600;color:var(--text)}
+.db-cc-pend{font-size:12px;color:var(--yellow);font-family:var(--mono);margin-top:2px}
+.db-cc-amt{margin-left:auto;font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 
 /* ACTIVITY */
-.db-act-row{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--border);cursor:pointer}
+.db-act-row{display:grid;grid-template-columns:44px 1fr auto;gap:16px;align-items:center;padding:16px 0;border-top:1px solid var(--border);cursor:pointer}
 .db-act-row:first-child{border-top:none}
-.db-act-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.db-act-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
 .db-act-ico.k-trade{background:rgba(77,214,219,.10);color:var(--arc1)}
 .db-act-ico.k-balance{background:linear-gradient(135deg,rgba(74,123,236,.16),rgba(77,214,219,.08));color:var(--arc2)}
 .db-act-ico.k-fail{background:rgba(255,107,138,.10);color:#FF8BA3}
 .db-act-main{min-width:0}
-.db-act-t{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.db-act-s{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
-.db-act-amt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
-.db-act-amt small{display:block;font-size:9.5px;color:var(--muted);font-weight:500;margin-top:2px}
+.db-act-t{font-size:15.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.db-act-s{font-size:12.5px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.db-act-amt{font-family:var(--mono);font-size:15.5px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.db-act-amt small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px}
 
 /* EMPTY / SKELETON */
-.db-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}
-.db-empty-ico{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(77,214,219,.10),rgba(74,123,236,.06));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--arc1);margin-bottom:14px}
-.db-empty-t{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:5px}
-.db-empty-s{font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;margin-bottom:16px}
-.db-cta{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:11px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer;transition:all .15s}
+.db-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:46px 20px;text-align:center}
+.db-empty-ico{width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,rgba(77,214,219,.10),rgba(74,123,236,.06));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--arc1);margin-bottom:16px}
+.db-empty-t{font-size:15.5px;font-weight:600;color:var(--text);margin-bottom:6px}
+.db-empty-s{font-size:13.5px;color:var(--muted);max-width:340px;line-height:1.6;margin-bottom:18px}
+.db-cta{display:inline-flex;align-items:center;gap:6px;padding:12px 22px;border-radius:12px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;transition:all .15s}
 .db-cta:hover{background:rgba(77,214,219,.18);border-color:rgba(77,214,219,.5)}
 .db-skel{background:linear-gradient(90deg,var(--surface) 0%,var(--surface2) 50%,var(--surface) 100%);background-size:200% 100%;animation:db-shimmer 1.3s infinite;border-radius:6px;display:inline-block}
 @keyframes db-shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -124,8 +125,9 @@
 @media(max-width:680px){
   .db-wrap{padding:68px 14px 50px}
   .db-hero{padding:24px 20px}
-  .db-card{padding:18px 16px}
-  .db-tbl th:nth-child(3),.db-tbl td:nth-child(3){display:none}
+  .db-card{padding:0 18px}
+  .db-card-title{font-size:18px}
+  .db-donut-wrap{gap:22px}
 }
 </style>
 </head>
@@ -152,42 +154,50 @@
     </div>
   </section>
 
-  <!-- HOLDINGS + ALLOCATION -->
-  <div class="db-grid two">
-    <section class="db-card">
-      <div class="db-card-head">
-        <div class="db-card-title">Holdings <span class="n" id="db-hold-n">0 assets</span></div>
+  <!-- HOLDINGS -->
+  <section class="db-card" data-card="holdings">
+    <div class="db-card-head">
+      <div class="db-card-title">Holdings <span class="n" id="db-hold-n">0 assets</span></div>
+      <div class="db-head-r">
         <a class="db-card-link" href="/trade">Trade →</a>
+        <span class="db-chev">▾</span>
       </div>
-      <div id="db-holdings"></div>
-    </section>
+    </div>
+    <div class="db-card-body"><div id="db-holdings"></div></div>
+  </section>
 
-    <section class="db-card">
-      <div class="db-card-head">
-        <div class="db-card-title">Allocation</div>
-      </div>
-      <div id="db-alloc"></div>
-    </section>
-  </div>
+  <!-- ALLOCATION -->
+  <section class="db-card" data-card="alloc">
+    <div class="db-card-head">
+      <div class="db-card-title">Allocation</div>
+      <div class="db-head-r"><span class="db-chev">▾</span></div>
+    </div>
+    <div class="db-card-body"><div id="db-alloc"></div></div>
+  </section>
 
-  <!-- CROSS-CHAIN + ACTIVITY -->
-  <div class="db-grid even">
-    <section class="db-card">
-      <div class="db-card-head">
-        <div class="db-card-title">Cross-chain USDC</div>
+  <!-- CROSS-CHAIN -->
+  <section class="db-card" data-card="crosschain">
+    <div class="db-card-head">
+      <div class="db-card-title">Cross-chain USDC</div>
+      <div class="db-head-r">
         <a class="db-card-link" href="/balance">Balance →</a>
+        <span class="db-chev">▾</span>
       </div>
-      <div id="db-crosschain"></div>
-    </section>
+    </div>
+    <div class="db-card-body"><div id="db-crosschain"></div></div>
+  </section>
 
-    <section class="db-card">
-      <div class="db-card-head">
-        <div class="db-card-title">Recent activity</div>
+  <!-- RECENT ACTIVITY -->
+  <section class="db-card" data-card="activity">
+    <div class="db-card-head">
+      <div class="db-card-title">Recent activity</div>
+      <div class="db-head-r">
         <a class="db-card-link" href="/history">History →</a>
+        <span class="db-chev">▾</span>
       </div>
-      <div id="db-activity"></div>
-    </section>
-  </div>
+    </div>
+    <div class="db-card-body"><div id="db-activity"></div></div>
+  </section>
 
 </main>
 
@@ -198,7 +208,7 @@
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
 <script src="/assets/arc-gateway.js?v=9.7.3"></script>
-<script src="/assets/arc-ui.js?v=9.10.26"></script>
+<script src="/assets/arc-ui.js?v=9.10.27"></script>
 <script>
 (async () => {
   /* ============================================================
@@ -217,6 +227,36 @@
   ============================================================ */
 
   await ArcUI.bootApp('dashboard');
+
+  // ── ACCORDION ─────────────────────────────────────────────────
+  // Every section header toggles its own body. Collapsed sections are
+  // remembered per-browser so the layout stays how the user left it.
+  const COLLAPSE_KEY = 'arc.dash.collapsed.v1';
+  function loadCollapsed(){ try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')); } catch { return new Set(); } }
+  function saveCollapsed(set){ try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])); } catch {} }
+  (function setupAccordion(){
+    const collapsed = loadCollapsed();
+    document.querySelectorAll('.db-card[data-card]').forEach(card => {
+      const id = card.getAttribute('data-card');
+      if (collapsed.has(id)) card.classList.add('collapsed');
+      const head = card.querySelector('.db-card-head');
+      head.setAttribute('role', 'button');
+      head.setAttribute('tabindex', '0');
+      const toggle = () => {
+        const now = card.classList.toggle('collapsed');
+        const set = loadCollapsed();
+        if (now) set.add(id); else set.delete(id);
+        saveCollapsed(set);
+      };
+      head.addEventListener('click', e => {
+        if (e.target.closest('a')) return;   // let deep-links (Trade →) through
+        toggle();
+      });
+      head.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  })();
 
   const ARC_TOKENS = ARC.TOKENS.arc;           // { USDC, EURC, cirBTC }
   const ORDER = ['USDC', 'EURC', 'cirBTC'];
@@ -344,12 +384,12 @@
       el.innerHTML = `<div class="db-empty"><div class="db-empty-ico">◔</div><div class="db-empty-t">No holdings yet</div><div class="db-empty-s">Your asset mix will appear here once you hold USDC, EURC, or cirBTC.</div></div>`;
       return;
     }
-    const R = 62, C = 2 * Math.PI * R, W = 16;
+    const SZ = 190, MID = SZ / 2, R = 76, C = 2 * Math.PI * R, W = 22;
     let off = 0;
     const segs = parts.map(r => {
       const frac = r.value / total;
       const len = frac * C;
-      const seg = `<circle cx="75" cy="75" r="${R}" fill="none" stroke="${TOK_COLOR[r.sym]}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`;
+      const seg = `<circle cx="${MID}" cy="${MID}" r="${R}" fill="none" stroke="${TOK_COLOR[r.sym]}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`;
       off += len;
       return seg;
     }).join('');
@@ -367,8 +407,8 @@
     el.innerHTML = `
       <div class="db-donut-wrap">
         <div class="db-donut">
-          <svg width="150" height="150" viewBox="0 0 150 150">
-            <circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--border)" stroke-width="${W}"/>
+          <svg width="${SZ}" height="${SZ}" viewBox="0 0 ${SZ} ${SZ}">
+            <circle cx="${MID}" cy="${MID}" r="${R}" fill="none" stroke="var(--border)" stroke-width="${W}"/>
             ${segs}
           </svg>
           <div class="db-donut-mid"><span class="l">Total</span><span class="v">${fmtUsd(total, total >= 1000 ? 0 : 2)}</span></div>
