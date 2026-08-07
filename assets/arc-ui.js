@@ -368,8 +368,6 @@
   //   localStorage 'arc.side.collapsed' = '1' | '0'   - desktop collapse
   //   body.arc-side-collapsed                          - applied class
   //   body.arc-side-open                               - mobile drawer open
-  const svgClock = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>`;
-
   const SIDE_SECTIONS = [
     {
       title: 'Products',
@@ -377,7 +375,8 @@
         { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
         { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
         { id: 'agent',     label: 'Agent',     icon: '∞', href: '/agent'   },
-        { id: 'history',   label: 'History',   icon: svgClock, href: '/history' },
+        // History lives inside the Dashboard now (Recent activity card, with a
+        // "History →" deep-link to the full feed), so it's dropped from the nav.
         { id: 'portal',    label: 'Portal',    icon: '◎', href: '/portal' },
         { id: 'payment',   label: 'Payment',   icon: '⇢',                    badge: 'SOON', soon: true },
         { id: 'dashboard', label: 'Dashboard', icon: '▦', href: '/dashboard' },
