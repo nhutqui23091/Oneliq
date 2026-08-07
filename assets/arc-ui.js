@@ -9,9 +9,8 @@
   //   1. boot()    - classic top nav. Marketing/landing pages (/, /blog).
   //   2. bootApp() - left sidebar app shell. Operator surfaces (/trade,
   //                  /balance, /agent, /history, /token, etc).
-  // Dashboard (the operator one) is still gated in functions/_middleware.js;
-  // the sidebar "Dashboard" entry is a public placeholder for the future
-  // user dashboard.
+  // The operator console lives at /ops (gated in functions/_middleware.js);
+  // the sidebar "Dashboard" entry is the public user dashboard at /dashboard.
 
   function navTabs(active) {
     return [
@@ -381,7 +380,7 @@
         { id: 'history',   label: 'History',   icon: svgClock, href: '/history' },
         { id: 'portal',    label: 'Portal',    icon: '◎', href: '/portal' },
         { id: 'payment',   label: 'Payment',   icon: '⇢',                    badge: 'SOON', soon: true },
-        { id: 'dashboard', label: 'Dashboard', icon: '▦',                    badge: 'SOON', soon: true },
+        { id: 'dashboard', label: 'Dashboard', icon: '▦', href: '/dashboard' },
       ],
     },
     {

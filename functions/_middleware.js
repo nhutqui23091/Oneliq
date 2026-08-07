@@ -1,6 +1,6 @@
 // Page-level access gate.
 //
-// Locks the (operator) Dashboard page so only the operator can view it.
+// Locks the (operator) console page so only the operator can view it.
 // Credentials come from Cloudflare Pages env vars (Settings → Environment
 // variables → Production):
 //   POOL_AUTH_USER  — username (anything you want; legacy var name from
@@ -10,9 +10,9 @@
 // If either env var is missing, the gate FAILS CLOSED (503) rather than
 // silently exposing the page.
 //
-// The sidebar "Dashboard" entry is a public placeholder for the FUTURE
-// user dashboard (marked "Coming soon"); /dashboard itself remains the
-// gated operator surface — they're different surfaces.
+// The gated operator console lives at /ops. /dashboard is now the PUBLIC
+// user dashboard (portfolio, holdings, history) and passes straight through
+// — they're different surfaces.
 //
 // Note on logout: HTTP Basic Auth has no real logout. Close the browser /
 // use an incognito window if you need to clear credentials.
@@ -21,10 +21,10 @@ const REALM = 'Oneliq — Private';
 
 function isProtected(pathname) {
   return (
-    pathname === '/dashboard' ||
-    pathname === '/dashboard/' ||
-    pathname === '/dashboard.html' ||
-    pathname.startsWith('/dashboard/')
+    pathname === '/ops' ||
+    pathname === '/ops/' ||
+    pathname === '/ops.html' ||
+    pathname.startsWith('/ops/')
   );
 }
 

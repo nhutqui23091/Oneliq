@@ -668,18 +668,19 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
     </p>
 
     <!-- ─── DASHBOARD ─── -->
-    <h2 class="docs-h2" id="dashboard">Dashboard <em style="font-size:14px;color:var(--muted)">soon</em></h2>
+    <h2 class="docs-h2" id="dashboard">Dashboard</h2>
     <p class="docs-p">
-      The <a href="/dashboard"><code>/dashboard</code></a> page is the operator control center -
-      a read-only aggregator over your unified balance, your agent fleet, and your settlement
-      activity. Five metric cards (Portfolio Value, Unified Balance, Active Chains, Active Agents,
-      24h Settlement Volume) with sparklines, plus modules for portfolio analytics, recent
-      settlements, agent fleet, and a quick-actions tile grid (Swap / Deposit / Spend / New Agent /
-      Faucet).
+      The <a href="/dashboard"><code>/dashboard</code></a> page is your portfolio home - a read-only
+      aggregator over everything a connected wallet holds. It shows your profile (deterministic
+      avatar + address), total portfolio value with 24h change, a Holdings table
+      (USDC / EURC / cirBTC with live price and value), an allocation donut, your unified USDC
+      balance across Gateway chains, and a recent-activity feed mirrored from
+      <a href="/history">History</a>.
     </p>
     <p class="docs-p">
-      It's a pure aggregator - no Gateway writes happen on this page. Every action button deep-links
-      to <a href="/balance">Balance</a>, <a href="/trade">Trade</a>, or <a href="/agent">Agent</a>.
+      It's a pure aggregator - no Gateway writes happen on this page. Prices come from CoinGecko
+      (USDC pinned to $1) and every card deep-links to <a href="/balance">Balance</a>,
+      <a href="/trade">Trade</a>, or <a href="/history">History</a>.
     </p>
 
     <!-- ─── ARC NETWORK ─── -->
