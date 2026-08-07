@@ -1020,13 +1020,24 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       const tb = await tokenBalance(state.dst.chainKey, state.toToken, addr);
       fromBal.innerHTML = `${fLabel}: <b id="from-bal-b">${formatAmt(fb, state.fromToken.decimals)}</b> ${state.fromToken.symbol}`;
       toBal.innerHTML = `Balance: <b>${formatAmt(tb, state.toToken.decimals)}</b> ${state.toToken.symbol}`;
-      document.getElementById('from-bal-b').onclick = () => {
-        const max = formatAmt(fb, state.fromToken.decimals, state.fromToken.decimals);
+      const setMaxAmount = () => {
+        let avail = fb;
+        // USDC is Arc's native gas token — maxing out the entire wallet balance
+        // leaves nothing to pay gas, so the approve/swap tx reverts
+        // (TransferInFailed at the router). Keep a small buffer for gas when the
+        // input is the gas token held directly in the wallet.
+        if (state.src.kind !== 'gateway' && state.src.kind !== 'unified'
+            && state.src.chainKey === 'arc' && state.fromToken.isGasToken) {
+          const reserve = (10n ** BigInt(state.fromToken.decimals)) / 10n; // ~0.1 USDC for gas
+          avail = fb > reserve ? fb - reserve : 0n;
+        }
+        const max = formatAmt(avail, state.fromToken.decimals, state.fromToken.decimals);
         document.getElementById('amount-in').value = max;
         state.amountIn = max; triggerQuote();
       };
+      document.getElementById('from-bal-b').onclick = setMaxAmount;
       const maxBtn = document.getElementById('max-btn');
-      if (maxBtn) maxBtn.onclick = document.getElementById('from-bal-b').onclick;
+      if (maxBtn) maxBtn.onclick = setMaxAmount;
       const pct20Btn = document.getElementById('pct-20-btn');
       if (pct20Btn) pct20Btn.onclick = () => {
         const amt = formatAmt((fb * 20n) / 100n, state.fromToken.decimals, state.fromToken.decimals);
@@ -1534,7 +1545,15 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const rc = await prov.getTransactionReceipt(hash).catch(() => null);
-      if (rc) return rc;
+      if (rc) {
+        // A mined receipt with status 0 means the tx reverted on-chain (e.g. the
+        // router's TransferInFailed when the balance is short). Surface it as an
+        // error instead of letting the pipeline report the trade as complete.
+        if (rc.status !== null && rc.status !== undefined && Number(rc.status) === 0) {
+          throw new Error('Transaction reverted on-chain — check the explorer');
+        }
+        return rc;
+      }
       await new Promise(r => setTimeout(r, 400));
     }
     throw new Error('Timed out waiting for confirmation');
