@@ -69,13 +69,24 @@ async function handleGet(request, env) {
   // and the Discord name onto the gm record so the leaderboard can rank — and
   // recompute fresh stars — from a single key scan without re-reading profiles.
   const discordDone = !!discordId;
-  const stars = computeStars(state, { discord_id: discordId, said_gm: saidGm });
+
+  // Award the "100 Transactions" badge the moment the count crosses 100. The
+  // status (GET) path must grant it too — otherwise a wallet that reached 100
+  // shows a full 100/100 progress bar but the badge stays LOCKED until the next
+  // daily check-in happens to run applyCheckin(). Award it BEFORE computeStars
+  // so the +150 badge bonus lands in this same response.
+  const hasTx100   = Array.isArray(state.badges) && state.badges.includes('tx100');
+  const awardTx100 = !hasTx100 && txCount >= 100;
+  const badges     = awardTx100 ? [...(state.badges || []), 'tx100'] : (state.badges || []);
+
+  const stars = computeStars({ ...state, badges }, { discord_id: discordId, said_gm: saidGm });
   if (state.stars !== stars
       || state.discord_done !== discordDone
       || state.said_gm !== saidGm
+      || awardTx100
       || (discordName && state.discord_name !== discordName)) {
     state = {
-      ...state, stars, discord_done: discordDone, said_gm: saidGm,
+      ...state, stars, discord_done: discordDone, said_gm: saidGm, badges,
       ...(discordName ? { discord_name: discordName } : {}),
     };
     await kv.put('gm:' + addr, JSON.stringify(state));
