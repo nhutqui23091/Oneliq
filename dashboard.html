@@ -44,13 +44,6 @@
 .db-change.down{color:#FF8BA3}
 .db-change .muted{color:var(--muted);font-weight:500}
 
-/* TOP ROW — profile hero (left) + allocation (right); stacks on narrow screens */
-.db-top{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-bottom:18px;align-items:start}
-.db-top .db-hero{margin-bottom:0}
-.db-top .db-alloc-card{margin-bottom:0}
-.db-top .db-alloc-card .db-card-body{display:flex;align-items:center;justify-content:center}
-@media(max-width:900px){.db-top{grid-template-columns:1fr}}
-
 /* SECTIONS — full-width, stacked, collapsible (click the header to toggle) */
 .db-card{position:relative;padding:0 30px;border-radius:20px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:18px}
 .db-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:24px 0 20px;cursor:pointer;user-select:none}
@@ -59,6 +52,14 @@
 .db-head-r{display:flex;align-items:center;gap:16px}
 .db-card-link{font-size:13.5px;font-weight:600;color:var(--arc1);text-decoration:none;transition:opacity .15s}
 .db-card-link:hover{opacity:.75}
+/* Tabs inside a card head (Holdings ⇄ Allocation) */
+.db-tabs{display:flex;align-items:center;gap:22px}
+.db-tab{position:relative;font-family:var(--font);font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 0;display:inline-flex;align-items:center;gap:11px;transition:color .15s}
+.db-tab:hover{color:var(--text)}
+.db-tab.active{color:var(--text)}
+.db-tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;background:linear-gradient(90deg,var(--arc1),var(--arc2));border-radius:2px}
+.db-tab .n{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--muted);padding:3px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border)}
+.db-pane[hidden]{display:none}
 .db-chev{width:28px;height:28px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;transition:transform .2s,color .15s,border-color .15s;flex-shrink:0}
 .db-card-head:hover .db-chev{color:var(--text);border-color:var(--border2)}
 .db-card.collapsed .db-chev{transform:rotate(-90deg)}
@@ -144,8 +145,6 @@
 
 <main class="db-wrap">
 
-  <!-- TOP ROW: profile hero (left) + allocation (right) -->
-  <div class="db-top">
   <!-- PROFILE HERO -->
   <section class="db-hero">
     <span class="db-hero-eyebrow">Dashboard</span>
@@ -163,26 +162,22 @@
     </div>
   </section>
 
-  <!-- ALLOCATION (right of the hero) -->
-  <section class="db-card db-alloc-card" data-card="alloc">
-    <div class="db-card-head">
-      <div class="db-card-title">Allocation</div>
-      <div class="db-head-r"><span class="db-chev">▾</span></div>
-    </div>
-    <div class="db-card-body"><div id="db-alloc"></div></div>
-  </section>
-  </div>
-
-  <!-- HOLDINGS -->
+  <!-- HOLDINGS / ALLOCATION (tabbed — click a tab to switch views) -->
   <section class="db-card" data-card="holdings">
     <div class="db-card-head">
-      <div class="db-card-title">Holdings <span class="n" id="db-hold-n">0 assets</span></div>
+      <div class="db-tabs" role="tablist">
+        <button class="db-tab active" data-tab="holdings" type="button" role="tab">Holdings <span class="n" id="db-hold-n">0 assets</span></button>
+        <button class="db-tab" data-tab="alloc" type="button" role="tab">Allocation</button>
+      </div>
       <div class="db-head-r">
         <a class="db-card-link" href="/trade">Trade →</a>
         <span class="db-chev">▾</span>
       </div>
     </div>
-    <div class="db-card-body"><div id="db-holdings"></div></div>
+    <div class="db-card-body">
+      <div id="db-holdings" class="db-pane" data-pane="holdings"></div>
+      <div id="db-alloc" class="db-pane" data-pane="alloc" hidden></div>
+    </div>
   </section>
 
   <!-- CROSS-CHAIN -->
@@ -259,11 +254,34 @@
         saveCollapsed(set);
       };
       head.addEventListener('click', e => {
-        if (e.target.closest('a')) return;   // let deep-links (Trade →) through
+        // Let deep-links (Trade →) and tab buttons handle their own clicks;
+        // only bare header area / the chevron toggles collapse.
+        if (e.target.closest('a, button')) return;
         toggle();
       });
       head.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  })();
+
+  // ── TABS (Holdings ⇄ Allocation, sharing one card) ────────────
+  (function setupTabs(){
+    document.querySelectorAll('.db-tabs').forEach(tabs => {
+      const card = tabs.closest('.db-card');
+      tabs.querySelectorAll('.db-tab').forEach(tab => {
+        tab.addEventListener('click', e => {
+          e.stopPropagation();
+          const which = tab.getAttribute('data-tab');
+          tabs.querySelectorAll('.db-tab').forEach(t => {
+            const on = t === tab;
+            t.classList.toggle('active', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          card.querySelectorAll('.db-pane').forEach(p => {
+            p.hidden = p.getAttribute('data-pane') !== which;
+          });
+        });
       });
     });
   })();
