@@ -23,7 +23,7 @@
 }
 
 /* PAGE */
-.page{position:relative;z-index:1;min-height:100vh;padding:44px 28px 60px;max-width:1180px;margin:0 auto}
+.page{position:relative;z-index:1;min-height:100vh;padding:40px 34px 64px;max-width:1360px;margin:0 auto}
 @media(max-width:900px){.page{padding:72px 18px 50px}}
 
 /* HEADER */
@@ -160,9 +160,12 @@ select option:checked{background:#1a2c4a;color:#fff}
 .chain-chip.selected .chain-chip-meta{color:var(--violet)}
 
 /* TARGET WALLET ROWS */
-.target-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.target-row .field{flex:1;padding:10px 12px}
-.target-row .field-input{font-size:14px;font-family:var(--mono)}
+.target-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;max-width:100%}
+.target-row .field{flex:1 1 auto;min-width:0;padding:10px 12px}
+/* min-width:0 lets the long mono address shrink/ellipsize instead of forcing
+   the row wider than the column (which pushed the chain <select> off-screen). */
+.target-row .field-input{font-size:14px;font-family:var(--mono);min-width:0;text-overflow:ellipsis}
+.target-row .target-chain-sel{flex:0 0 auto}
 .target-mini{padding:6px 10px;border-radius:8px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.25);color:var(--violet);font-size:10.5px;font-weight:700;font-family:var(--mono);cursor:pointer;letter-spacing:.06em}
 .target-mini:hover{background:rgba(77,214,219,.18)}
 .target-remove{width:34px;height:34px;flex-shrink:0;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -360,10 +363,10 @@ select option:checked{background:#1a2c4a;color:#fff}
    the existing automation form + agents list (now tabbed) on the
    right. The AI can pre-fill the form; the user still signs.
 ============================================================ */
-.agent-layout{grid-template-columns:1fr 440px}
+.agent-layout{grid-template-columns:1fr 500px;gap:28px}
 @media(max-width:960px){.agent-layout{grid-template-columns:1fr}}
 
-.chat-pane{background:var(--surface);border:1px solid var(--border);border-radius:22px;backdrop-filter:blur(20px);display:flex;flex-direction:column;overflow:hidden;min-height:600px;max-height:calc(100vh - 210px);position:sticky;top:24px}
+.chat-pane{background:var(--surface);border:1px solid var(--border);border-radius:22px;backdrop-filter:blur(20px);display:flex;flex-direction:column;overflow:hidden;min-height:680px;max-height:calc(100vh - 90px);position:sticky;top:28px}
 @media(max-width:960px){.chat-pane{position:relative;top:0;max-height:none;min-height:480px}}
 .chat-head{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
 .chat-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,rgba(77,214,219,.28),rgba(74,123,236,.28));border:1px solid rgba(77,214,219,.35);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:var(--arc1)}
@@ -539,39 +542,26 @@ select option:checked{background:#1a2c4a;color:#fff}
 .chain-row-name{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chain-row-bal{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .chain-row.selected .chain-row-bal{color:var(--arc1)}
+
+/* Roomier overall now that the top hero is gone — scale the panel up a touch. */
+.card{padding:24px 26px}
+.chat-bubble{font-size:14px}
+.chat-input{font-size:14px}
+.chat-head-t{font-size:16px}
+.sel-row{padding:14px 16px}
+.sel-row-v{font-size:15px}
+.amt-hero-input{font-size:54px}
+.amt-hero{padding:20px 20px 18px}
+.cfg-tab{font-size:13.5px;padding:12px}
+.mode-pill{font-size:13.5px;padding:13px 8px}
+.deploy-btn{padding:17px;font-size:15.5px}
 </style>
 </head>
 <body>
 
 <div class="page">
-  <!-- HEADER -->
-  <div class="page-header">
-    <div>
-      <div class="arc-label" style="margin-bottom:10px">Oneliq AI</div>
-      <h1 class="page-title">Chat &amp; automate<br/>your USDC.</h1>
-    </div>
-  </div>
-
-  <!-- STATS -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="arc-label" style="margin-bottom:10px">Your Agents</div>
-      <div class="stat-val" id="stat-agents">0</div>
-      <div class="stat-change" id="stat-agents-sub">No agents yet</div>
-    </div>
-    <div class="stat-card">
-      <div class="arc-label" style="margin-bottom:10px">Total Sent</div>
-      <div class="stat-val" id="stat-sent">$0.00</div>
-      <div class="stat-change">Cumulative · preview</div>
-    </div>
-    <div class="stat-card">
-      <div class="arc-label" style="margin-bottom:10px">Last Trigger</div>
-      <div class="stat-val" id="stat-last">-</div>
-      <div class="stat-change" id="stat-last-sub">Nothing yet</div>
-    </div>
-  </div>
-
-  <!-- MAIN LAYOUT -->
+  <!-- MAIN LAYOUT (header + stat cards removed — the chat pane header carries
+       the page identity, so the top hero was redundant) -->
   <div class="agent-layout">
 
     <!-- LEFT: ONELIQ AI CHAT -->
@@ -3578,6 +3568,8 @@ select option:checked{background:#1a2c4a;color:#fff}
   }
 
   function updateStats() {
+    // Top stat cards were removed; keep this a safe no-op if they're absent.
+    if (!document.getElementById('stat-agents')) return;
     document.getElementById('stat-agents').textContent = agents.length;
     document.getElementById('stat-agents-sub').textContent = agents.length
       ? `${agents.filter(a => a.state !== 'paused').length} active · ${agents.filter(a => a.state === 'paused').length} paused`
