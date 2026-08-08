@@ -3124,10 +3124,15 @@ select option:checked{background:#1a2c4a;color:#fff}
       });
       hideTyping();
       if (!r.ok) {
-        const e = await r.json().catch(() => ({}));
-        appendChat('ai', e.message || (r.status === 503
-          ? "Oneliq AI isn't configured yet (Workers AI binding missing)."
-          : 'Sorry — I hit an error. Please try again.'));
+        // Read the body ONCE as text, then try to parse JSON out of it — a
+        // Cloudflare 404/500 returns an HTML page (not JSON), so surface the
+        // status + a snippet either way so failures are diagnosable.
+        const bodyText = await r.text().catch(() => '');
+        let detail = '';
+        try { const e = JSON.parse(bodyText); detail = e.message || e.error || ''; }
+        catch { detail = bodyText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); }
+        console.error('[Oneliq AI] /api/ai/chat', r.status, bodyText);
+        appendChat('ai', `Oneliq AI error (${r.status})${detail ? ': ' + detail : ''}`);
         return;
       }
       const data = await r.json();
@@ -3141,7 +3146,8 @@ select option:checked{background:#1a2c4a;color:#fff}
       appendChat('ai', reply, note);
     } catch (e) {
       hideTyping();
-      appendChat('ai', 'Network error — please try again.');
+      console.error('[Oneliq AI] network error', e);
+      appendChat('ai', 'Network error — ' + ((e && e.message) || 'please try again') + '.');
     } finally {
       chatBusy = false;
       document.getElementById('chat-send').disabled = false;

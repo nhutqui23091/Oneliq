@@ -70,29 +70,43 @@ function extractAction(text) {
 const stripAction = (text) => String(text || '').replace(/```(?:json)?\s*[\s\S]*?```/gi, '').trim();
 
 export async function onRequestPost({ request, env }) {
-  if (!env.AI) {
-    return json({ error: 'unconfigured', message: "Oneliq AI isn't configured yet (Workers AI binding \"AI\" is missing on this project)." }, 503);
-  }
-
-  let body;
-  try { body = await request.json(); } catch { return json({ error: 'bad_request' }, 400); }
-
-  const history = Array.isArray(body.messages) ? body.messages : [];
-  const msgs = history
-    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-    .slice(-12)
-    .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
-  if (!msgs.length) return json({ error: 'empty' }, 400);
-
-  const messages = [{ role: 'system', content: buildSystem(body.portfolio) }, ...msgs];
-
-  let out;
+  // One outer try so ANY unexpected failure returns a parseable JSON error
+  // (a raw throw would surface as Cloudflare's HTML 500 page, which the client
+  // can't read — making failures impossible to diagnose from the UI).
   try {
-    out = await env.AI.run(MODEL, { messages, max_tokens: 700, temperature: 0.4 });
-  } catch (e) {
-    return json({ error: 'ai_error', message: String((e && e.message) || e) }, 502);
-  }
+    if (!env.AI) {
+      return json({ error: 'unconfigured', message: "Oneliq AI isn't configured yet (Workers AI binding \"AI\" is missing on this project)." }, 503);
+    }
 
-  const text = (out && (out.response ?? (out.result && out.result.response))) || '';
-  return json({ reply: stripAction(text) || String(text).trim(), action: extractAction(text) });
+    let body;
+    try { body = await request.json(); } catch { return json({ error: 'bad_request', message: 'Invalid JSON body.' }, 400); }
+
+    const history = Array.isArray(body.messages) ? body.messages : [];
+    const msgs = history
+      .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-12)
+      .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    if (!msgs.length) return json({ error: 'empty', message: 'No messages provided.' }, 400);
+
+    const messages = [{ role: 'system', content: buildSystem(body.portfolio) }, ...msgs];
+
+    let out;
+    try {
+      out = await env.AI.run(MODEL, { messages, max_tokens: 700, temperature: 0.4 });
+    } catch (e) {
+      return json({ error: 'ai_error', message: 'Workers AI: ' + String((e && e.message) || e) }, 502);
+    }
+
+    const text = (out && (out.response ?? (out.result && out.result.response))) || '';
+    if (!text) return json({ error: 'empty_reply', message: 'Model returned no text.', raw: JSON.stringify(out).slice(0, 300) }, 502);
+    return json({ reply: stripAction(text) || String(text).trim(), action: extractAction(text) });
+  } catch (e) {
+    return json({ error: 'server_error', message: String((e && e.message) || e) }, 500);
+  }
+}
+
+// GET → tiny health probe so you can verify the route + binding are live
+// by opening /api/ai/health in a browser (no model call).
+export function onRequestGet({ env }) {
+  return json({ ok: true, route: 'ai', aiBinding: !!env.AI, model: MODEL });
 }
