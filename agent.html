@@ -521,6 +521,8 @@ select option:checked{background:#1a2c4a;color:#fff}
 .card{padding:20px 22px}
 /* The verbose "// what the agent will do" accordion is redundant now. */
 .summary{display:none !important}
+/* Chain chips read cleaner as 2 columns inside the modal. */
+#chain-modal .chain-grid{grid-template-columns:repeat(2,1fr)}
 </style>
 </head>
 <body>
@@ -603,9 +605,9 @@ select option:checked{background:#1a2c4a;color:#fff}
         </span>
       </div>
 
-      <!-- MODE BAR (sleek, Tower-style; Recurring Buy ships next) -->
+      <!-- MODE BAR (sleek, Tower-style). Auto Top-Up retired — Buy + Send only. -->
       <div class="mode-bar" id="mode-bar">
-        <button class="mode-pill" type="button" id="pill-buy" data-mode="buy" onclick="setMode('buy')">
+        <button class="mode-pill active" type="button" id="pill-buy" data-mode="buy" onclick="setMode('buy')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
           Recurring Buy
         </button>
@@ -613,15 +615,11 @@ select option:checked{background:#1a2c4a;color:#fff}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
           Scheduled Send
         </button>
-        <button class="mode-pill active" type="button" data-mode="topup" onclick="setMode('topup')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Auto Top-Up
-        </button>
       </div>
 
-      <!-- HERO AMOUNT — drives the active mode's primary amount (refill / send) -->
+      <!-- HERO AMOUNT — drives the active mode's primary amount (buy / send) -->
       <div class="amt-hero">
-        <div class="amt-hero-label" id="amt-hero-label">Amount per refill</div>
+        <div class="amt-hero-label" id="amt-hero-label">Amount per buy</div>
         <div class="amt-hero-input-row">
           <span class="amt-hero-cur">$</span>
           <input class="amt-hero-input" id="amt-hero-input" type="number" inputmode="decimal" min="0" step="any" value="100" oninput="onHeroAmount(this.value)" aria-label="Amount"/>
@@ -651,46 +649,14 @@ select option:checked{background:#1a2c4a;color:#fff}
           </div>
           <div class="step-hint" id="balances-hint">connect wallet to load balances</div>
         </div>
-        <button class="src-toggle" type="button" id="src-toggle" onclick="toggleSrcPicker()" aria-expanded="false">
-          <span class="src-toggle-label" id="src-toggle-label">Base</span>
-          <span class="src-toggle-caret">▶</span>
+        <button class="sel-row" type="button" onclick="openChainModal()">
+          <div class="sel-row-ico"><img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt=""/></div>
+          <div class="sel-row-main">
+            <div class="sel-row-k">Source chains</div>
+            <div class="sel-row-v" id="src-toggle-label">Base</div>
+          </div>
+          <span class="sel-row-caret">▾</span>
         </button>
-        <div class="src-picker" id="src-picker" style="display:none">
-        <div class="chain-grid" id="chain-grid">
-          <div class="chain-chip selected" data-chain="base" onclick="toggleChain('base')">
-            <div class="chain-chip-name">Base</div>
-            <div class="chain-chip-meta" data-bal="base">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="arc" onclick="toggleChain('arc')">
-            <div class="chain-chip-name">Arc</div>
-            <div class="chain-chip-meta" data-bal="arc">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="sepolia" onclick="toggleChain('sepolia')">
-            <div class="chain-chip-name">Ethereum</div>
-            <div class="chain-chip-meta" data-bal="sepolia">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="arbitrum" onclick="toggleChain('arbitrum')">
-            <div class="chain-chip-name">Arbitrum</div>
-            <div class="chain-chip-meta" data-bal="arbitrum">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="optimism" onclick="toggleChain('optimism')">
-            <div class="chain-chip-name">Optimism</div>
-            <div class="chain-chip-meta" data-bal="optimism">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="polygon" onclick="toggleChain('polygon')">
-            <div class="chain-chip-name">Polygon</div>
-            <div class="chain-chip-meta" data-bal="polygon">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="unichain" onclick="toggleChain('unichain')">
-            <div class="chain-chip-name">Unichain</div>
-            <div class="chain-chip-meta" data-bal="unichain">- USDC</div>
-          </div>
-          <div class="chain-chip" data-chain="fuji" onclick="toggleChain('fuji')">
-            <div class="chain-chip-name">Avalanche</div>
-            <div class="chain-chip-meta" data-bal="fuji">- USDC</div>
-          </div>
-        </div>
-        </div>
       </div>
 
       <!-- STEP 2: TARGET WALLETS (multi) -->
@@ -1008,6 +974,58 @@ select option:checked{background:#1a2c4a;color:#fff}
   </div>
 </div>
 
+<!-- CHAIN MODAL (Scheduled Send: pick one or more source chains) -->
+<div class="olq-modal" id="chain-modal">
+  <div class="olq-modal-card">
+    <div class="olq-modal-head">
+      <div>
+        <div class="olq-modal-title">Source chains</div>
+        <div class="olq-modal-sub" id="chain-modal-sub">Pick the chains where your USDC lives. The agent pulls from all selected.</div>
+      </div>
+      <button class="olq-modal-x" type="button" onclick="closeChainModal()" aria-label="Close">×</button>
+    </div>
+    <div class="olq-modal-body">
+      <div class="chain-grid" id="chain-grid">
+        <div class="chain-chip selected" data-chain="base" onclick="toggleChain('base')">
+          <div class="chain-chip-name">Base</div>
+          <div class="chain-chip-meta" data-bal="base">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="arc" onclick="toggleChain('arc')">
+          <div class="chain-chip-name">Arc</div>
+          <div class="chain-chip-meta" data-bal="arc">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="sepolia" onclick="toggleChain('sepolia')">
+          <div class="chain-chip-name">Ethereum</div>
+          <div class="chain-chip-meta" data-bal="sepolia">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="arbitrum" onclick="toggleChain('arbitrum')">
+          <div class="chain-chip-name">Arbitrum</div>
+          <div class="chain-chip-meta" data-bal="arbitrum">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="optimism" onclick="toggleChain('optimism')">
+          <div class="chain-chip-name">Optimism</div>
+          <div class="chain-chip-meta" data-bal="optimism">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="polygon" onclick="toggleChain('polygon')">
+          <div class="chain-chip-name">Polygon</div>
+          <div class="chain-chip-meta" data-bal="polygon">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="unichain" onclick="toggleChain('unichain')">
+          <div class="chain-chip-name">Unichain</div>
+          <div class="chain-chip-meta" data-bal="unichain">- USDC</div>
+        </div>
+        <div class="chain-chip" data-chain="fuji" onclick="toggleChain('fuji')">
+          <div class="chain-chip-name">Avalanche</div>
+          <div class="chain-chip-meta" data-bal="fuji">- USDC</div>
+        </div>
+      </div>
+    </div>
+    <div class="olq-modal-foot">
+      <button class="olq-btn primary" type="button" onclick="closeChainModal()">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOKEN MODAL (Recurring Buy: choose pay token; buy = the other) -->
 <div class="olq-modal" id="tok-modal">
   <div class="olq-modal-card">
@@ -1158,7 +1176,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   };
 
   const state = {
-    mode: 'topup',                    // 'topup' | 'schedule'
+    mode: 'buy',                      // 'buy' | 'schedule' (topup retired)
     sources: new Set(['base']),       // multi-select
     targets: [''],                    // array of addresses (without 0x prefix is OK, normalized)
     targetChains: ['base'],           // parallel array - each target's destination chain
@@ -1258,7 +1276,9 @@ select option:checked{background:#1a2c4a;color:#fff}
       }
     }));
     hint.textContent = 'wallet balances · live';
-    // Balances changed → refresh the pre-flight reality check (and summary).
+    // Balances changed → refresh the pre-flight reality check (and summary),
+    // plus the source sel-row so it can show "Base · $30.27 USDC".
+    updateSrcToggleLabel();
     updateSummary();
   }
 
@@ -1860,26 +1880,25 @@ select option:checked{background:#1a2c4a;color:#fff}
     optimism: 'Optimism', polygon: 'Polygon', unichain: 'Unichain', fuji: 'Avalanche',
   };
 
-  // Source chains start collapsed to one summary row; expand on click so the
-  // full 8-chain grid only appears when the user wants to change the selection.
-  function toggleSrcPicker() {
-    const btn = document.getElementById('src-toggle');
-    const pick = document.getElementById('src-picker');
-    const open = btn.getAttribute('aria-expanded') === 'true';
-    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
-    pick.style.display = open ? 'none' : 'block';
-  }
-  window.toggleSrcPicker = toggleSrcPicker;
+  // Source chains now live in a Tower-style modal (opened from the sel-row).
+  function openChainModal() { document.getElementById('chain-modal').classList.add('open'); }
+  window.openChainModal = openChainModal;
+  function closeChainModal() { document.getElementById('chain-modal').classList.remove('open'); }
+  window.closeChainModal = closeChainModal;
 
-  // Keep the collapsed label in sync with the selected source chains.
+  // Keep the sel-row label in sync with the selected source chains (+ balance
+  // when a single chain is picked, so it reads like Tower's "USDC · $30.27").
   function updateSrcToggleLabel() {
     const el = document.getElementById('src-toggle-label');
     if (!el) return;
-    const names = Array.from(state.sources).map(c => CHAIN_SHORT[c] || c);
-    if (names.length <= 3) {
-      el.textContent = names.join(', ');
+    const chains = Array.from(state.sources);
+    if (chains.length === 1) {
+      const c = chains[0];
+      const bal = state.balances[c];
+      el.textContent = (CHAIN_SHORT[c] || c) + (bal != null ? ` · $${bal} USDC` : '');
     } else {
-      el.innerHTML = `${names.slice(0, 2).join(', ')} <span class="src-count">+${names.length - 2} more</span>`;
+      const names = chains.map(c => CHAIN_SHORT[c] || c);
+      el.textContent = names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
     }
   }
 
@@ -3571,6 +3590,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   renderAgents();
   renderExecLog();
   updateStats();
+  setMode('buy');          // default view = Recurring Buy (sets section visibility + hero)
   updateSummary();
   updateSrcToggleLabel();
 
