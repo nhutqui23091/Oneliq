@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
 <title>Oneliq | AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
 <style>
 :root{
@@ -20,7 +20,17 @@
      rule, and switch the rgba mid-tones to teal too. */
   --violet:#4DD6DB;     /* now teal (was #A78BFA) - alias for arc1 */
   --accent-rgb: 77,214,219;
+
+  /* Oneliq AI type system — crisper, more professional than the app default
+     (Tower-style): Inter for UI text, JetBrains Mono for numbers/labels.
+     Scoped to this page's :root so the rest of the app is untouched. */
+  --font:'Inter','DM Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Space Mono',ui-monospace,monospace;
+  /* Brighter muted so secondary text (labels, quick-amount chips, hints) is
+     actually legible on the dark panels — the shared #A4B8D0 read too faint. */
+  --muted:#B9C7DB;
 }
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
 /* PAGE */
 .page{position:relative;z-index:1;min-height:100vh;padding:40px 34px 64px;max-width:1440px;margin:0 auto}
@@ -425,14 +435,14 @@ select option:checked{background:#1a2c4a;color:#fff}
 .amt-hero:focus-within{border-color:rgba(77,214,219,.4)}
 .amt-hero-label{font-size:11px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .amt-hero-input-row{display:flex;align-items:center;justify-content:center;gap:2px}
-.amt-hero-cur{font-family:var(--display);font-size:34px;font-weight:300;color:var(--muted);line-height:1}
-.amt-hero-input{width:auto;max-width:100%;field-sizing:content;background:none;border:none;outline:none;text-align:center;font-family:var(--display);font-size:52px;font-weight:300;letter-spacing:-.03em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;padding:0;min-width:1ch}
+.amt-hero-cur{font-family:var(--mono);font-size:30px;font-weight:600;color:var(--muted);line-height:1}
+.amt-hero-input{width:auto;max-width:100%;field-sizing:content;background:none;border:none;outline:none;text-align:center;font-family:var(--mono);font-size:52px;font-weight:700;letter-spacing:-.02em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;padding:0;min-width:1ch}
 .amt-hero-input::-webkit-outer-spin-button,.amt-hero-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .amt-hero-input{-moz-appearance:textfield}
 .amt-hero-suffix{font-size:13px;color:var(--muted);font-family:var(--mono);margin-top:8px}
 .amt-quick{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
-.amt-quick button{padding:5px 12px;border-radius:100px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);font-size:11.5px;font-weight:600;font-family:var(--mono);cursor:pointer;transition:all .15s}
-.amt-quick button:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.07)}
+.amt-quick button{padding:6px 14px;border-radius:100px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text);font-size:12.5px;font-weight:700;font-family:var(--mono);cursor:pointer;transition:all .15s;letter-spacing:.01em}
+.amt-quick button:hover{color:#fff;border-color:rgba(77,214,219,.55);background:rgba(77,214,219,.12)}
 
 /* Selector rows (Tower "Pay With" / Frequency / time triggers) */
 .sel-row{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;width:100%;font-family:var(--font);color:var(--text);text-align:left}
