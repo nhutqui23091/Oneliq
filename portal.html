@@ -11,7 +11,7 @@
 <meta name="description" content="Oneliq Portal — daily check-in, streaks, badges, and referrals on Arc Testnet."/>
 <title>Portal | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -30,7 +30,7 @@
 .gm-logo{width:64px;height:64px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);animation:gm-bob 3s ease-in-out infinite}
 @keyframes gm-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .gm-hero-streak{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:10px}
-.gm-streak-num{font-family:var(--display);font-size:80px;font-weight:800;letter-spacing:-.04em;line-height:1;color:var(--text)}
+.gm-streak-num{font-family:var(--display);font-size:80px;font-weight:300;letter-spacing:-.03em;line-height:1;color:var(--text)}
 .gm-streak-lbl{font-size:11px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .gm-flame-ico{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 8px;border-radius:999px;background:rgba(255,180,84,.1);border:1px solid rgba(255,180,84,.18);margin-bottom:12px;animation:gm-flicker 1.2s ease-in-out infinite}
 @keyframes gm-flicker{0%,100%{transform:scale(1);opacity:1}35%{transform:scale(1.04) translateY(-1px);opacity:.9}65%{transform:scale(.98);opacity:.97}}
@@ -99,7 +99,7 @@
 .gm-ref-top{display:flex;align-items:center;gap:18px}
 @media(max-width:540px){.gm-ref-top{flex-direction:column;align-items:flex-start;gap:8px}}
 .gm-ref-count{display:flex;flex-direction:column;align-items:center;flex-shrink:0;min-width:84px}
-.gm-ref-count span:first-child{font-family:var(--display);font-size:42px;font-weight:800;line-height:1;letter-spacing:-.03em;background:linear-gradient(90deg,var(--arc1),var(--arc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gm-ref-count span:first-child{font-family:var(--display);font-size:42px;font-weight:400;line-height:1;letter-spacing:-.025em;background:linear-gradient(90deg,var(--arc1),var(--arc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .gm-ref-count-lbl{font-size:10.5px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .gm-ref-blurb{font-size:13px;color:var(--muted);line-height:1.55}
 .gm-ref-blurb strong{color:var(--text);font-weight:600}
@@ -123,15 +123,15 @@
 .gm-dash-logo{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(77,214,219,.28);background:radial-gradient(circle,rgba(77,214,219,.14),transparent 70%);flex-shrink:0}
 .gm-dash-logo img{width:32px;height:32px;border-radius:9px}
 .gm-dash-eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(77,214,219,.7)}
-.gm-dash-title{font-family:var(--display);font-size:17px;font-weight:700;color:var(--text);margin-top:2px;line-height:1.2}
+.gm-dash-title{font-family:var(--display);font-size:17px;font-weight:600;color:var(--text);margin-top:2px;line-height:1.2}
 .gm-dash-stats{display:flex;gap:9px}
 .gm-stat{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 8px;border-radius:13px;background:rgba(255,255,255,.035);border:1px solid var(--border)}
-.gm-stat-num{font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1;color:var(--text)}
+.gm-stat-num{font-family:var(--display);font-size:24px;font-weight:500;letter-spacing:-.02em;line-height:1;color:var(--text)}
 .gm-stat-lbl{font-size:9.5px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
 .gm-stat.is-stars{background:rgba(244,200,154,.06);border-color:rgba(244,200,154,.22)}
 .gm-stat.is-stars .gm-stat-num{background:linear-gradient(90deg,#F4C89A,#4DD6DB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .gm-stat-hero{padding:16px 12px;gap:5px}
-.gm-stat-hero .gm-stat-num{font-size:44px}
+.gm-stat-hero .gm-stat-num{font-size:44px;font-weight:400}
 .gm-stat-hero .gm-stat-lbl{font-size:11px}
 .gm-dash-lb{margin-top:2px;height:44px;padding:0 18px;border-radius:11px;border:1px solid rgba(244,200,154,.35);background:rgba(244,200,154,.1);color:var(--arc3);font-size:13.5px;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .15s}
 .gm-dash-lb:hover{background:rgba(244,200,154,.18);border-color:rgba(244,200,154,.55)}

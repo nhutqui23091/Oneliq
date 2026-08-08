@@ -11,7 +11,7 @@
 <meta name="description" content="Your Oneliq dashboard - profile, total portfolio value, holdings, cross-chain balance, and recent activity on Arc."/>
 <title>Dashboard | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
 <style>
 /* ============================================================
@@ -38,7 +38,7 @@
 .db-addr{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);font-family:var(--mono);font-size:13.5px;color:var(--muted);cursor:pointer;transition:all .15s;vertical-align:middle}
 .db-addr:hover{color:var(--text);border-color:var(--border2)}
 .db-addr .cp{font-size:12px;opacity:.7}
-.db-total{font-family:var(--display);font-size:clamp(42px,5.6vw,66px);font-weight:700;letter-spacing:-.035em;line-height:1;color:var(--text);margin:8px 0 10px;font-variant-numeric:tabular-nums}
+.db-total{font-family:var(--display);font-size:clamp(42px,5.6vw,66px);font-weight:300;letter-spacing:-.03em;line-height:1;color:var(--text);margin:8px 0 10px;font-variant-numeric:tabular-nums}
 .db-change{font-size:15px;font-family:var(--mono);font-weight:600;color:var(--muted)}
 .db-change.up{color:var(--arc4)}
 .db-change.down{color:#FF8BA3}
@@ -47,14 +47,14 @@
 /* SECTIONS — full-width, stacked, collapsible (click the header to toggle) */
 .db-card{position:relative;padding:0 30px;border-radius:20px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);overflow:hidden;margin-bottom:18px}
 .db-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:24px 0 20px;cursor:pointer;user-select:none}
-.db-card-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+.db-card-title{font-size:20px;font-weight:600;color:var(--text);letter-spacing:-.015em;display:flex;align-items:center;gap:12px}
 .db-card-title .n{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--muted);padding:3px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border)}
 .db-head-r{display:flex;align-items:center;gap:16px}
 .db-card-link{font-size:13.5px;font-weight:600;color:var(--arc1);text-decoration:none;transition:opacity .15s}
 .db-card-link:hover{opacity:.75}
 /* Tabs inside a card head (Holdings ⇄ Allocation) */
 .db-tabs{display:flex;align-items:center;gap:22px}
-.db-tab{position:relative;font-family:var(--font);font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 0;display:inline-flex;align-items:center;gap:11px;transition:color .15s}
+.db-tab{position:relative;font-family:var(--font);font-size:20px;font-weight:600;letter-spacing:-.015em;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 0;display:inline-flex;align-items:center;gap:11px;transition:color .15s}
 .db-tab:hover{color:var(--text)}
 .db-tab.active{color:var(--text)}
 .db-tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;background:linear-gradient(90deg,var(--arc1),var(--arc2));border-radius:2px}
@@ -86,7 +86,7 @@
 .db-donut svg{transform:rotate(-90deg)}
 .db-donut-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .db-donut-mid .l{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.db-donut-mid .v{font-size:25px;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.db-donut-mid .v{font-family:var(--display);font-size:25px;font-weight:500;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
 .db-legend{display:flex;flex-direction:column;gap:16px;min-width:200px;flex:1}
 .db-leg-row{display:flex;align-items:center;gap:12px;font-size:15.5px}
 .db-leg-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0}
@@ -96,7 +96,7 @@
 
 /* CROSS-CHAIN LIST */
 .db-cc-top{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
-.db-cc-total{font-family:var(--mono);font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.db-cc-total{font-family:var(--display);font-size:32px;font-weight:400;color:var(--text);letter-spacing:-.025em;font-variant-numeric:tabular-nums}
 .db-cc-total .u{font-size:14px;color:var(--muted);font-weight:600;margin-left:5px}
 .db-cc-sub{font-size:13px;color:var(--muted);font-family:var(--mono)}
 .db-cc-row{display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid var(--border)}
