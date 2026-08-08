@@ -3117,22 +3117,31 @@ select option:checked{background:#1a2c4a;color:#fff}
     showTyping();
 
     try {
-      const r = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages, portfolio: buildPortfolio() }),
-      });
+      const payload = JSON.stringify({ messages: chatMessages, portfolio: buildPortfolio() });
+      // Workers AI occasionally returns a transient edge 502/504 (the worker is
+      // killed before it can return, so the retry must live on the client, not
+      // in the Function). A few quick attempts turn ~50% flakiness into ~90%+.
+      let r = null, lastStatus = 0, lastBody = '';
+      for (let attempt = 0; attempt < 3; attempt++) {
+        r = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        });
+        if (r.ok) break;
+        lastStatus = r.status;
+        lastBody = await r.text().catch(() => '');
+        if (r.status !== 502 && r.status !== 504) break;   // only transient upstream errors
+        if (attempt < 2) await new Promise(res => setTimeout(res, 500 * (attempt + 1)));
+      }
       hideTyping();
-      if (!r.ok) {
-        // Read the body ONCE as text, then try to parse JSON out of it — a
-        // Cloudflare 404/500 returns an HTML page (not JSON), so surface the
-        // status + a snippet either way so failures are diagnosable.
-        const bodyText = await r.text().catch(() => '');
+      if (!r || !r.ok) {
+        // lastBody may be JSON (our Function) or an HTML edge page — surface either.
         let detail = '';
-        try { const e = JSON.parse(bodyText); detail = e.message || e.error || ''; }
-        catch { detail = bodyText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); }
-        console.error('[Oneliq AI] /api/ai/chat', r.status, bodyText);
-        appendChat('ai', `Oneliq AI error (${r.status})${detail ? ': ' + detail : ''}`);
+        try { const e = JSON.parse(lastBody); detail = e.message || e.error || ''; }
+        catch { detail = lastBody.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); }
+        console.error('[Oneliq AI] /api/ai/chat', lastStatus, lastBody);
+        appendChat('ai', detail || `Oneliq AI is busy right now (error ${lastStatus}). Please try again in a moment.`);
         return;
       }
       const data = await r.json();
