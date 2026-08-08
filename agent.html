@@ -601,6 +601,18 @@ select option:checked{background:#1a2c4a;color:#fff}
 .convo-del{width:26px;height:26px;border-radius:7px;background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
 .convo-del:hover{color:#FF8BA3;border-color:rgba(255,85,119,.3)}
 .convo-empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.5}
+
+/* In-chat swap quote card + confirm */
+.swap-quote{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin:4px 0 10px}
+.sq-row{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:15px;font-weight:700;flex-wrap:wrap}
+.sq-arrow{color:var(--arc1)}
+.sq-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:7px}
+.sq-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sq-confirm{padding:10px 18px;border-radius:10px;border:1px solid rgba(77,214,219,.4);background:linear-gradient(135deg,rgba(77,214,219,.22),rgba(74,123,236,.22));color:var(--text);font-family:var(--font);font-weight:700;font-size:13.5px;cursor:pointer;transition:all .15s}
+.sq-confirm:hover:not(:disabled){background:linear-gradient(135deg,rgba(77,214,219,.34),rgba(74,123,236,.34));border-color:rgba(77,214,219,.6)}
+.sq-confirm:disabled{opacity:.55;cursor:default}
+.chat-bubble a{color:var(--arc1);text-decoration:none;font-weight:600}
+.chat-bubble a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -4060,6 +4072,122 @@ select option:checked{background:#1a2c4a;color:#fff}
     if (t) t.remove();
   }
 
+  // Trusted-HTML bubble (for the swap card + tx links we build ourselves).
+  function appendChatHtml(role, html) {
+    const scroll = document.getElementById('chat-scroll');
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg ' + (role === 'user' ? 'user' : 'ai');
+    wrap.innerHTML = `<div class="chat-bubble">${html}</div>`;
+    scroll.appendChild(wrap);
+    chatScrollBottom();
+    return wrap;
+  }
+
+  /* ============================================================
+     IN-CHAT SWAP — one-off USDC<->EURC on Arc via OneliqRouter.
+     The USER signs (approve + swap) in their own wallet; the agent has
+     no autonomous authority. Mirrors the Trade page's execArcCurveSwap.
+  ============================================================ */
+  const CHAT_ROUTER = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
+  const CHAT_ROUTER_ABI = [
+    'function quote(address tokenIn, address tokenOut, uint256 amountIn) view returns (uint256 amountOut, uint256 fee)',
+    'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut) returns (uint256)',
+  ];
+  const CHAT_ERC20_ABI = [
+    'function allowance(address owner, address spender) view returns (uint256)',
+    'function approve(address spender, uint256 value) returns (bool)',
+  ];
+  // Arc pool works in 6-dec units; the app models Arc USDC at 18-dec, so scale.
+  const toPool6Chat = (amtApp, tok) => amtApp / (10n ** BigInt(tok.decimals - 6));
+  const fromPool6Chat = (amt6, tok) => amt6 * (10n ** BigInt(tok.decimals - 6));
+
+  async function quoteChatSwap(fromSym, toSym, amount) {
+    const tIn = ARC.TOKENS.arc[fromSym], tOut = ARC.TOKENS.arc[toSym];
+    if (!tIn || !tOut) throw new Error('Unsupported token');
+    const dx = toPool6Chat(ethers.parseUnits(String(amount), tIn.decimals), tIn);
+    if (dx <= 0n) throw new Error('Amount too small for the pool');
+    const router = new ethers.Contract(CHAT_ROUTER, CHAT_ROUTER_ABI, ARC.rpcProvider('arc'));
+    const [dy] = await router.quote(tIn.address, tOut.address, dx);
+    if (dy <= 0n) throw new Error('No Arc pool liquidity');
+    return ethers.formatUnits(fromPool6Chat(dy, tOut), tOut.decimals);
+  }
+
+  async function execChatSwap(fromSym, toSym, amount, onStatus) {
+    await ARC.wallet.ensureChain('arc');
+    const tIn = ARC.TOKENS.arc[fromSym], tOut = ARC.TOKENS.arc[toSym];
+    const dx = toPool6Chat(ethers.parseUnits(String(amount), tIn.decimals), tIn);
+    if (dx <= 0n) throw new Error('Amount too small for the pool');
+    const read = ARC.rpcProvider('arc');
+    const [dy] = await new ethers.Contract(CHAT_ROUTER, CHAT_ROUTER_ABI, read).quote(tIn.address, tOut.address, dx);
+    if (dy <= 0n) throw new Error('No Arc pool liquidity');
+    const minDy = dy - (dy * 50n) / 10000n; // 0.5% slippage
+    // Approve the router once (max) if the current allowance is short.
+    let cur = await new ethers.Contract(tIn.address, CHAT_ERC20_ABI, read)
+      .allowance(ARC.wallet.address, CHAT_ROUTER).catch(() => 0n);
+    if (cur < dx) {
+      if (onStatus) onStatus(`Approving ${fromSym} (one-time)…`);
+      const atx = await new ethers.Contract(tIn.address, CHAT_ERC20_ABI, ARC.wallet.signer)
+        .approve(CHAT_ROUTER, (1n << 256n) - 1n);
+      await atx.wait();
+    }
+    if (onStatus) onStatus(`Swapping ${fromSym} → ${toSym}…`);
+    const tx = await new ethers.Contract(CHAT_ROUTER, CHAT_ROUTER_ABI, ARC.wallet.signer)
+      .swap(tIn.address, tOut.address, dx, minDy);
+    if (onStatus) onStatus('Confirming on Arc…');
+    await tx.wait();
+    return tx.hash;
+  }
+
+  // Render a quote card in chat with a Confirm button (from an AI swap action).
+  async function handleSwapIntent(a) {
+    const from = String(a.from || '').toUpperCase();
+    const to = String(a.to || '').toUpperCase();
+    const amount = Number(a.amount);
+    const PAIR = new Set(['USDC', 'EURC']);
+    if (!PAIR.has(from) || !PAIR.has(to) || from === to || !(amount > 0)) {
+      appendChat('ai', 'I can only swap between USDC and EURC on Arc for now — e.g. "swap 5 EURC to USDC".');
+      return;
+    }
+    let outHuman;
+    try { outHuman = await quoteChatSwap(from, to, amount); }
+    catch (e) { appendChat('ai', "Couldn't fetch a quote — " + ((e && e.message) || e)); return; }
+    const outShort = (+outHuman).toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const wrap = appendChatHtml('ai',
+      `<div style="font-weight:600;margin-bottom:8px">Here's your swap</div>` +
+      `<div class="swap-quote">` +
+        `<div class="sq-row"><span>${amount} ${from}</span><span class="sq-arrow">→</span><span>${outShort} ${to}</span></div>` +
+        `<div class="sq-meta">Route: OneliqRouter · Arc · 0.3% fee · slippage 0.5%</div>` +
+      `</div>` +
+      `<div class="sq-actions"><button class="sq-confirm" type="button">Confirm &amp; sign</button></div>`);
+    const btn = wrap.querySelector('.sq-confirm');
+    btn.onclick = () => confirmChatSwap({ from, to, amount }, btn);
+  }
+
+  async function confirmChatSwap(a, btn) {
+    if (!ARC.wallet.signer) {
+      const b = document.getElementById('arc-wallet-btn'); if (b) b.click();
+      ArcUI.toast('warn', 'Connect wallet first', 'Pick a wallet to sign the swap.');
+      return;
+    }
+    btn.disabled = true;
+    const orig = btn.textContent;
+    const status = appendChatHtml('ai', '<span class="chat-typing"><span></span><span></span><span></span></span> Preparing…');
+    const statusEl = status.querySelector('.chat-bubble');
+    const setStatus = (m) => { statusEl.textContent = m; chatScrollBottom(); };
+    try {
+      const hash = await execChatSwap(a.from, a.to, a.amount, setStatus);
+      const link = ARC.CHAINS.arc.explorerTx(hash);
+      statusEl.innerHTML = `✅ Swapped <strong>${a.amount} ${a.from} → ${a.to}</strong> on Arc. <a href="${link}" target="_blank" rel="noopener">${ARC.shortAddr(hash)} ↗</a>`;
+      chatMessages.push({ role: 'assistant', content: `Swap complete: ${a.amount} ${a.from} → ${a.to} (tx ${hash})` });
+      persistCurrent();
+      try { ARC.track('swap', 'arc', null, null, 'agent', ARC.wallet.address ? { address: ARC.wallet.address } : null); } catch {}
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      statusEl.textContent = /reject|denied|cancel/i.test(msg) ? 'Swap cancelled.' : ('Swap failed — ' + msg);
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+
   async function chatSend() {
     const input = document.getElementById('chat-input');
     const text = (input.value || '').trim();
@@ -4105,12 +4233,18 @@ select option:checked{background:#1a2c4a;color:#fff}
       const data = await r.json();
       const reply = (data.reply && data.reply.trim()) || '…';
       chatMessages.push({ role: 'assistant', content: reply });
-      let note = null;
-      if (data.action) {
-        const applied = applyAiAction(data.action);
-        if (applied) note = 'Pre-filled: ' + applied.join(', ') + ' — review & sign on the right.';
+      if (data.action && data.action.action === 'swap') {
+        // One-off swap → render an in-chat quote card with a Confirm button.
+        appendChat('ai', reply);
+        await handleSwapIntent(data.action);
+      } else {
+        let note = null;
+        if (data.action) {
+          const applied = applyAiAction(data.action);
+          if (applied) note = 'Pre-filled: ' + applied.join(', ') + ' — review & sign on the right.';
+        }
+        appendChat('ai', reply, note);
       }
-      appendChat('ai', reply, note);
     } catch (e) {
       hideTyping();
       console.error('[Oneliq AI] network error', e);
