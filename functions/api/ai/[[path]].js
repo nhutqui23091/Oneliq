@@ -105,8 +105,29 @@ export async function onRequestPost({ request, env }) {
   }
 }
 
-// GET → tiny health probe so you can verify the route + binding are live
-// by opening /api/ai/health in a browser (no model call).
-export function onRequestGet({ env }) {
-  return json({ ok: true, route: 'ai', aiBinding: !!env.AI, model: MODEL });
+// GET /api/ai/health   → route + binding probe (no model call)
+// GET /api/ai/selftest → actually runs the model with a tiny prompt so we can
+//                        tell a catchable model error apart from a platform
+//                        timeout (which surfaces as a Cloudflare edge 502).
+export async function onRequestGet({ request, env }) {
+  const url = new URL(request.url);
+  if (!url.pathname.endsWith('/selftest')) {
+    return json({ ok: true, route: 'ai', aiBinding: !!env.AI, model: MODEL });
+  }
+  if (!env.AI) return json({ error: 'unconfigured', message: 'AI binding missing.' }, 503);
+  const t0 = Date.now();
+  try {
+    const out = await env.AI.run(MODEL, {
+      messages: [{ role: 'user', content: 'Reply with the single word: pong' }],
+      max_tokens: 16,
+    });
+    return json({
+      ok: true,
+      ms: Date.now() - t0,
+      response: (out && out.response) || null,
+      shape: Object.keys(out || {}),
+    });
+  } catch (e) {
+    return json({ ok: false, ms: Date.now() - t0, error: String((e && e.message) || e) }, 502);
+  }
 }
