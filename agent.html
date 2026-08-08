@@ -456,9 +456,12 @@ select option:checked{background:#1a2c4a;color:#fff}
 .track-line .v{font-family:var(--mono);font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
 
 /* Generic Oneliq modal (frequency picker + calendar) */
-.olq-modal{position:fixed;inset:0;background:rgba(5,10,20,.65);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:9500;padding:20px;animation:drawerFade .15s ease}
+/* These pickers overlay ONLY the automation panel (positioned to #config-col's
+   on-screen box by positionOlqModal) — not the whole viewport — so it feels
+   like the picker opens inside the panel. left/top/width/height are set inline. */
+.olq-modal{position:fixed;background:rgba(5,10,20,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:9500;padding:16px;border-radius:18px;animation:drawerFade .15s ease}
 .olq-modal.open{display:flex}
-.olq-modal-card{background:linear-gradient(180deg,#16273F 0%,#0F1E36 100%);border:1px solid var(--border2);border-radius:22px;width:100%;max-width:440px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.olq-modal-card{background:linear-gradient(180deg,#16273F 0%,#0F1E36 100%);border:1px solid var(--border2);border-radius:22px;width:100%;max-width:none;max-height:100%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .olq-modal-head{padding:20px 24px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}
 .olq-modal-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
 .olq-modal-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
@@ -660,7 +663,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     </div>
 
     <!-- RIGHT: CONFIG (tabbed automation form + agents list) -->
-    <div class="config-col">
+    <div class="config-col" id="config-col">
       <div class="cfg-tabs">
         <button class="cfg-tab active" type="button" data-cfg="build" onclick="setCfgTab('build')">Build automation</button>
         <button class="cfg-tab" type="button" data-cfg="agents" onclick="setCfgTab('agents')">Your Agents</button>
@@ -1836,6 +1839,38 @@ select option:checked{background:#1a2c4a;color:#fff}
   window.setHeroAmount = setHeroAmount;
 
   /* ============================================================
+     PANEL-ANCHORED PICKERS — the frequency/calendar/chain/token modals
+     overlay ONLY the automation panel (#config-col), not the whole screen,
+     so a picker feels like it opens inside the panel box. We size the fixed
+     overlay to the panel's on-screen rect (clamped to the visible viewport so
+     the card is always centred in what the user can see).
+  ============================================================ */
+  function positionOlqModal(el) {
+    const panel = document.getElementById('config-col');
+    if (!panel || !el) return;
+    const r = panel.getBoundingClientRect();
+    const top = Math.max(r.top, 8);
+    const bottom = Math.min(r.bottom, window.innerHeight - 8);
+    el.style.left = r.left + 'px';
+    el.style.width = r.width + 'px';
+    el.style.top = top + 'px';
+    el.style.height = Math.max(bottom - top, 200) + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  }
+  function openOlqModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    positionOlqModal(el);
+    el.classList.add('open');
+  }
+  window.openOlqModal = openOlqModal;
+  // Keep any open picker aligned to the panel if the window resizes.
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.olq-modal.open').forEach(positionOlqModal);
+  });
+
+  /* ============================================================
      RECURRING BUY token pair — USDC<->EURC only (live OneliqRouter route).
   ============================================================ */
   const TOK_ICON = {
@@ -1846,7 +1881,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   function openTokModal() {
     document.querySelectorAll('#tok-modal .freq-opt').forEach(o =>
       o.classList.toggle('active', o.dataset.tok === buyTok.pay));
-    document.getElementById('tok-modal').classList.add('open');
+    openOlqModal('tok-modal');
   }
   window.openTokModal = openTokModal;
   function closeTokModal() { document.getElementById('tok-modal').classList.remove('open'); }
@@ -1876,7 +1911,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     const cur = document.getElementById('sched-cadence').value;
     document.querySelectorAll('#freq-modal .freq-opt').forEach(o =>
       o.classList.toggle('active', o.dataset.cad === cur));
-    document.getElementById('freq-modal').classList.add('open');
+    openOlqModal('freq-modal');
   }
   window.openFreqModal = openFreqModal;
   function closeFreqModal() { document.getElementById('freq-modal').classList.remove('open'); }
@@ -1928,7 +1963,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     calSelDate = startVal ? new Date(startVal + 'T00:00:00Z') : null;
     calYear = base.getUTCFullYear(); calMonth = base.getUTCMonth();
     renderCal();
-    document.getElementById('cal-modal').classList.add('open');
+    openOlqModal('cal-modal');
   }
   window.openCalModal = openCalModal;
   function closeCalModal() { document.getElementById('cal-modal').classList.remove('open'); }
@@ -2090,7 +2125,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   };
 
   // Source chains now live in a Tower-style modal (opened from the sel-row).
-  function openChainModal() { document.getElementById('chain-modal').classList.add('open'); }
+  function openChainModal() { openOlqModal('chain-modal'); }
   window.openChainModal = openChainModal;
   function closeChainModal() { document.getElementById('chain-modal').classList.remove('open'); }
   window.closeChainModal = closeChainModal;
@@ -2208,7 +2243,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         <span class="chain-row-name">${CHAIN_LABELS[c] || c}</span>
         ${state.sources.has(c) ? '<span class="chain-row-bal" style="color:var(--arc4)">same-chain</span>' : '<span class="chain-row-bal">via CCTP</span>'}
       </button>`).join('');
-    document.getElementById('tgt-chain-modal').classList.add('open');
+    openOlqModal('tgt-chain-modal');
   }
   window.openTgtChainModal = openTgtChainModal;
   function closeTgtChainModal() { document.getElementById('tgt-chain-modal').classList.remove('open'); }
