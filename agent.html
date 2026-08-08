@@ -909,7 +909,7 @@ select option:checked{background:#1a2c4a;color:#fff}
               </button>
             </div>
             <div class="lbl-field" style="margin-bottom:0">
-              <div class="lbl-field-label">First run <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· local</span></div>
+              <div class="lbl-field-label">First run <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· UTC</span></div>
               <button class="sel-row" type="button" onclick="openCalModal()">
                 <div class="sel-row-main">
                   <div class="sel-row-k">Starts</div>
@@ -1177,8 +1177,9 @@ select option:checked{background:#1a2c4a;color:#fff}
   <div class="olq-modal-card">
     <div class="olq-modal-head">
       <div>
-        <div class="olq-modal-title">Choose first send</div>
-        <div class="olq-modal-sub" id="cal-modal-sub">Pick the first date & time this agent runs (your local time).</div>
+        <div class="olq-modal-eyebrow" style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--arc1);margin-bottom:4px">🕐 UTC Schedule</div>
+        <div class="olq-modal-title">Choose first execution time</div>
+        <div class="olq-modal-sub" id="cal-modal-sub">Select the first UTC date & time this order should run.</div>
       </div>
       <button class="olq-modal-x" type="button" onclick="closeCalModal()" aria-label="Close">×</button>
     </div>
@@ -1193,19 +1194,19 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div class="cal-grid" id="cal-grid"></div>
         </div>
         <div class="cal-times">
-          <div class="cal-times-h">Time</div>
+          <div class="cal-times-h">Time (UTC)</div>
           <div class="cal-times-list" id="cal-times"></div>
         </div>
       </div>
       <div class="cal-selected">
-        <div class="cal-selected-k">Selected</div>
+        <div class="cal-selected-k">Selected execution time</div>
         <div class="cal-selected-v" id="cal-selected-v">—</div>
       </div>
     </div>
     <div class="olq-modal-foot">
       <button class="olq-btn ghost" type="button" onclick="calClear()">Start ASAP</button>
       <button class="olq-btn" type="button" onclick="closeCalModal()">Cancel</button>
-      <button class="olq-btn primary" type="button" onclick="calSave()">Save</button>
+      <button class="olq-btn primary" type="button" onclick="calSave()">Save UTC Time</button>
     </div>
   </div>
 </div>
@@ -1279,7 +1280,8 @@ select option:checked{background:#1a2c4a;color:#fff}
     targets: [''],                    // array of addresses (without 0x prefix is OK, normalized)
     targetChains: ['base'],           // parallel array - each target's destination chain
     dist: 'each',                     // 'each' | 'split' (schedule mode only)
-    balances: {},                     // chip-id → formatted string ("12.34" or "0")
+    balances: {},                     // chip-id → formatted string ("12.34" or "0")  [USDC per chain]
+    arcTokens: {},                    // symbol → formatted string ("12.34")  [Arc holdings: USDC/EURC/cirBTC]
   };
 
   let agents = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
@@ -1304,8 +1306,10 @@ select option:checked{background:#1a2c4a;color:#fff}
   // Inject the UTC offset into the time-field label so the user sees
   // "At time (UTC+7)" - no more guessing what "7:00 PM" resolves to.
   {
+    // Schedules are anchored to UTC (matches the Arc contract clock), so the
+    // time the user picks means the same instant regardless of their browser tz.
     const tzEl = document.getElementById('sched-time-tz');
-    if (tzEl) tzEl.textContent = `(your local time · ${TZ_LABEL})`;
+    if (tzEl) tzEl.textContent = '· UTC';
   }
 
   /** Format an "HH:MM" 24h wall-clock string as "h:MM AM/PM" 12h.
@@ -1373,6 +1377,23 @@ select option:checked{background:#1a2c4a;color:#fff}
       }
     }));
     hint.textContent = 'wallet balances · live';
+    // Also load the user's Arc holdings across the real Arc tokens so the AI
+    // can answer "where is my EURC?" etc. Only USDC/EURC/cirBTC are deployed on
+    // Arc — no USDT — so we read exactly those three.
+    try {
+      const arcTok = ARC.TOKENS.arc || {};
+      const syms = ['USDC', 'EURC', 'cirBTC'];
+      const holdings = {};
+      await Promise.all(syms.map(async sym => {
+        const tok = arcTok[sym];
+        if (!tok) return;
+        try {
+          const raw = await ARC.tokenBalance('arc', tok, addr);
+          holdings[sym] = fmtUsdc(raw, tok.decimals);
+        } catch { /* leave symbol out on RPC error */ }
+      }));
+      state.arcTokens = holdings;
+    } catch { /* non-fatal — chat context just omits token holdings */ }
     // Balances changed → refresh the pre-flight reality check (and summary),
     // plus the source sel-row so it can show "Base · $30.27 USDC".
     updateSrcToggleLabel();
@@ -1870,15 +1891,42 @@ select option:checked{background:#1a2c4a;color:#fff}
   window.pickFreq = pickFreq;
 
   let calYear, calMonth, calSelDate = null, calTimeVal = '19:00';
+  // calSelDate is a UTC-anchored Date; read it with UTC getters so the ISO
+  // date we store matches the day the user clicked (no tz roll-over).
   function fmtDateISO(d) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+  }
+  /** First-run timestamp (UTC ms) from a "HH:MM" UTC time + "YYYY-MM-DD" UTC
+   *  start date + cadence. If the slot is already in the past, advance one
+   *  cadence step (or null for a past one-time). Anchored to UTC so the picked
+   *  wall-clock means the same instant in every timezone. */
+  function computeFirstRunUTC(time, startDate, cadence) {
+    const [hh, mm] = String(time || '00:00').split(':').map(Number);
+    let y, mo, da;
+    if (startDate) {
+      [y, mo, da] = String(startDate).split('-').map(Number); mo -= 1;
+    } else {
+      const n = new Date(); y = n.getUTCFullYear(); mo = n.getUTCMonth(); da = n.getUTCDate();
+    }
+    let next = Date.UTC(y, mo, da, hh || 0, mm || 0, 0, 0);
+    if (next <= Date.now()) {
+      const d = new Date(next);
+      if (cadence === 'once') return null;              // past one-time = won't fire
+      else if (cadence === 'daily')   d.setUTCDate(d.getUTCDate() + 1);
+      else if (cadence === 'weekly')  d.setUTCDate(d.getUTCDate() + 7);
+      else if (cadence === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1);
+      next = d.getTime();
+    }
+    return next;
   }
   function openCalModal() {
     const startVal = document.getElementById('sched-start').value;
     calTimeVal = document.getElementById('sched-time').value || '19:00';
-    const base = startVal ? new Date(startVal + 'T00:00:00') : new Date();
-    calSelDate = startVal ? new Date(startVal + 'T00:00:00') : null;
-    calYear = base.getFullYear(); calMonth = base.getMonth();
+    // Everything here is UTC: the picked date/time mean the same instant on the
+    // Arc clock regardless of the user's browser timezone.
+    const base = startVal ? new Date(startVal + 'T00:00:00Z') : new Date();
+    calSelDate = startVal ? new Date(startVal + 'T00:00:00Z') : null;
+    calYear = base.getUTCFullYear(); calMonth = base.getUTCMonth();
     renderCal();
     document.getElementById('cal-modal').classList.add('open');
   }
@@ -1892,7 +1940,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     renderCal();
   }
   window.calShiftMonth = calShiftMonth;
-  function calPickDay(day) { calSelDate = new Date(calYear, calMonth, day); renderCal(); }
+  function calPickDay(day) { calSelDate = new Date(Date.UTC(calYear, calMonth, day)); renderCal(); }
   window.calPickDay = calPickDay;
   function calPickTime(v) { calTimeVal = v; renderCal(); }
   window.calPickTime = calPickTime;
@@ -1902,16 +1950,17 @@ select option:checked{background:#1a2c4a;color:#fff}
     document.getElementById('cal-month').textContent = `${MONTHS[calMonth]} ${calYear}`;
     const dows = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
-    const startDow = new Date(calYear, calMonth, 1).getDay();
-    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-    const today = new Date(); today.setHours(0,0,0,0);
+    // All calendar math is in UTC so a picked cell is the same UTC day everywhere.
+    const startDow = new Date(Date.UTC(calYear, calMonth, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(calYear, calMonth + 1, 0)).getUTCDate();
+    const now = new Date();
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
     for (let i = 0; i < startDow; i++) html += `<div></div>`;
     for (let day = 1; day <= daysInMonth; day++) {
-      const d = new Date(calYear, calMonth, day);
-      const past = d < today;
-      const isToday = d.getTime() === today.getTime();
-      const isSel = calSelDate && d.getFullYear() === calSelDate.getFullYear() &&
-                    d.getMonth() === calSelDate.getMonth() && d.getDate() === calSelDate.getDate();
+      const dUTC = Date.UTC(calYear, calMonth, day);
+      const past = dUTC < todayUTC;
+      const isToday = dUTC === todayUTC;
+      const isSel = calSelDate && dUTC === Date.UTC(calSelDate.getUTCFullYear(), calSelDate.getUTCMonth(), calSelDate.getUTCDate());
       html += `<button type="button" class="cal-day${isSel ? ' sel' : ''}${isToday && !isSel ? ' today' : ''}" ${past ? 'disabled' : ''} onclick="calPickDay(${day})">${day}</button>`;
     }
     document.getElementById('cal-grid').innerHTML = html;
@@ -1919,14 +1968,14 @@ select option:checked{background:#1a2c4a;color:#fff}
     let th = '';
     for (let h = 0; h < 24; h++) for (const m of [0, 30]) {
       const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      th += `<button type="button" class="cal-time${val === calTimeVal ? ' sel' : ''}" onclick="calPickTime('${val}')">${fmt12(val)}</button>`;
+      th += `<button type="button" class="cal-time${val === calTimeVal ? ' sel' : ''}" onclick="calPickTime('${val}')">${fmt12(val)} UTC</button>`;
     }
     const times = document.getElementById('cal-times');
     times.innerHTML = th;
     const el = document.getElementById('cal-selected-v');
     if (el) el.textContent = calSelDate
-      ? `${calSelDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${fmt12(calTimeVal)}`
-      : `Next available slot · ${fmt12(calTimeVal)}`;
+      ? `${calSelDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})}, ${fmt12(calTimeVal)} UTC`
+      : `Next available slot · ${fmt12(calTimeVal)} UTC`;
     const selT = times.querySelector('.cal-time.sel'); if (selT) selT.scrollIntoView({ block: 'center' });
   }
   function updateCalRowLabel() {
@@ -1935,8 +1984,8 @@ select option:checked{background:#1a2c4a;color:#fff}
     const startVal = document.getElementById('sched-start').value;
     const t = document.getElementById('sched-time').value;
     el.textContent = startVal
-      ? `${new Date(startVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${fmt12(t)}`
-      : `Next slot · ${fmt12(t)}`;
+      ? `${new Date(startVal + 'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})} · ${fmt12(t)} UTC`
+      : `Next slot · ${fmt12(t)} UTC`;
   }
   function calSave() {
     document.getElementById('sched-time').value = calTimeVal;
@@ -1979,8 +2028,8 @@ select option:checked{background:#1a2c4a;color:#fff}
     const startVal = document.getElementById('sched-start').value;
     const cad = document.getElementById('sched-cadence').value;
     const firstLabel = startVal
-      ? `${new Date(startVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${fmt12(t)}`
-      : `next ${fmt12(t)} slot`;
+      ? `${new Date(startVal + 'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}, ${fmt12(t)} UTC`
+      : `next ${fmt12(t)} UTC slot`;
     let iconSvg, title, lines;
     if (state.mode === 'buy') {
       const amt = parseFloat(document.getElementById('buy-amt').value) || 0;
@@ -2007,7 +2056,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       const amt = parseFloat(document.getElementById('send-amt').value) || 0;
       const total = state.dist === 'each' ? amt * n : amt;
       iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
-      title = `Scheduled send · ${TZ_LABEL}`;
+      title = 'Scheduled send · UTC';
       lines =
         `<div class="track-line"><span class="k">Repeat</span><span class="v">${CAD_LABEL[cad] || cad}</span></div>` +
         `<div class="track-line"><span class="k">First send</span><span class="v">${firstLabel}</span></div>` +
@@ -2292,7 +2341,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       const amt = parseFloat(document.getElementById('send-amt').value) || 0;
       const cadence = document.getElementById('sched-cadence').value;
       const timeRaw = document.getElementById('sched-time').value || '';
-      const time = timeRaw ? `${fmt12(timeRaw)} ${TZ_LABEL}` : '-';
+      const time = timeRaw ? `${fmt12(timeRaw)} UTC` : '-';
       const startVal = document.getElementById('sched-start').value;
       const cadenceLabel = {
         once: 'One-time send',
@@ -2520,33 +2569,13 @@ select option:checked{background:#1a2c4a;color:#fff}
       expiresAt,
     };
 
-    // For schedule mode, compute the FIRST nextRun timestamp here in the
-    // user's local browser timezone. Sending a millisecond UTC value lets
-    // the backend skip the timezone gymnastics (Cloudflare Workers run in
-    // UTC so any "HH:MM" string parsed there ends up wrong by the user's
-    // tz offset).
+    // For schedule mode, compute the FIRST nextRun timestamp in UTC — the
+    // date & time the user picked are UTC wall-clock (matching the "· UTC"
+    // labels and the Arc contract clock), so we build the instant with
+    // Date.UTC and advance with the UTC setters. No browser-tz offset.
     let nextRun = null;
     if (state.mode === 'schedule') {
-      const [hh, mm] = (params.time || '00:00').split(':').map(Number);
-      const start = params.startDate
-        ? new Date(params.startDate + 'T00:00:00')   // local midnight
-        : new Date();
-      start.setHours(hh, mm, 0, 0);                  // local hh:mm
-      let next = start.getTime();
-      // If chosen slot is already in the past, advance to next slot.
-      if (next <= Date.now()) {
-        const d = new Date(next);
-        if (params.cadence === 'once') {
-          next = null;                                // past one-time = won't fire
-        } else if (params.cadence === 'daily') {
-          d.setDate(d.getDate() + 1);    next = d.getTime();
-        } else if (params.cadence === 'weekly') {
-          d.setDate(d.getDate() + 7);    next = d.getTime();
-        } else if (params.cadence === 'monthly') {
-          d.setMonth(d.getMonth() + 1);  next = d.getTime();
-        }
-      }
-      nextRun = next;
+      nextRun = computeFirstRunUTC(params.time, params.startDate, params.cadence);
     }
 
     // SECURITY: styled confirm dialog showing the exact rule values
@@ -2565,7 +2594,7 @@ select option:checked{background:#1a2c4a;color:#fff}
          <div class="row"><span class="k">Refill</span><span class="v">${rule.params.refillAmount} USDC</span></div>
          <div class="row"><span class="k">Daily cap</span><span class="v">${rule.params.dailyCap} USDC</span></div>`
       : `<div class="row"><span class="k">Send amount</span><span class="v">${rule.params.sendAmount} USDC</span></div>
-         <div class="row"><span class="k">Cadence</span><span class="v">${rule.params.cadence} @ ${rule.params.time}</span></div>`;
+         <div class="row"><span class="k">Cadence</span><span class="v">${rule.params.cadence} @ ${fmt12(rule.params.time)} UTC</span></div>`;
     const targetsHtml = rule.targets.length === 1
       ? `<span class="v">${rule.targets[0].slice(0, 6)}…${rule.targets[0].slice(-4)}</span>`
       : `<span class="v">${rule.targets.length} addresses</span>`;
@@ -2653,7 +2682,7 @@ select option:checked{background:#1a2c4a;color:#fff}
           type: 'deployed',
           detail: rule.mode === 'topup'
             ? `Watching ${rule.targets.length} wallet${rule.targets.length > 1 ? 's' : ''} · floor $${rule.params.floor}`
-            : `Scheduled ${rule.params.cadence} · ${rule.targets.length} wallet${rule.targets.length > 1 ? 's' : ''} @ ${rule.params.time}`,
+            : `Scheduled ${rule.params.cadence} · ${rule.targets.length} wallet${rule.targets.length > 1 ? 's' : ''} @ ${fmt12(rule.params.time)} UTC`,
         });
         saveLocalExecs();
       } else {
@@ -2729,22 +2758,8 @@ select option:checked{background:#1a2c4a;color:#fff}
     // Runs on Arc, delivered to the owner's own wallet.
     const rule = { mode: 'buy', sources: ['arc'], targets: [owner], targetChains: ['arc'], params, expiresAt };
 
-    // First nextRun, computed in the user's local tz (same as scheduled send).
-    let nextRun = null;
-    {
-      const [hh, mm] = (time || '00:00').split(':').map(Number);
-      const start = startDate ? new Date(startDate + 'T00:00:00') : new Date();
-      start.setHours(hh, mm, 0, 0);
-      let next = start.getTime();
-      if (next <= Date.now()) {
-        const d = new Date(next);
-        if (cadence === 'once') next = null;
-        else if (cadence === 'daily') { d.setDate(d.getDate() + 1); next = d.getTime(); }
-        else if (cadence === 'weekly') { d.setDate(d.getDate() + 7); next = d.getTime(); }
-        else if (cadence === 'monthly') { d.setMonth(d.getMonth() + 1); next = d.getTime(); }
-      }
-      nextRun = next;
-    }
+    // First nextRun in UTC (same convention as scheduled send).
+    const nextRun = computeFirstRunUTC(time, startDate, cadence);
 
     const cadLabel = { once: 'One-time', daily: 'Every day', weekly: 'Every week', monthly: 'Every month' }[cadence] || cadence;
     const isSell = buyTok.pay === 'EURC';
@@ -2753,7 +2768,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       body: `
         <div class="lede">This agent will swap on your behalf on Arc via OneliqRouter. Verify before signing.</div>
         <div class="row"><span class="k">Swap</span><span class="v">$${amount.toFixed(2)} ${buyTok.pay} → ${buyTok.buy}</span></div>
-        <div class="row"><span class="k">Frequency</span><span class="v">${cadLabel} @ ${fmt12(time)} ${TZ_LABEL}</span></div>
+        <div class="row"><span class="k">Frequency</span><span class="v">${cadLabel} @ ${fmt12(time)} UTC</span></div>
         <div class="row"><span class="k">Route</span><span class="v">OneliqRouter · 0.3% fee</span></div>
         <div class="row"><span class="k">Expires</span><span class="v">in 30 days</span></div>
         <div class="footer">You'll sign one EIP-712 rule — no gas, no on-chain tx. Automated execution ships soon.</div>
@@ -3168,10 +3183,10 @@ select option:checked{background:#1a2c4a;color:#fff}
       if (a.mode === 'topup') {
         metaLine = `Floor $${(p.floor || 0).toFixed(0)} · Refill $${(p.refillAmount || 0).toFixed(0)} · sent <strong>$${(a.totalSent || 0).toFixed(2)}</strong>`;
       } else if (a.mode === 'buy') {
-        const tFmt = p.time ? `${fmt12(p.time)}` : '';
+        const tFmt = p.time ? `${fmt12(p.time)} UTC` : '';
         metaLine = `$${(p.amount || 0).toFixed(0)} ${p.payToken || ''}→${p.buyToken || ''} · ${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''}`;
       } else {
-        const tFmt = p.time ? `${fmt12(p.time)}` : '';
+        const tFmt = p.time ? `${fmt12(p.time)} UTC` : '';
         metaLine = `$${(p.sendAmount || 0).toFixed(0)} ${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''} · sent <strong>$${(a.totalSent || 0).toFixed(2)}</strong>`;
       }
 
@@ -3330,16 +3345,16 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div><div class="agent-meta-k">Refill</div><div class="agent-meta-v">$${(p.refillAmount || 0).toFixed(2)}</div></div>
           <div><div class="agent-meta-k">Sent</div><div class="agent-meta-v" style="color:var(--arc1)">$${(a.totalSent || 0).toFixed(2)}</div></div>`;
       } else if (a.mode === 'buy') {
-        const tFmt = p.time ? `${fmt12(p.time)} ${TZ_LABEL}` : '';
+        const tFmt = p.time ? `${fmt12(p.time)} UTC` : '';
         metaHtml = `
           <div><div class="agent-meta-k">Buy</div><div class="agent-meta-v" style="font-size:12px">${p.payToken || ''}→${p.buyToken || ''}</div></div>
           <div><div class="agent-meta-k">Amount</div><div class="agent-meta-v">$${(p.amount || 0).toFixed(2)}</div></div>
           <div><div class="agent-meta-k">Cadence</div><div class="agent-meta-v" style="font-size:11px">${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''}</div></div>`;
       } else {
-        // Show schedule cadence + 12h AM/PM time + the user's UTC offset so
-        // it's unambiguous across locales (no Vietnamese CH/SA, no guessing
-        // what tz a "7:00 PM" was authored in).
-        const tFmt = p.time ? `${fmt12(p.time)} ${TZ_LABEL}` : '';
+        // Show schedule cadence + 12h AM/PM time in UTC so it's unambiguous
+        // across locales (no Vietnamese CH/SA, no guessing what tz a
+        // "7:00 PM" was authored in — schedules are UTC-anchored).
+        const tFmt = p.time ? `${fmt12(p.time)} UTC` : '';
         metaHtml = `
           <div><div class="agent-meta-k">Amount</div><div class="agent-meta-v">$${(p.sendAmount || 0).toFixed(2)}</div></div>
           <div><div class="agent-meta-k">Cadence</div><div class="agent-meta-v" style="font-size:11px">${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''}</div></div>
@@ -3764,10 +3779,10 @@ select option:checked{background:#1a2c4a;color:#fff}
   /* ============================================================
      INIT
   ============================================================ */
-  // Default start date = today
+  // Default start date = today (UTC — schedules are UTC-anchored)
   const today = new Date();
   document.getElementById('sched-start').value =
-    `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    `${today.getUTCFullYear()}-${String(today.getUTCMonth()+1).padStart(2,'0')}-${String(today.getUTCDate()).padStart(2,'0')}`;
 
   // Normalize anything already in localStorage to the canonical shape
   agents = agents.map(normalizeAgent);
@@ -3866,6 +3881,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       address: ARC.wallet && ARC.wallet.address ? ARC.wallet.address : null,
       agents: Array.isArray(agents) ? agents.length : 0,
       balances: Object.assign({}, state.balances),
+      tokens: Object.assign({}, state.arcTokens),   // Arc holdings: USDC/EURC/cirBTC
     };
   }
 

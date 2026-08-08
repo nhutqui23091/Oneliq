@@ -618,15 +618,23 @@ function computeNextRun(mode, params, fromTs) {
   if (mode !== 'schedule' && mode !== 'buy') return null; // buy is time-based like schedule
   const { cadence, time, startDate } = params;
   const [hh, mm] = (time || '00:00').split(':').map(Number);
-  // Use the user's startDate if provided, else today.
-  const base = startDate ? new Date(startDate + 'T00:00:00') : new Date(fromTs);
-  base.setHours(hh, mm, 0, 0);
+  // Time & startDate are UTC wall-clock (the client anchors the schedule to
+  // UTC), so build/advance the instant explicitly in UTC. Only reached when the
+  // client didn't pre-compute nextRun (old clients); modern clients send it.
+  let base;
+  if (startDate) {
+    const [y, mo, da] = String(startDate).split('-').map(Number);
+    base = new Date(Date.UTC(y, mo - 1, da, hh || 0, mm || 0, 0, 0));
+  } else {
+    base = new Date(fromTs);
+    base.setUTCHours(hh || 0, mm || 0, 0, 0);
+  }
   if (base.getTime() <= fromTs) {
     // Move to next slot
     if (cadence === 'once')    return base.getTime() < fromTs ? null : base.getTime();
-    if (cadence === 'daily')   base.setDate(base.getDate() + 1);
-    if (cadence === 'weekly')  base.setDate(base.getDate() + 7);
-    if (cadence === 'monthly') base.setMonth(base.getMonth() + 1);
+    if (cadence === 'daily')   base.setUTCDate(base.getUTCDate() + 1);
+    if (cadence === 'weekly')  base.setUTCDate(base.getUTCDate() + 7);
+    if (cadence === 'monthly') base.setUTCMonth(base.getUTCMonth() + 1);
   }
   return base.getTime();
 }
