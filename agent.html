@@ -605,9 +605,9 @@ select option:checked{background:#1a2c4a;color:#fff}
 
       <!-- MODE BAR (sleek, Tower-style; Recurring Buy ships next) -->
       <div class="mode-bar" id="mode-bar">
-        <button class="mode-pill" type="button" id="pill-buy" disabled title="Recurring Buy — coming next">
+        <button class="mode-pill" type="button" id="pill-buy" data-mode="buy" onclick="setMode('buy')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
-          Recurring Buy<span class="soon-tag">Soon</span>
+          Recurring Buy
         </button>
         <button class="mode-pill" type="button" data-mode="schedule" onclick="setMode('schedule')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
@@ -636,7 +636,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       </div>
 
       <!-- STEP 1: SOURCE CHAINS (multi) -->
-      <div class="step">
+      <div class="step" id="step-source">
         <div class="step-h">
           <div class="step-num">1</div>
           <div class="step-label" style="display:flex;align-items:center">
@@ -694,7 +694,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       </div>
 
       <!-- STEP 2: TARGET WALLETS (multi) -->
-      <div class="step">
+      <div class="step" id="step-targets">
         <div class="step-h">
           <div class="step-num">2</div>
           <div class="step-label" style="display:flex;align-items:center">
@@ -824,6 +824,38 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
           </div>
 
+        </div>
+
+        <!-- RECURRING BUY (DCA) RULES — USDC<->EURC via OneliqRouter -->
+        <div id="rules-buy" style="display:none">
+          <div class="lbl-field">
+            <div class="lbl-field-label">Pay with</div>
+            <button class="sel-row" type="button" onclick="openTokModal()">
+              <div class="sel-row-ico"><img id="pay-tok-ico" src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt=""/></div>
+              <div class="sel-row-main">
+                <div class="sel-row-k">From</div>
+                <div class="sel-row-v" id="pay-tok-v">USDC</div>
+              </div>
+              <span class="sel-row-caret">▾</span>
+            </button>
+          </div>
+          <div class="lbl-field">
+            <div class="lbl-field-label">Buy</div>
+            <div class="sel-row static">
+              <div class="sel-row-ico"><img id="buy-tok-ico" src="https://assets.coingecko.com/coins/images/26045/small/euro.png" alt=""/></div>
+              <div class="sel-row-main">
+                <div class="sel-row-k">Receive</div>
+                <div class="sel-row-v" id="buy-tok-v">EURC</div>
+              </div>
+            </div>
+          </div>
+          <div class="lbl-field" style="margin-bottom:0;font-size:11.5px;color:var(--muted);line-height:1.55;padding:2px 2px 0">
+            Swapped on Arc via <strong style="color:var(--text)">OneliqRouter</strong> (0.3% fee) → Curve, delivered to your own wallet each run.
+          </div>
+        </div>
+
+        <!-- SHARED SCHEDULE (frequency + first send) — used by Scheduled Send AND Recurring Buy -->
+        <div id="sched-shared" style="display:none">
           <!-- Frequency — opens a Tower-style modal; writes the hidden #sched-cadence -->
           <div class="lbl-field">
             <div class="lbl-field-label">Frequency</div>
@@ -839,7 +871,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 
           <!-- First send — opens a calendar+time modal; writes #sched-start + #sched-time -->
           <div class="lbl-field">
-            <div class="lbl-field-label">First send <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(your local time)</span></div>
+            <div class="lbl-field-label">First run <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(your local time)</span></div>
             <button class="sel-row" type="button" onclick="openCalModal()">
               <div class="sel-row-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
               <div class="sel-row-main">
@@ -849,25 +881,25 @@ select option:checked{background:#1a2c4a;color:#fff}
               <span class="sel-row-caret">▾</span>
             </button>
           </div>
+        </div>
 
-          <!-- Original controls kept as the hidden data store for deploy/preflight.
-               The pretty rows above just write into these. -->
-          <div style="display:none" aria-hidden="true">
-            <select id="sched-cadence" onchange="updateSummary()">
-              <option value="once">Once · one-time send</option>
-              <option value="daily">Every day</option>
-              <option value="weekly" selected>Every week</option>
-              <option value="monthly">Every month</option>
-            </select>
-            <select id="sched-hour" onchange="updateSchedTime()" aria-label="Hour"></select>
-            <select id="sched-min" onchange="updateSchedTime()" aria-label="Minute"></select>
-            <select id="sched-ampm" onchange="updateSchedTime()" aria-label="AM or PM">
-              <option value="AM">AM</option>
-              <option value="PM" selected>PM</option>
-            </select>
-            <input type="hidden" id="sched-time" value="19:00"/>
-            <input id="sched-start" type="date" oninput="updateSummary()"/>
-          </div>
+        <!-- Hidden data store shared by all modes (deploy/preflight read these). -->
+        <div style="display:none" aria-hidden="true">
+          <select id="sched-cadence" onchange="updateSummary()">
+            <option value="once">Once · one-time send</option>
+            <option value="daily">Every day</option>
+            <option value="weekly" selected>Every week</option>
+            <option value="monthly">Every month</option>
+          </select>
+          <select id="sched-hour" onchange="updateSchedTime()" aria-label="Hour"></select>
+          <select id="sched-min" onchange="updateSchedTime()" aria-label="Minute"></select>
+          <select id="sched-ampm" onchange="updateSchedTime()" aria-label="AM or PM">
+            <option value="AM">AM</option>
+            <option value="PM" selected>PM</option>
+          </select>
+          <input type="hidden" id="sched-time" value="19:00"/>
+          <input id="sched-start" type="date" oninput="updateSummary()"/>
+          <input type="hidden" id="buy-amt" value="10"/>
         </div>
       </div>
 
@@ -973,6 +1005,29 @@ select option:checked{background:#1a2c4a;color:#fff}
     </div>
     <div class="drawer-body" id="drawer-body"></div>
     <div class="drawer-foot" id="drawer-foot"></div>
+  </div>
+</div>
+
+<!-- TOKEN MODAL (Recurring Buy: choose pay token; buy = the other) -->
+<div class="olq-modal" id="tok-modal">
+  <div class="olq-modal-card">
+    <div class="olq-modal-head">
+      <div>
+        <div class="olq-modal-title">Pay with</div>
+        <div class="olq-modal-sub">You receive the other stablecoin each run. USDC↔EURC only — the live route on Arc.</div>
+      </div>
+      <button class="olq-modal-x" type="button" onclick="closeTokModal()" aria-label="Close">×</button>
+    </div>
+    <div class="olq-modal-body">
+      <button class="freq-opt" type="button" data-tok="USDC" onclick="pickPayTok('USDC')" style="flex-direction:row;align-items:center;gap:12px">
+        <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="" style="width:26px;height:26px;border-radius:50%"/>
+        <div><div class="freq-opt-h">USDC</div><div class="freq-opt-d">Pay USDC → receive EURC</div></div>
+      </button>
+      <button class="freq-opt" type="button" data-tok="EURC" onclick="pickPayTok('EURC')" style="flex-direction:row;align-items:center;gap:12px;margin-bottom:0">
+        <img src="https://assets.coingecko.com/coins/images/26045/small/euro.png" alt="" style="width:26px;height:26px;border-radius:50%"/>
+        <div><div class="freq-opt-h">EURC</div><div class="freq-opt-d">Pay EURC → receive USDC</div></div>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1547,29 +1602,41 @@ select option:checked{background:#1a2c4a;color:#fff}
   /* ============================================================
      MODE / FORM
   ============================================================ */
+  // Which hidden input holds the primary amount for a given mode.
+  const primaryAmtId = (m) => m === 'topup' ? 'refill-amt' : m === 'buy' ? 'buy-amt' : 'send-amt';
+
   function setMode(m) {
     state.mode = m;
     document.querySelectorAll('.mode-pill').forEach(t => {
       t.classList.toggle('active', t.dataset.mode === m);
     });
-    document.getElementById('rules-topup').style.display = m === 'topup' ? '' : 'none';
+    document.getElementById('rules-topup').style.display    = m === 'topup'    ? '' : 'none';
     document.getElementById('rules-schedule').style.display = m === 'schedule' ? '' : 'none';
-    document.getElementById('step3-label').textContent = m === 'topup' ? 'Set the refill rule' : 'Set the schedule';
-    // Point the hero amount at this mode's primary input (refill / send).
+    document.getElementById('rules-buy').style.display      = m === 'buy'      ? '' : 'none';
+    // Frequency + first-run block is shared by Scheduled Send and Recurring Buy.
+    document.getElementById('sched-shared').style.display   = (m === 'schedule' || m === 'buy') ? '' : 'none';
+    // Recurring Buy runs on Arc into your own wallet → no source/recipient steps.
+    document.getElementById('step-source').style.display    = m === 'buy' ? 'none' : '';
+    document.getElementById('step-targets').style.display   = m === 'buy' ? 'none' : '';
+    const step3 = document.getElementById('step3-label');
+    if (step3) step3.textContent = m === 'topup' ? 'Set the refill rule' : m === 'buy' ? 'Set the buy schedule' : 'Set the schedule';
+    // Hero binds to this mode's primary amount.
     const heroLabel = document.getElementById('amt-hero-label');
-    if (heroLabel) heroLabel.textContent = m === 'topup' ? 'Amount per refill' : 'Amount per send';
+    if (heroLabel) heroLabel.textContent = m === 'topup' ? 'Amount per refill' : m === 'buy' ? 'Amount per buy' : 'Amount per send';
+    const suffix = document.querySelector('.amt-hero-suffix');
+    if (suffix) suffix.textContent = m === 'buy' ? buyTok.pay : 'USDC';
     const hero = document.getElementById('amt-hero-input');
-    const primary = document.getElementById(m === 'topup' ? 'refill-amt' : 'send-amt');
+    const primary = document.getElementById(primaryAmtId(m));
     if (hero && primary) hero.value = primary.value;
     updateSummary();
   }
   window.setMode = setMode;
 
   /* ============================================================
-     HERO AMOUNT ⇄ per-mode primary input (refill-amt / send-amt)
+     HERO AMOUNT ⇄ per-mode primary input (refill / send / buy)
   ============================================================ */
   function onHeroAmount(v) {
-    const el = document.getElementById(state.mode === 'topup' ? 'refill-amt' : 'send-amt');
+    const el = document.getElementById(primaryAmtId(state.mode));
     if (el) el.value = v;
     updateSummary();
   }
@@ -1580,6 +1647,36 @@ select option:checked{background:#1a2c4a;color:#fff}
     onHeroAmount(v);
   }
   window.setHeroAmount = setHeroAmount;
+
+  /* ============================================================
+     RECURRING BUY token pair — USDC<->EURC only (live OneliqRouter route).
+  ============================================================ */
+  const TOK_ICON = {
+    USDC: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
+    EURC: 'https://assets.coingecko.com/coins/images/26045/small/euro.png',
+  };
+  const buyTok = { pay: 'USDC', buy: 'EURC' };
+  function openTokModal() {
+    document.querySelectorAll('#tok-modal .freq-opt').forEach(o =>
+      o.classList.toggle('active', o.dataset.tok === buyTok.pay));
+    document.getElementById('tok-modal').classList.add('open');
+  }
+  window.openTokModal = openTokModal;
+  function closeTokModal() { document.getElementById('tok-modal').classList.remove('open'); }
+  window.closeTokModal = closeTokModal;
+  function pickPayTok(t) {
+    buyTok.pay = t;
+    buyTok.buy = t === 'USDC' ? 'EURC' : 'USDC';
+    document.getElementById('pay-tok-v').textContent = buyTok.pay;
+    document.getElementById('buy-tok-v').textContent = buyTok.buy;
+    document.getElementById('pay-tok-ico').src = TOK_ICON[buyTok.pay];
+    document.getElementById('buy-tok-ico').src = TOK_ICON[buyTok.buy];
+    const suffix = document.querySelector('.amt-hero-suffix');
+    if (suffix && state.mode === 'buy') suffix.textContent = buyTok.pay;
+    closeTokModal();
+    updateSummary();
+  }
+  window.pickPayTok = pickPayTok;
 
   /* ============================================================
      TOWER-STYLE PICKERS — frequency modal + calendar/time modal.
@@ -1701,6 +1798,23 @@ select option:checked{background:#1a2c4a;color:#fff}
     const card = document.getElementById('track-card');
     if (!card) return;
     const n = Math.max(getValidTargets().length, 1);
+    if (state.mode === 'buy') {
+      const amt = parseFloat(document.getElementById('buy-amt').value) || 0;
+      const cad = document.getElementById('sched-cadence').value;
+      const t = document.getElementById('sched-time').value;
+      const startVal = document.getElementById('sched-start').value;
+      const firstLabel = startVal
+        ? `${new Date(startVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${fmt12(t)}`
+        : `next ${fmt12(t)} slot`;
+      card.innerHTML =
+        `<div class="track-card-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>Recurring buy · Arc</div>` +
+        `<div class="track-line"><span class="k">Buy</span><span class="v">${buyTok.buy} with ${buyTok.pay}</span></div>` +
+        `<div class="track-line"><span class="k">Repeat</span><span class="v">${CAD_LABEL[cad] || cad}</span></div>` +
+        `<div class="track-line"><span class="k">First run</span><span class="v">${firstLabel}</span></div>` +
+        `<div class="track-line"><span class="k">Per run</span><span class="v">$${amt.toFixed(2)} ${buyTok.pay} → ${buyTok.buy}</span></div>`;
+      card.style.display = 'block';
+      return;
+    }
     if (state.mode === 'topup') {
       const floor  = parseFloat(document.getElementById('floor-amt').value)  || 0;
       const refill = parseFloat(document.getElementById('refill-amt').value) || 0;
@@ -2018,22 +2132,29 @@ select option:checked{background:#1a2c4a;color:#fff}
 
     // Validate
     const btn = document.getElementById('deploy-btn');
-    let valid = state.sources.size >= 1 && validTargets.length >= 1;
-    if (state.mode === 'topup') {
-      const floor = parseFloat(document.getElementById('floor-amt').value) || 0;
-      const refill = parseFloat(document.getElementById('refill-amt').value) || 0;
-      const cap = parseFloat(document.getElementById('cap-amt').value) || 0;
-      valid = valid && floor > 0 && refill > 0 && cap >= refill;
+    let valid, needWallet = false;
+    if (state.mode === 'buy') {
+      // Recurring Buy runs on Arc into your own wallet — no sources/targets.
+      const amt = parseFloat(document.getElementById('buy-amt').value) || 0;
+      valid = amt > 0;
     } else {
-      const amt = parseFloat(document.getElementById('send-amt').value) || 0;
-      valid = valid && amt > 0;
+      valid = state.sources.size >= 1 && validTargets.length >= 1;
+      needWallet = !validTargets.length;
+      if (state.mode === 'topup') {
+        const floor = parseFloat(document.getElementById('floor-amt').value) || 0;
+        const refill = parseFloat(document.getElementById('refill-amt').value) || 0;
+        const cap = parseFloat(document.getElementById('cap-amt').value) || 0;
+        valid = valid && floor > 0 && refill > 0 && cap >= refill;
+      } else {
+        const amt = parseFloat(document.getElementById('send-amt').value) || 0;
+        valid = valid && amt > 0;
+      }
     }
     btn.disabled = !valid;
     if (!valid) {
-      if (!validTargets.length) btn.textContent = 'Add at least one valid wallet';
-      else btn.textContent = 'Fill all fields';
+      btn.textContent = needWallet ? 'Add at least one valid wallet' : 'Fill all fields';
     } else {
-      btn.innerHTML = 'Sign &amp; Deploy Agent';
+      btn.innerHTML = state.mode === 'buy' ? 'Sign &amp; Deploy Buy' : 'Sign &amp; Deploy Agent';
     }
     renderPreflight();
     updateTracking();
@@ -2047,6 +2168,14 @@ select option:checked{background:#1a2c4a;color:#fff}
      Arc permit caveat, cross-chain delay) and an info projection.
   ============================================================ */
   function computeRealityCheck() {
+    // Recurring Buy swaps on Arc into your own wallet — the sources/targets
+    // reality checks don't apply. Keep it quiet (execution ships later).
+    if (state.mode === 'buy') {
+      const amt = parseFloat(document.getElementById('buy-amt').value) || 0;
+      return { issues: [], warns: [],
+        infos: [`Buys <strong>${buyTok.buy}</strong> with <strong>$${amt.toFixed(2)} ${buyTok.pay}</strong> each run on Arc.`],
+        blocking: false };
+    }
     const connected = !!ARC.wallet.address;
     const srcChips = Array.from(state.sources);
     const loaded = connected && srcChips.every(c => state.balances[c] !== undefined);
@@ -2133,6 +2262,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   window.closeSignModal = closeSignModal;
 
   async function deployAgent() {
+    if (state.mode === 'buy') return deployBuyAgent();
     const validTargets = getValidTargets();
     if (!validTargets.length) return;
 
@@ -2371,6 +2501,125 @@ select option:checked{background:#1a2c4a;color:#fff}
   window.deployAgent = deployAgent;
 
   /* ============================================================
+     RECURRING BUY (DCA) — self-contained deploy. Swaps on Arc via
+     OneliqRouter into the owner's own wallet, so there are no source
+     chains, recipients, or USDC permits to sign — just the EIP-712
+     rule. Automated on-chain execution ships with the rest of agent
+     execution (preview), same as top-up / scheduled send.
+  ============================================================ */
+  async function deployBuyAgent() {
+    if (!ARC.wallet.signer) {
+      const btn = document.getElementById('arc-wallet-btn');
+      if (btn) btn.click();
+      ArcUI.toast('warn', 'Connect wallet first', 'Pick a wallet to sign the buy rule.');
+      return;
+    }
+    const amount = parseFloat(document.getElementById('buy-amt').value) || 0;
+    if (!(amount > 0)) { ArcUI.toast('warn', 'Enter an amount', 'Set how much to buy each run.'); return; }
+
+    const owner = ARC.wallet.address;
+    const cadence = document.getElementById('sched-cadence').value;
+    const time = document.getElementById('sched-time').value;
+    const startDate = document.getElementById('sched-start').value || null;
+    const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const params = { buy: true, payToken: buyTok.pay, buyToken: buyTok.buy, amount, cadence, time, startDate };
+    // Runs on Arc, delivered to the owner's own wallet.
+    const rule = { mode: 'buy', sources: ['arc'], targets: [owner], targetChains: ['arc'], params, expiresAt };
+
+    // First nextRun, computed in the user's local tz (same as scheduled send).
+    let nextRun = null;
+    {
+      const [hh, mm] = (time || '00:00').split(':').map(Number);
+      const start = startDate ? new Date(startDate + 'T00:00:00') : new Date();
+      start.setHours(hh, mm, 0, 0);
+      let next = start.getTime();
+      if (next <= Date.now()) {
+        const d = new Date(next);
+        if (cadence === 'once') next = null;
+        else if (cadence === 'daily') { d.setDate(d.getDate() + 1); next = d.getTime(); }
+        else if (cadence === 'weekly') { d.setDate(d.getDate() + 7); next = d.getTime(); }
+        else if (cadence === 'monthly') { d.setMonth(d.getMonth() + 1); next = d.getTime(); }
+      }
+      nextRun = next;
+    }
+
+    const cadLabel = { once: 'One-time', daily: 'Every day', weekly: 'Every week', monthly: 'Every month' }[cadence] || cadence;
+    const ok = await ArcUI.confirm({
+      title: '🔁 Review recurring buy',
+      body: `
+        <div class="lede">This agent will swap on your behalf on Arc via OneliqRouter. Verify before signing.</div>
+        <div class="row"><span class="k">Buy</span><span class="v">${buyTok.buy}</span></div>
+        <div class="row"><span class="k">Pay with</span><span class="v">$${amount.toFixed(2)} ${buyTok.pay}</span></div>
+        <div class="row"><span class="k">Frequency</span><span class="v">${cadLabel} @ ${fmt12(time)} ${TZ_LABEL}</span></div>
+        <div class="row"><span class="k">Route</span><span class="v">OneliqRouter · 0.3% fee</span></div>
+        <div class="row"><span class="k">Expires</span><span class="v">in 30 days</span></div>
+        <div class="footer">You'll sign one EIP-712 rule — no gas, no on-chain tx. Automated execution ships soon.</div>
+      `,
+      confirmLabel: 'Sign buy rule',
+      cancelLabel: 'Cancel',
+    });
+    if (!ok) { ArcUI.toast('warn', 'Cancelled', 'No agent created'); return; }
+
+    openSignModal();
+    document.getElementById('modal-h').textContent = 'Sign the buy rule in your wallet';
+    setModalStep(0, 'active');
+    let sig, nonce;
+    try {
+      ({ sig, nonce } = await signRule(rule));
+    } catch (e) {
+      closeSignModal();
+      const msg = (e && e.message) || String(e);
+      ArcUI.toast('error', 'Signing failed', /reject|denied|cancel/i.test(msg) ? 'Signature cancelled' : msg);
+      return;
+    }
+    setModalStep(0, 'done');
+    setModalStep(1, 'active');
+
+    let agent;
+    try {
+      const res = await api('/create', {
+        method: 'POST',
+        body: { owner, mode: 'buy', sources: rule.sources, targets: rule.targets,
+                targetChains: rule.targetChains, params, signature: sig, nonce, expiresAt, nextRun },
+      });
+      if (res && res._fallback) {
+        agent = normalizeAgent({
+          id: 'agent_' + Math.random().toString(36).slice(2, 11),
+          owner: owner.toLowerCase(), mode: 'buy', sources: rule.sources,
+          targets: rule.targets.map(t => t.toLowerCase()), targetChains: rule.targetChains,
+          params, signature: sig, state: 'active', created: Date.now(), expiresAt, totalSent: 0,
+        });
+        agents.push(agent);
+        saveLocalAgents();
+        executions.unshift({ agentId: agent.id, time: Date.now(), type: 'deployed',
+          detail: `Recurring buy ${buyTok.buy} · ${cadLabel}` });
+        saveLocalExecs();
+      } else {
+        agent = normalizeAgent(res);
+        agents.push(agent);
+      }
+    } catch (e) {
+      closeSignModal();
+      ArcUI.toast('error', 'Save failed', (e && e.message) || String(e));
+      return;
+    }
+    setModalStep(1, 'done');
+    setModalStep(2, 'done'); // buy needs no USDC permit step
+
+    setTimeout(async () => {
+      closeSignModal();
+      ArcUI.toast('success', 'Recurring buy deployed',
+        backendStatus === 'fallback' ? 'Saved locally · enable backend to persist' : `${cadLabel} · ${buyTok.buy}`);
+      try { ARC.track('agent-create', 'arc', null, null, 'agent', owner ? { address: owner } : null); } catch {}
+      await refreshAgentsFromBackend();
+      renderAgents();
+      renderExecLog();
+      updateStats();
+    }, 400);
+  }
+  window.deployBuyAgent = deployBuyAgent;
+
+  /* ============================================================
      OPS: pause / resume / run-now / revoke
   ============================================================ */
   // Each mutation requires a signature. For pause/resume/revoke/run-now we
@@ -2469,7 +2718,9 @@ select option:checked{background:#1a2c4a;color:#fff}
     const p = a.params || {};
     const summaryRow = a.mode === 'topup'
       ? `<div class="row"><span class="k">Rule</span><span class="v">Top-up · floor $${(p.floor||0).toFixed(2)} / refill $${(p.refillAmount||0).toFixed(2)}</span></div>`
-      : `<div class="row"><span class="k">Rule</span><span class="v">Schedule · $${(p.sendAmount||0).toFixed(2)} ${p.cadence||''}</span></div>`;
+      : a.mode === 'buy'
+        ? `<div class="row"><span class="k">Rule</span><span class="v">Buy · $${(p.amount||0).toFixed(2)} ${p.payToken||''}→${p.buyToken||''} ${p.cadence||''}</span></div>`
+        : `<div class="row"><span class="k">Rule</span><span class="v">Schedule · $${(p.sendAmount||0).toFixed(2)} ${p.cadence||''}</span></div>`;
     const ok = await ArcUI.confirm({
       title: 'Revoke this agent?',
       body: `<div class="arc-confirm-msg">
@@ -2696,16 +2947,26 @@ select option:checked{background:#1a2c4a;color:#fff}
       const isAutoPaused = a.state === 'paused' && a.autoPausedReason;
       const stateClass = a.state === 'paused' ? 'state-paused' : 'state-active';
       const stateLabel = isAutoPaused ? 'Auto-paused' : (a.state === 'paused' ? 'Paused' : 'Active');
-      const title = a.mode === 'topup' ? 'Auto Top-Up' : 'Scheduled Send';
-      const sourcesHtml = a.sources.map(s => `<span class="chain-tag">${CHAIN_LABELS[s] || s}</span>`).join('<span class="arr">·</span>');
-      const tcArrR = a.targetChains || [];
-      const destChainsR = Array.from(new Set(tcArrR.length ? tcArrR : a.sources));
-      const destHtmlR = destChainsR.map(c => `<span class="chain-tag">${CHAIN_LABELS[c] || c}</span>`).join('<span class="arr">·</span>');
+      const title = a.mode === 'topup' ? 'Auto Top-Up' : a.mode === 'buy' ? 'Recurring Buy' : 'Scheduled Send';
+      let sourcesHtml, destHtmlR;
+      if (a.mode === 'buy') {
+        // Recurring Buy shows the token pair, not chains (always on Arc).
+        sourcesHtml = `<span class="chain-tag">${p.payToken || 'USDC'}</span>`;
+        destHtmlR   = `<span class="chain-tag">${p.buyToken || 'EURC'}</span>`;
+      } else {
+        sourcesHtml = a.sources.map(s => `<span class="chain-tag">${CHAIN_LABELS[s] || s}</span>`).join('<span class="arr">·</span>');
+        const tcArrR = a.targetChains || [];
+        const destChainsR = Array.from(new Set(tcArrR.length ? tcArrR : a.sources));
+        destHtmlR = destChainsR.map(c => `<span class="chain-tag">${CHAIN_LABELS[c] || c}</span>`).join('<span class="arr">·</span>');
+      }
 
       // Compact one-line metric per mode.
       let metaLine;
       if (a.mode === 'topup') {
         metaLine = `Floor $${(p.floor || 0).toFixed(0)} · Refill $${(p.refillAmount || 0).toFixed(0)} · sent <strong>$${(a.totalSent || 0).toFixed(2)}</strong>`;
+      } else if (a.mode === 'buy') {
+        const tFmt = p.time ? `${fmt12(p.time)}` : '';
+        metaLine = `$${(p.amount || 0).toFixed(0)} ${p.payToken || ''}→${p.buyToken || ''} · ${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''}`;
       } else {
         const tFmt = p.time ? `${fmt12(p.time)}` : '';
         metaLine = `$${(p.sendAmount || 0).toFixed(0)} ${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''} · sent <strong>$${(a.totalSent || 0).toFixed(2)}</strong>`;
@@ -2791,7 +3052,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     const p = a.params || {};
     const stateClass = a.state === 'paused' ? 'state-paused' : 'state-active';
     const stateLabel = a.state === 'paused' ? 'Paused' : 'Active';
-    const title = a.mode === 'topup' ? 'Auto Top-Up' : 'Scheduled Send';
+    const title = a.mode === 'topup' ? 'Auto Top-Up' : a.mode === 'buy' ? 'Recurring Buy' : 'Scheduled Send';
 
     // ── HEAD ────────────────────────────────────────────────────────
     document.getElementById('drawer-title').innerHTML = `
@@ -2865,6 +3126,12 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div><div class="agent-meta-k">Floor</div><div class="agent-meta-v">$${(p.floor || 0).toFixed(2)}</div></div>
           <div><div class="agent-meta-k">Refill</div><div class="agent-meta-v">$${(p.refillAmount || 0).toFixed(2)}</div></div>
           <div><div class="agent-meta-k">Sent</div><div class="agent-meta-v" style="color:var(--arc1)">$${(a.totalSent || 0).toFixed(2)}</div></div>`;
+      } else if (a.mode === 'buy') {
+        const tFmt = p.time ? `${fmt12(p.time)} ${TZ_LABEL}` : '';
+        metaHtml = `
+          <div><div class="agent-meta-k">Buy</div><div class="agent-meta-v" style="font-size:12px">${p.payToken || ''}→${p.buyToken || ''}</div></div>
+          <div><div class="agent-meta-k">Amount</div><div class="agent-meta-v">$${(p.amount || 0).toFixed(2)}</div></div>
+          <div><div class="agent-meta-k">Cadence</div><div class="agent-meta-v" style="font-size:11px">${p.cadence || ''}${tFmt ? ' · ' + tFmt : ''}</div></div>`;
       } else {
         // Show schedule cadence + 12h AM/PM time + the user's UTC offset so
         // it's unambiguous across locales (no Vietnamese CH/SA, no guessing
@@ -3403,20 +3670,23 @@ select option:checked{background:#1a2c4a;color:#fff}
     if (!a || a.action !== 'prefill') return null;
     const applied = [];
 
-    if (a.mode === 'topup' || a.mode === 'schedule') { setMode(a.mode); applied.push('mode'); }
+    if (['topup', 'schedule', 'buy'].includes(a.mode)) { setMode(a.mode); applied.push('mode'); }
 
-    const valid = Array.isArray(a.targets)
-      ? a.targets.filter(x => /^(0x)?[0-9a-fA-F]{40}$/.test(String(x).trim()))
-      : [];
-    if (valid.length) {
-      const firstSrc = Array.from(state.sources)[0];
-      state.targets = []; state.targetChains = [];
-      valid.forEach(t => {
-        state.targets.push(String(t).trim().replace(/^0x/i, ''));
-        state.targetChains.push(firstSrc);
-      });
-      renderTargets();
-      applied.push(valid.length > 1 ? `${valid.length} recipients` : 'recipient');
+    // Recipients apply to topup/schedule only — Recurring Buy delivers to your own wallet.
+    if (state.mode !== 'buy') {
+      const valid = Array.isArray(a.targets)
+        ? a.targets.filter(x => /^(0x)?[0-9a-fA-F]{40}$/.test(String(x).trim()))
+        : [];
+      if (valid.length) {
+        const firstSrc = Array.from(state.sources)[0];
+        state.targets = []; state.targetChains = [];
+        valid.forEach(t => {
+          state.targets.push(String(t).trim().replace(/^0x/i, ''));
+          state.targetChains.push(firstSrc);
+        });
+        renderTargets();
+        applied.push(valid.length > 1 ? `${valid.length} recipients` : 'recipient');
+      }
     }
 
     const setVal = (id, v) => {
@@ -3424,17 +3694,24 @@ select option:checked{background:#1a2c4a;color:#fff}
       if (el && v != null && v !== '' && !isNaN(Number(v))) { el.value = String(v); return true; }
       return false;
     };
+    const setCadence = () => {
+      if (a.cadence && ['once','daily','weekly','monthly'].includes(a.cadence)) {
+        document.getElementById('sched-cadence').value = a.cadence;
+        applied.push('frequency');
+      }
+    };
 
     if (state.mode === 'topup') {
       if (setVal('floor-amt',  a.floor))  applied.push('floor');
       if (setVal('refill-amt', a.refill)) applied.push('refill amount');
       if (setVal('cap-amt',    a.cap))    applied.push('daily cap');
+    } else if (state.mode === 'buy') {
+      if (a.payToken === 'USDC' || a.payToken === 'EURC') { pickPayTok(a.payToken); applied.push('pair'); }
+      if (setVal('buy-amt', a.amount)) applied.push('amount');
+      setCadence();
     } else {
       if (setVal('send-amt', a.amount)) applied.push('amount');
-      if (a.cadence && ['once','daily','weekly','monthly'].includes(a.cadence)) {
-        const el = document.getElementById('sched-cadence');
-        if (el) { el.value = a.cadence; applied.push('frequency'); }
-      }
+      setCadence();
       if (a.dist === 'each' || a.dist === 'split') { setDist(a.dist); applied.push('distribution'); }
     }
 

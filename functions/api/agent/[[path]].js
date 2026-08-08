@@ -353,7 +353,8 @@ async function getModeIndexes(kv) {
 
 async function addToModeIndex(kv, agent) {
   if (!agent?.id || !agent?.mode) return;
-  const key = agent.mode === 'schedule' ? SCHEDULE_INDEX_KEY : TOPUP_INDEX_KEY;
+  // Buy is time-based (like schedule) so it lives in the schedule shard.
+  const key = (agent.mode === 'schedule' || agent.mode === 'buy') ? SCHEDULE_INDEX_KEY : TOPUP_INDEX_KEY;
   const ids = await getJSON(kv, key, []);
   if (!ids.includes(agent.id)) {
     ids.push(agent.id);
@@ -363,7 +364,7 @@ async function addToModeIndex(kv, agent) {
 
 async function removeFromModeIndex(kv, agent) {
   if (!agent?.id || !agent?.mode) return;
-  const key = agent.mode === 'schedule' ? SCHEDULE_INDEX_KEY : TOPUP_INDEX_KEY;
+  const key = (agent.mode === 'schedule' || agent.mode === 'buy') ? SCHEDULE_INDEX_KEY : TOPUP_INDEX_KEY;
   const ids = await getJSON(kv, key, []);
   const filtered = ids.filter(x => x !== agent.id);
   if (filtered.length !== ids.length) {
@@ -404,7 +405,7 @@ async function handleCreate(req, kv, env) {
   const { owner, mode, sources, targets, targetChains, params, signature, expiresAt, nextRun: bodyNextRun } = body || {};
 
   if (!isValidAddr(owner))          return json(400, { error: 'owner_required' });
-  if (mode !== 'topup' && mode !== 'schedule')
+  if (mode !== 'topup' && mode !== 'schedule' && mode !== 'buy')
                                     return json(400, { error: 'invalid_mode' });
   if (!Array.isArray(sources) || !sources.length)
                                     return json(400, { error: 'sources_required' });
@@ -453,6 +454,18 @@ async function handleCreate(req, kv, env) {
     const { floor, refillAmount, dailyCap } = params;
     if (!(floor > 0) || !(refillAmount > 0) || !(dailyCap >= refillAmount))
       return json(400, { error: 'topup_params_invalid' });
+  } else if (mode === 'buy') {
+    // Recurring Buy (DCA): swap payToken -> buyToken on Arc via OneliqRouter.
+    // Only USDC<->EURC is a live route, so we hard-restrict the pair here too.
+    const { payToken, buyToken, amount, cadence, time } = params;
+    const PAIR = new Set(['USDC', 'EURC']);
+    if (!PAIR.has(payToken) || !PAIR.has(buyToken) || payToken === buyToken)
+                                                 return json(400, { error: 'buy_pair_invalid' });
+    if (!(amount > 0))                           return json(400, { error: 'buy_amount_invalid' });
+    if (!['once','daily','weekly','monthly'].includes(cadence))
+                                                 return json(400, { error: 'cadence_invalid' });
+    if (typeof time !== 'string' || !/^\d{2}:\d{2}$/.test(time))
+                                                 return json(400, { error: 'time_invalid' });
   } else {
     const { sendAmount, cadence, time, dist } = params;
     if (!(sendAmount > 0))                       return json(400, { error: 'sendAmount_invalid' });
@@ -504,7 +517,9 @@ async function handleCreate(req, kv, env) {
     type: 'deployed',
     detail: mode === 'topup'
       ? `Watching ${targets.length} wallet(s) · floor $${params.floor}`
-      : `Scheduled ${params.cadence} · ${targets.length} wallet(s) @ ${params.time}`,
+      : mode === 'buy'
+        ? `Recurring buy ${params.buyToken} with $${params.amount} ${params.payToken} · ${params.cadence}`
+        : `Scheduled ${params.cadence} · ${targets.length} wallet(s) @ ${params.time}`,
   });
 
   // Try to provision Circle wallets synchronously. If Circle isn't configured
@@ -600,7 +615,7 @@ async function handleCreate(req, kv, env) {
 
 function computeNextRun(mode, params, fromTs) {
   if (mode === 'topup') return null; // threshold-based, no fixed time
-  if (mode !== 'schedule') return null;
+  if (mode !== 'schedule' && mode !== 'buy') return null; // buy is time-based like schedule
   const { cadence, time, startDate } = params;
   const [hh, mm] = (time || '00:00').split(':').map(Number);
   // Use the user's startDate if provided, else today.
