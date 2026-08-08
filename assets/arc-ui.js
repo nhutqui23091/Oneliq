@@ -16,7 +16,7 @@
     return [
       { id: 'trade',     label: 'Trade',        href: '/trade'   },
       { id: 'balance',   label: 'Balance',      href: '/balance' },
-      { id: 'agent',     label: 'Agent',        href: '/agent'   },
+      { id: 'agent',     label: 'Oneliq AI',    href: '/agent'   },
       { id: 'history',   label: 'History',      href: '/history' },
       { id: 'docs',      label: 'Docs',         href: '/docs'    },
     ];
@@ -374,7 +374,7 @@
       items: [
         { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
         { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
-        { id: 'agent',     label: 'Agent',     icon: '∞', href: '/agent'   },
+        { id: 'agent',     label: 'Oneliq AI', icon: '✦', href: '/agent'   },
         // History lives inside the Dashboard now (Recent activity card, with a
         // "History →" deep-link to the full feed), so it's dropped from the nav.
         { id: 'portal',    label: 'Portal',    icon: '◎', href: '/portal' },

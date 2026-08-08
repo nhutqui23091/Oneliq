@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<title>Oneliq | Agent</title>
+<title>Oneliq | AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
@@ -353,6 +353,52 @@ select option:checked{background:#1a2c4a;color:#fff}
 .drawer-foot button.danger:hover{background:rgba(255,85,119,.12);border-color:rgba(255,85,119,.45)}
 .drawer-foot button.primary{color:var(--violet);border-color:rgba(77,214,219,.32);background:rgba(77,214,219,.08)}
 .drawer-foot button.primary:hover{background:rgba(77,214,219,.16);border-color:rgba(77,214,219,.5)}
+
+/* ============================================================
+   ONELIQ AI — chat (left) + config panel (right)
+   The page grid becomes: conversational assistant on the left,
+   the existing automation form + agents list (now tabbed) on the
+   right. The AI can pre-fill the form; the user still signs.
+============================================================ */
+.agent-layout{grid-template-columns:1fr 440px}
+@media(max-width:960px){.agent-layout{grid-template-columns:1fr}}
+
+.chat-pane{background:var(--surface);border:1px solid var(--border);border-radius:22px;backdrop-filter:blur(20px);display:flex;flex-direction:column;overflow:hidden;min-height:600px;max-height:calc(100vh - 210px);position:sticky;top:24px}
+@media(max-width:960px){.chat-pane{position:relative;top:0;max-height:none;min-height:480px}}
+.chat-head{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.chat-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,rgba(77,214,219,.28),rgba(74,123,236,.28));border:1px solid rgba(77,214,219,.35);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:var(--arc1)}
+.chat-head-t{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.chat-head-s{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.chat-scroll{flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.chat-msg{display:flex;max-width:90%}
+.chat-msg.user{align-self:flex-end}
+.chat-msg.ai{align-self:flex-start}
+.chat-bubble{padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.chat-msg.ai .chat-bubble{background:rgba(255,255,255,.04);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text)}
+.chat-msg.user .chat-bubble{background:linear-gradient(135deg,rgba(77,214,219,.16),rgba(74,123,236,.16));border:1px solid rgba(77,214,219,.28);border-top-right-radius:4px;color:var(--text)}
+.chat-applied{margin-top:9px;padding-top:9px;border-top:1px dashed rgba(255,255,255,.1);font-size:11px;font-family:var(--mono);color:var(--arc4);line-height:1.5}
+.chat-suggest{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 14px;flex-shrink:0}
+.chat-chip{padding:8px 12px;border-radius:100px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-size:11.5px;cursor:pointer;font-family:var(--font);transition:all .15s;text-align:left}
+.chat-chip:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.06)}
+.chat-input-row{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
+.chat-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:13.5px;line-height:1.5;resize:none;outline:none;max-height:120px;min-height:44px}
+.chat-input:focus{border-color:rgba(77,214,219,.4)}
+.chat-input::placeholder{color:rgba(255,255,255,.25)}
+.chat-send{width:44px;height:44px;flex-shrink:0;border-radius:12px;border:1px solid rgba(77,214,219,.35);background:linear-gradient(135deg,rgba(77,214,219,.2),rgba(74,123,236,.2));color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:all .15s}
+.chat-send:hover:not(:disabled){background:linear-gradient(135deg,rgba(77,214,219,.32),rgba(74,123,236,.32));border-color:rgba(77,214,219,.55)}
+.chat-send:disabled{opacity:.4;cursor:not-allowed}
+.chat-typing{display:flex;gap:4px;padding:3px 2px}
+.chat-typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:chatDot 1.2s infinite ease-in-out}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes chatDot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* CONFIG COLUMN (right) — tab bar over the existing automation form + agents */
+.config-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.cfg-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:12px;padding:5px}
+.cfg-tab{padding:11px;border-radius:8px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.cfg-tab:hover{color:var(--text)}
+.cfg-tab.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.3);color:var(--text)}
 </style>
 </head>
 <body>
@@ -361,8 +407,8 @@ select option:checked{background:#1a2c4a;color:#fff}
   <!-- HEADER -->
   <div class="page-header">
     <div>
-      <div class="arc-label" style="margin-bottom:10px">Agent</div>
-      <h1 class="page-title">Move USDC<br/>automatically.</h1>
+      <div class="arc-label" style="margin-bottom:10px">Oneliq AI</div>
+      <h1 class="page-title">Chat &amp; automate<br/>your USDC.</h1>
     </div>
   </div>
 
@@ -388,8 +434,42 @@ select option:checked{background:#1a2c4a;color:#fff}
   <!-- MAIN LAYOUT -->
   <div class="agent-layout">
 
-    <!-- LEFT: SETUP -->
-    <div class="card">
+    <!-- LEFT: ONELIQ AI CHAT -->
+    <div class="chat-pane">
+      <div class="chat-head">
+        <div class="chat-avatar">✦</div>
+        <div>
+          <div class="chat-head-t">Oneliq AI</div>
+          <div class="chat-head-s">portfolio &amp; automation assistant</div>
+        </div>
+      </div>
+      <div class="chat-scroll" id="chat-scroll">
+        <div class="chat-msg ai">
+          <div class="chat-bubble">Hey — I'm Oneliq AI. Ask me about your USDC across chains, or describe an automation to set up (e.g. "top up my Base wallet when it drops below $50") and I'll pre-fill the form on the right for you to review and sign.</div>
+        </div>
+      </div>
+      <div class="chat-suggest" id="chat-suggest">
+        <button class="chat-chip" type="button" onclick="chatSuggest(this)">Where is my USDC?</button>
+        <button class="chat-chip" type="button" onclick="chatSuggest(this)">Send $25 to a wallet every week</button>
+        <button class="chat-chip" type="button" onclick="chatSuggest(this)">Keep my Base wallet above $50</button>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask Oneliq AI anything…"></textarea>
+        <button class="chat-send" id="chat-send" type="button" onclick="chatSend()" aria-label="Send">↑</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: CONFIG (tabbed automation form + agents list) -->
+    <div class="config-col">
+      <div class="cfg-tabs">
+        <button class="cfg-tab active" type="button" data-cfg="build" onclick="setCfgTab('build')">Build automation</button>
+        <button class="cfg-tab" type="button" data-cfg="agents" onclick="setCfgTab('agents')">Your Agents</button>
+      </div>
+
+      <!-- TAB: BUILD AUTOMATION -->
+      <div id="cfg-build">
+      <!-- SETUP -->
+      <div class="card">
       <div class="card-title" style="display:flex;align-items:center">
         Create your agent
         <span class="help-host">
@@ -684,9 +764,10 @@ select option:checked{background:#1a2c4a;color:#fff}
         1 EIP-712 signature · revoke anytime · expires in 30 days
       </div>
     </div>
+      </div><!-- /#cfg-build -->
 
-    <!-- RIGHT: ACTIVE AGENTS -->
-    <div>
+      <!-- TAB: YOUR AGENTS -->
+      <div id="cfg-agents" style="display:none">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;margin-bottom:14px">
           Your Agents
@@ -701,7 +782,7 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div class="agent-empty">
             <div class="ae-ico">◇</div>
             <div class="ae-h">No agents yet</div>
-            <div class="ae-s">Configure a rule on the left and click <strong>Deploy</strong>. It'll show up here.</div>
+            <div class="ae-s">Build one in the <strong>Build automation</strong> tab (or ask Oneliq AI) and it'll show up here.</div>
           </div>
         </div>
 
@@ -710,7 +791,8 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div id="exec-log-rows"></div>
         </div>
       </div>
-    </div>
+      </div><!-- /#cfg-agents -->
+    </div><!-- /.config-col -->
   </div>
 
   <!-- HOW IT WORKS -->
@@ -787,7 +869,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-ui.js?v=9.10.28"></script>
+<script src="/assets/arc-ui.js?v=9.10.29"></script>
 <script>
 (async () => {
   await ArcUI.bootApp('agent');
@@ -2229,7 +2311,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       list.innerHTML = `<div class="agent-empty">
         <div class="ae-ico">◇</div>
         <div class="ae-h">No agents yet</div>
-        <div class="ae-s">Configure a rule on the left and click <strong>Deploy</strong>. It'll show up here.</div>
+        <div class="ae-s">Build one in the <strong>Build automation</strong> tab (or ask Oneliq AI) and it'll show up here.</div>
       </div>`;
       // If drawer was open and the agent vanished (e.g. last one revoked),
       // close the drawer so it doesn't dangle.
@@ -2905,6 +2987,188 @@ select option:checked{background:#1a2c4a;color:#fff}
       renderExecLog();
       updateStats();
     });
+  }
+
+  /* ============================================================
+     ONELIQ AI — chat assistant
+
+     Talks to /api/ai/chat (Cloudflare Workers AI, server-side). The
+     assistant advises using the live portfolio context we pass in, and
+     may return a `prefill` action that fills the automation form on the
+     right. The user always reviews and signs — the AI never executes.
+  ============================================================ */
+  function setCfgTab(which) {
+    document.querySelectorAll('.cfg-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.cfg === which));
+    document.getElementById('cfg-build').style.display  = which === 'build'  ? '' : 'none';
+    document.getElementById('cfg-agents').style.display = which === 'agents' ? '' : 'none';
+  }
+  window.setCfgTab = setCfgTab;
+
+  // Live portfolio snapshot handed to the model so it answers with real
+  // numbers only (state.balances is chip-id → "12.34", filled by loadBalances).
+  function buildPortfolio() {
+    return {
+      address: ARC.wallet && ARC.wallet.address ? ARC.wallet.address : null,
+      agents: Array.isArray(agents) ? agents.length : 0,
+      balances: Object.assign({}, state.balances),
+    };
+  }
+
+  // Apply an AI `prefill` action to the existing form via the same helpers
+  // the manual UI uses. Returns a human list of what was filled (for the
+  // "pre-filled: …" note under the reply), or null.
+  function applyAiAction(a) {
+    if (!a || a.action !== 'prefill') return null;
+    const applied = [];
+
+    if (a.mode === 'topup' || a.mode === 'schedule') { setMode(a.mode); applied.push('mode'); }
+
+    const valid = Array.isArray(a.targets)
+      ? a.targets.filter(x => /^(0x)?[0-9a-fA-F]{40}$/.test(String(x).trim()))
+      : [];
+    if (valid.length) {
+      const firstSrc = Array.from(state.sources)[0];
+      state.targets = []; state.targetChains = [];
+      valid.forEach(t => {
+        state.targets.push(String(t).trim().replace(/^0x/i, ''));
+        state.targetChains.push(firstSrc);
+      });
+      renderTargets();
+      applied.push(valid.length > 1 ? `${valid.length} recipients` : 'recipient');
+    }
+
+    const setVal = (id, v) => {
+      const el = document.getElementById(id);
+      if (el && v != null && v !== '' && !isNaN(Number(v))) { el.value = String(v); return true; }
+      return false;
+    };
+
+    if (state.mode === 'topup') {
+      if (setVal('floor-amt',  a.floor))  applied.push('floor');
+      if (setVal('refill-amt', a.refill)) applied.push('refill amount');
+      if (setVal('cap-amt',    a.cap))    applied.push('daily cap');
+    } else {
+      if (setVal('send-amt', a.amount)) applied.push('amount');
+      if (a.cadence && ['once','daily','weekly','monthly'].includes(a.cadence)) {
+        const el = document.getElementById('sched-cadence');
+        if (el) { el.value = a.cadence; applied.push('frequency'); }
+      }
+      if (a.dist === 'each' || a.dist === 'split') { setDist(a.dist); applied.push('distribution'); }
+    }
+
+    updateSummary();
+    if (applied.length) setCfgTab('build'); // surface the filled form
+    return applied.length ? applied : null;
+  }
+
+  const chatMessages = [];   // {role,content} sent to the model
+  let chatBusy = false;
+
+  function chatScrollBottom() {
+    const s = document.getElementById('chat-scroll');
+    if (s) s.scrollTop = s.scrollHeight;
+  }
+
+  function appendChat(role, content, appliedNote) {
+    const scroll = document.getElementById('chat-scroll');
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg ' + (role === 'user' ? 'user' : 'ai');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.textContent = content;
+    if (appliedNote) {
+      const note = document.createElement('div');
+      note.className = 'chat-applied';
+      note.textContent = '✓ ' + appliedNote;
+      bubble.appendChild(note);
+    }
+    wrap.appendChild(bubble);
+    scroll.appendChild(wrap);
+    chatScrollBottom();
+  }
+
+  function showTyping() {
+    const scroll = document.getElementById('chat-scroll');
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg ai';
+    wrap.id = 'chat-typing-row';
+    wrap.innerHTML = '<div class="chat-bubble"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
+    scroll.appendChild(wrap);
+    chatScrollBottom();
+  }
+  function hideTyping() {
+    const t = document.getElementById('chat-typing-row');
+    if (t) t.remove();
+  }
+
+  async function chatSend() {
+    const input = document.getElementById('chat-input');
+    const text = (input.value || '').trim();
+    if (!text || chatBusy) return;
+    input.value = ''; input.style.height = 'auto';
+    const sg = document.getElementById('chat-suggest');
+    if (sg) sg.style.display = 'none';
+
+    chatBusy = true;
+    document.getElementById('chat-send').disabled = true;
+    appendChat('user', text);
+    chatMessages.push({ role: 'user', content: text });
+    showTyping();
+
+    try {
+      const r = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatMessages, portfolio: buildPortfolio() }),
+      });
+      hideTyping();
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        appendChat('ai', e.message || (r.status === 503
+          ? "Oneliq AI isn't configured yet (Workers AI binding missing)."
+          : 'Sorry — I hit an error. Please try again.'));
+        return;
+      }
+      const data = await r.json();
+      const reply = (data.reply && data.reply.trim()) || '…';
+      chatMessages.push({ role: 'assistant', content: reply });
+      let note = null;
+      if (data.action) {
+        const applied = applyAiAction(data.action);
+        if (applied) note = 'Pre-filled: ' + applied.join(', ') + ' — review & sign on the right.';
+      }
+      appendChat('ai', reply, note);
+    } catch (e) {
+      hideTyping();
+      appendChat('ai', 'Network error — please try again.');
+    } finally {
+      chatBusy = false;
+      document.getElementById('chat-send').disabled = false;
+      input.focus();
+    }
+  }
+  window.chatSend = chatSend;
+
+  function chatSuggest(btn) {
+    const input = document.getElementById('chat-input');
+    input.value = btn.textContent;
+    chatSend();
+  }
+  window.chatSuggest = chatSuggest;
+
+  // Enter to send (Shift+Enter = newline); textarea auto-grows.
+  {
+    const input = document.getElementById('chat-input');
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); }
+      });
+      input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      });
+    }
   }
 })();
 </script>
