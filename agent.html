@@ -3578,7 +3578,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   // in sync with the underlying inputs — at boot and after any AI prefill.
   function syncPanelDisplays() {
     const hero = document.getElementById('amt-hero-input');
-    const primary = document.getElementById(state.mode === 'topup' ? 'refill-amt' : 'send-amt');
+    const primary = document.getElementById(primaryAmtId(state.mode));
     if (hero && primary) hero.value = primary.value;
     const fv = document.getElementById('freq-row-v');
     if (fv) fv.textContent = CAD_LABEL[document.getElementById('sched-cadence').value] || 'Every week';
