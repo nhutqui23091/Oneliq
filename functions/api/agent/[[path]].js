@@ -518,7 +518,7 @@ async function handleCreate(req, kv, env) {
     detail: mode === 'topup'
       ? `Watching ${targets.length} wallet(s) · floor $${params.floor}`
       : mode === 'buy'
-        ? `Recurring buy ${params.buyToken} with $${params.amount} ${params.payToken} · ${params.cadence}`
+        ? `Recurring ${params.payToken === 'EURC' ? 'sell' : 'buy'} $${params.amount} ${params.payToken} → ${params.buyToken} · ${params.cadence}`
         : `Scheduled ${params.cadence} · ${targets.length} wallet(s) @ ${params.time}`,
   });
 

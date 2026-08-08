@@ -581,6 +581,26 @@ select option:checked{background:#1a2c4a;color:#fff}
 .tgt-chain-btn img{width:20px;height:20px;border-radius:50%;flex-shrink:0;object-fit:cover}
 .tgt-chain-btn .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tgt-caret{font-size:9px;color:var(--muted);flex-shrink:0}
+
+/* Chat header buttons + conversations panel (New chat + saved sessions) */
+.chat-head{gap:8px}
+.chat-head-btn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.chat-head-btn:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.08)}
+.chat-head-btn svg{width:17px;height:17px}
+.chat-convos{position:absolute;top:72px;left:14px;right:14px;bottom:14px;z-index:30;background:linear-gradient(180deg,#16273F 0%,#0F1E36 100%);border:1px solid var(--border2);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.chat-convos-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chat-convos-head button{padding:7px 12px;border-radius:100px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:11px;font-weight:700;font-family:var(--font);cursor:pointer;letter-spacing:0;text-transform:none}
+.chat-convos-head button:hover{background:rgba(77,214,219,.2)}
+.chat-convos-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+.convo-item{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--border);cursor:pointer;transition:all .15s;text-align:left;font-family:var(--font);color:var(--text)}
+.convo-item:hover{background:rgba(255,255,255,.06);border-color:var(--border2)}
+.convo-item.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.35)}
+.convo-item-main{flex:1;min-width:0}
+.convo-item-title{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.convo-item-date{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.convo-del{width:26px;height:26px;border-radius:7px;background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+.convo-del:hover{color:#FF8BA3;border-color:rgba(255,85,119,.3)}
+.convo-empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -594,16 +614,28 @@ select option:checked{background:#1a2c4a;color:#fff}
     <div class="chat-pane">
       <div class="chat-head">
         <div class="chat-avatar">✦</div>
-        <div>
+        <div style="flex:1;min-width:0">
           <div class="chat-head-t">Oneliq AI</div>
           <div class="chat-head-s">portfolio &amp; automation assistant</div>
         </div>
+        <button class="chat-head-btn" type="button" onclick="toggleConvoPanel()" title="Conversations" aria-label="Conversations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button class="chat-head-btn" type="button" onclick="newChat()" title="New chat" aria-label="New chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
-      <div class="chat-scroll" id="chat-scroll">
-        <div class="chat-msg ai">
-          <div class="chat-bubble">Hey — I'm Oneliq AI. Ask me about your USDC across chains, or describe an automation to set up (e.g. "top up my Base wallet when it drops below $50") and I'll pre-fill the form on the right for you to review and sign.</div>
+
+      <!-- Conversations panel (overlay) -->
+      <div class="chat-convos" id="chat-convos" style="display:none">
+        <div class="chat-convos-head">
+          <span>Conversations</span>
+          <button type="button" onclick="newChat()">+ New chat</button>
         </div>
+        <div class="chat-convos-list" id="chat-convos-list"></div>
       </div>
+
+      <div class="chat-scroll" id="chat-scroll"></div>
       <div class="chat-suggest" id="chat-suggest">
         <button class="chat-chip" type="button" onclick="chatSuggest(this)">Where is my USDC?</button>
         <button class="chat-chip" type="button" onclick="chatSuggest(this)">Send $25 to a wallet every week</button>
@@ -2751,7 +2783,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         agents.push(agent);
         saveLocalAgents();
         executions.unshift({ agentId: agent.id, time: Date.now(), type: 'deployed',
-          detail: `Recurring buy ${buyTok.buy} · ${cadLabel}` });
+          detail: `Recurring ${isSell ? 'sell' : 'buy'} $${amount} ${buyTok.pay} → ${buyTok.buy} · ${cadLabel}` });
         saveLocalExecs();
       } else {
         agent = normalizeAgent(res);
@@ -3888,13 +3920,113 @@ select option:checked{background:#1a2c4a;color:#fff}
     return applied.length ? applied : null;
   }
 
-  const chatMessages = [];   // {role,content} sent to the model
+  /* ============================================================
+     CHAT STATE + CONVERSATIONS (sessions persisted in localStorage)
+  ============================================================ */
+  const CHAT_INTRO = "Hey — I'm Oneliq AI. Ask me about your USDC across chains, or describe an automation (e.g. \"buy EURC with 10 USDC weekly\", \"send $25 to a wallet every week\"). I'll pre-fill the form on the right for you to review and sign.";
+  let chatMessages = [];   // {role,content} of the active conversation
   let chatBusy = false;
+  let convos = [];
+  try { convos = JSON.parse(localStorage.getItem('arcswap_ai_convos') || '[]'); } catch { convos = []; }
+  let activeConvoId = localStorage.getItem('arcswap_ai_active') || null;
+  const saveConvos = () => localStorage.setItem('arcswap_ai_convos', JSON.stringify(convos.slice(0, 50)));
 
   function chatScrollBottom() {
     const s = document.getElementById('chat-scroll');
     if (s) s.scrollTop = s.scrollHeight;
   }
+
+  // Rebuild the whole thread (intro + stored messages) — load / new / switch.
+  function renderConversation() {
+    const scroll = document.getElementById('chat-scroll');
+    if (!scroll) return;
+    scroll.innerHTML = '';
+    appendChat('ai', CHAT_INTRO);
+    chatMessages.forEach(m => appendChat(m.role, m.content));
+    const sg = document.getElementById('chat-suggest');
+    if (sg) sg.style.display = chatMessages.length ? 'none' : '';
+  }
+
+  // Save the active thread into the conversation list (create on first message).
+  function persistCurrent() {
+    if (!chatMessages.length) return;
+    const firstUser = chatMessages.find(m => m.role === 'user');
+    const title = ((firstUser && firstUser.content) || 'New chat').slice(0, 48);
+    const now = Date.now();
+    let c = activeConvoId ? convos.find(x => x.id === activeConvoId) : null;
+    if (!c) {
+      c = { id: 'c_' + now.toString(36) + Math.random().toString(36).slice(2, 6), title, messages: [], createdAt: now, updatedAt: now };
+      activeConvoId = c.id;
+      localStorage.setItem('arcswap_ai_active', activeConvoId);
+    }
+    c.title = title;
+    c.messages = chatMessages.slice();
+    c.updatedAt = now;
+    convos = [c, ...convos.filter(x => x.id !== c.id)]; // newest first
+    saveConvos();
+    renderConvoList();
+  }
+
+  function newChat() {
+    chatMessages = [];
+    activeConvoId = null;
+    localStorage.removeItem('arcswap_ai_active');
+    renderConversation();
+    closeConvoPanel();
+    document.getElementById('chat-input')?.focus();
+  }
+  window.newChat = newChat;
+
+  function loadConvo(id) {
+    const c = convos.find(x => x.id === id);
+    if (!c) return;
+    activeConvoId = id;
+    localStorage.setItem('arcswap_ai_active', id);
+    chatMessages = (c.messages || []).slice();
+    renderConversation();
+    closeConvoPanel();
+  }
+  window.loadConvo = loadConvo;
+
+  function deleteConvo(id, ev) {
+    if (ev) ev.stopPropagation();
+    convos = convos.filter(x => x.id !== id);
+    saveConvos();
+    if (activeConvoId === id) newChat();
+    renderConvoList();
+  }
+  window.deleteConvo = deleteConvo;
+
+  function renderConvoList() {
+    const list = document.getElementById('chat-convos-list');
+    if (!list) return;
+    if (!convos.length) {
+      list.innerHTML = '<div class="convo-empty">No conversations yet.<br>Start chatting and they\'ll show up here.</div>';
+      return;
+    }
+    list.innerHTML = convos.map(c => {
+      const d = new Date(c.updatedAt || c.createdAt);
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `<div class="convo-item${c.id === activeConvoId ? ' active' : ''}" onclick="loadConvo('${c.id}')">
+        <div class="convo-item-main">
+          <div class="convo-item-title">${escapeHtml(c.title || 'Untitled')}</div>
+          <div class="convo-item-date">${dateStr}</div>
+        </div>
+        <button type="button" class="convo-del" title="Delete" onclick="deleteConvo('${c.id}', event)">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleConvoPanel() {
+    const p = document.getElementById('chat-convos');
+    if (!p) return;
+    const show = p.style.display === 'none';
+    if (show) renderConvoList();
+    p.style.display = show ? 'flex' : 'none';
+  }
+  window.toggleConvoPanel = toggleConvoPanel;
+  function closeConvoPanel() { const p = document.getElementById('chat-convos'); if (p) p.style.display = 'none'; }
+  window.closeConvoPanel = closeConvoPanel;
 
   function appendChat(role, content, appliedNote) {
     const scroll = document.getElementById('chat-scroll');
@@ -3987,6 +4119,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       chatBusy = false;
       document.getElementById('chat-send').disabled = false;
       input.focus();
+      persistCurrent(); // save the thread (incl. this exchange) to the session list
     }
   }
   window.chatSend = chatSend;
@@ -4011,6 +4144,14 @@ select option:checked{background:#1a2c4a;color:#fff}
       });
     }
   }
+
+  // Restore the last conversation (or start fresh) and populate the list.
+  if (activeConvoId) {
+    const c = convos.find(x => x.id === activeConvoId);
+    if (c) chatMessages = (c.messages || []).slice(); else activeConvoId = null;
+  }
+  renderConversation();
+  renderConvoList();
 })();
 </script>
 </body>
