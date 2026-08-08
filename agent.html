@@ -521,8 +521,24 @@ select option:checked{background:#1a2c4a;color:#fff}
 .card{padding:20px 22px}
 /* The verbose "// what the agent will do" accordion is redundant now. */
 .summary{display:none !important}
-/* Chain chips read cleaner as 2 columns inside the modal. */
-#chain-modal .chain-grid{grid-template-columns:repeat(2,1fr)}
+
+/* Sub-toggle segment under the 2 group pills (Buy/Sell or Scheduled/Top-up) */
+.sub-seg{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:4px;margin-bottom:16px}
+.sub-seg button{flex:1;padding:9px 8px;border-radius:8px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.sub-seg button:hover{color:var(--text)}
+.sub-seg button.active{background:rgba(77,214,219,.12);border-color:rgba(77,214,219,.32);color:var(--text)}
+
+/* Chain rows in the source modal — logo + name + balance, like the Swap page's
+   source picker (no checkbox; selected = highlighted border). */
+.chain-list{display:flex;flex-direction:column;gap:7px}
+.chain-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font-family:var(--font);color:var(--text);transition:background .12s,border-color .12s}
+.chain-row:hover{background:rgba(255,255,255,.05);border-color:var(--border2)}
+.chain-row.selected{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.45);box-shadow:0 0 0 2px rgba(77,214,219,.18)}
+.chain-row-ico{width:30px;height:30px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.06)}
+.chain-row-ico img{width:100%;height:100%;object-fit:cover;display:block}
+.chain-row-name{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chain-row-bal{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chain-row.selected .chain-row-bal{color:var(--arc1)}
 </style>
 </head>
 <body>
@@ -605,17 +621,20 @@ select option:checked{background:#1a2c4a;color:#fff}
         </span>
       </div>
 
-      <!-- MODE BAR (sleek, Tower-style). Auto Top-Up retired — Buy + Send only. -->
+      <!-- MODE BAR — 2 groups, each with a sub-toggle below.
+           Recurring = swap (Buy/Sell) · Send = transfer (Scheduled/Auto top-up). -->
       <div class="mode-bar" id="mode-bar">
-        <button class="mode-pill active" type="button" id="pill-buy" data-mode="buy" onclick="setMode('buy')">
+        <button class="mode-pill active" type="button" id="grp-recurring" onclick="setGroup('recurring')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
-          Recurring Buy
+          Recurring
         </button>
-        <button class="mode-pill" type="button" data-mode="schedule" onclick="setMode('schedule')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
-          Scheduled Send
+        <button class="mode-pill" type="button" id="grp-send" onclick="setGroup('send')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send
         </button>
       </div>
+      <!-- Sub-toggle (populated by setGroup): Buy/Sell or Scheduled/Auto top-up -->
+      <div class="sub-seg" id="sub-seg"></div>
 
       <!-- HERO AMOUNT — drives the active mode's primary amount (buy / send) -->
       <div class="amt-hero">
@@ -792,21 +811,20 @@ select option:checked{background:#1a2c4a;color:#fff}
 
         </div>
 
-        <!-- RECURRING BUY (DCA) RULES — USDC<->EURC via OneliqRouter -->
+        <!-- RECURRING BUY/SELL (DCA) RULES — USDC<->EURC via OneliqRouter -->
         <div id="rules-buy" style="display:none">
           <div class="lbl-field">
-            <div class="lbl-field-label">Pay with</div>
-            <button class="sel-row" type="button" onclick="openTokModal()">
+            <div class="lbl-field-label" id="buy-pay-label">Pay with</div>
+            <div class="sel-row static">
               <div class="sel-row-ico"><img id="pay-tok-ico" src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt=""/></div>
               <div class="sel-row-main">
                 <div class="sel-row-k">From</div>
                 <div class="sel-row-v" id="pay-tok-v">USDC</div>
               </div>
-              <span class="sel-row-caret">▾</span>
-            </button>
+            </div>
           </div>
           <div class="lbl-field">
-            <div class="lbl-field-label">Buy</div>
+            <div class="lbl-field-label" id="buy-recv-label">Buy</div>
             <div class="sel-row static">
               <div class="sel-row-ico"><img id="buy-tok-ico" src="https://assets.coingecko.com/coins/images/26045/small/euro.png" alt=""/></div>
               <div class="sel-row-main">
@@ -985,39 +1003,47 @@ select option:checked{background:#1a2c4a;color:#fff}
       <button class="olq-modal-x" type="button" onclick="closeChainModal()" aria-label="Close">×</button>
     </div>
     <div class="olq-modal-body">
-      <div class="chain-grid" id="chain-grid">
-        <div class="chain-chip selected" data-chain="base" onclick="toggleChain('base')">
-          <div class="chain-chip-name">Base</div>
-          <div class="chain-chip-meta" data-bal="base">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="arc" onclick="toggleChain('arc')">
-          <div class="chain-chip-name">Arc</div>
-          <div class="chain-chip-meta" data-bal="arc">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="sepolia" onclick="toggleChain('sepolia')">
-          <div class="chain-chip-name">Ethereum</div>
-          <div class="chain-chip-meta" data-bal="sepolia">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="arbitrum" onclick="toggleChain('arbitrum')">
-          <div class="chain-chip-name">Arbitrum</div>
-          <div class="chain-chip-meta" data-bal="arbitrum">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="optimism" onclick="toggleChain('optimism')">
-          <div class="chain-chip-name">Optimism</div>
-          <div class="chain-chip-meta" data-bal="optimism">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="polygon" onclick="toggleChain('polygon')">
-          <div class="chain-chip-name">Polygon</div>
-          <div class="chain-chip-meta" data-bal="polygon">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="unichain" onclick="toggleChain('unichain')">
-          <div class="chain-chip-name">Unichain</div>
-          <div class="chain-chip-meta" data-bal="unichain">- USDC</div>
-        </div>
-        <div class="chain-chip" data-chain="fuji" onclick="toggleChain('fuji')">
-          <div class="chain-chip-name">Avalanche</div>
-          <div class="chain-chip-meta" data-bal="fuji">- USDC</div>
-        </div>
+      <div class="chain-list" id="chain-grid">
+        <button class="chain-row selected" type="button" data-chain="base" onclick="toggleChain('base')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/base.svg" alt=""/></span>
+          <span class="chain-row-name">Base</span>
+          <span class="chain-row-bal" data-bal="base">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="arc" onclick="toggleChain('arc')">
+          <span class="chain-row-ico"><img src="/assets/logos/arc.png" alt=""/></span>
+          <span class="chain-row-name">Arc</span>
+          <span class="chain-row-bal" data-bal="arc">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="sepolia" onclick="toggleChain('sepolia')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/ethereum.png" alt=""/></span>
+          <span class="chain-row-name">Ethereum</span>
+          <span class="chain-row-bal" data-bal="sepolia">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="arbitrum" onclick="toggleChain('arbitrum')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/arbitrum.png" alt=""/></span>
+          <span class="chain-row-name">Arbitrum</span>
+          <span class="chain-row-bal" data-bal="arbitrum">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="optimism" onclick="toggleChain('optimism')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/optimism.png" alt=""/></span>
+          <span class="chain-row-name">Optimism</span>
+          <span class="chain-row-bal" data-bal="optimism">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="polygon" onclick="toggleChain('polygon')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/polygon.svg" alt=""/></span>
+          <span class="chain-row-name">Polygon</span>
+          <span class="chain-row-bal" data-bal="polygon">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="unichain" onclick="toggleChain('unichain')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/unichain.svg" alt=""/></span>
+          <span class="chain-row-name">Unichain</span>
+          <span class="chain-row-bal" data-bal="unichain">– USDC</span>
+        </button>
+        <button class="chain-row" type="button" data-chain="fuji" onclick="toggleChain('fuji')">
+          <span class="chain-row-ico"><img src="/assets/logos/chains/avalanche.svg" alt=""/></span>
+          <span class="chain-row-name">Avalanche</span>
+          <span class="chain-row-bal" data-bal="fuji">– USDC</span>
+        </button>
       </div>
     </div>
     <div class="olq-modal-foot">
@@ -1176,7 +1202,9 @@ select option:checked{background:#1a2c4a;color:#fff}
   };
 
   const state = {
-    mode: 'buy',                      // 'buy' | 'schedule' (topup retired)
+    mode: 'buy',                      // 'buy' | 'schedule' | 'topup'
+    group: 'recurring',               // 'recurring' (buy/sell) | 'send' (schedule/topup)
+    dir: 'buy',                       // recurring direction: 'buy' | 'sell'
     sources: new Set(['base']),       // multi-select
     targets: [''],                    // array of addresses (without 0x prefix is OK, normalized)
     targetChains: ['base'],           // parallel array - each target's destination chain
@@ -1250,8 +1278,8 @@ select option:checked{background:#1a2c4a;color:#fff}
     const hint = document.getElementById('balances-hint');
     if (!addr) {
       hint.textContent = 'connect wallet to load balances';
-      document.querySelectorAll('.chain-chip-meta[data-bal]').forEach(el => {
-        el.textContent = '- USDC';
+      document.querySelectorAll('[data-bal]').forEach(el => {
+        el.textContent = '– USDC';
       });
       return;
     }
@@ -1260,17 +1288,16 @@ select option:checked{background:#1a2c4a;color:#fff}
     await Promise.all(chipIds.map(async chipId => {
       const arcKey = CHIP_TO_ARC[chipId];
       const tok = ARC.TOKENS[arcKey]?.USDC;
-      const el = document.querySelector(`.chain-chip-meta[data-bal="${chipId}"]`);
+      const el = document.querySelector(`[data-bal="${chipId}"]`);
       if (!tok || !el) return;
       try {
         const raw = await ARC.tokenBalance(arcKey, tok, addr);
         const human = fmtUsdc(raw, tok.decimals);
         state.balances[chipId] = human;
-        el.textContent = `$${human} USDC`;
-        el.style.color = raw > 0n ? 'var(--arc4)' : '';
-        // Grey out chip if zero (but still clickable - user might fund it later)
-        const chip = el.closest('.chain-chip');
-        if (chip) chip.style.opacity = raw > 0n ? '' : '0.55';
+        el.textContent = `${human} USDC`;
+        // Grey out the row if zero (but still clickable - user might fund it later)
+        const chip = el.closest('.chain-row');
+        if (chip) chip.style.opacity = raw > 0n ? '' : '0.5';
       } catch (e) {
         el.textContent = 'unavailable';
       }
@@ -1625,24 +1652,73 @@ select option:checked{background:#1a2c4a;color:#fff}
   // Which hidden input holds the primary amount for a given mode.
   const primaryAmtId = (m) => m === 'topup' ? 'refill-amt' : m === 'buy' ? 'buy-amt' : 'send-amt';
 
+  // Group pills (Recurring / Send) select a family; the sub-toggle picks the
+  // specific mode. setGroup renders the sub-toggle and activates its default.
+  function setGroup(g) {
+    state.group = g;
+    document.getElementById('grp-recurring').classList.toggle('active', g === 'recurring');
+    document.getElementById('grp-send').classList.toggle('active', g === 'send');
+    const seg = document.getElementById('sub-seg');
+    if (g === 'recurring') {
+      seg.innerHTML =
+        `<button type="button" data-sub="buy" onclick="setSub('buy')">Buy</button>` +
+        `<button type="button" data-sub="sell" onclick="setSub('sell')">Sell</button>`;
+      setSub(state.dir === 'sell' ? 'sell' : 'buy');
+    } else {
+      seg.innerHTML =
+        `<button type="button" data-sub="schedule" onclick="setSub('schedule')">Scheduled send</button>` +
+        `<button type="button" data-sub="topup" onclick="setSub('topup')">Auto top-up</button>`;
+      setSub(state.mode === 'topup' ? 'topup' : 'schedule');
+    }
+  }
+  window.setGroup = setGroup;
+
+  function setSub(s) {
+    document.querySelectorAll('#sub-seg button').forEach(b => b.classList.toggle('active', b.dataset.sub === s));
+    if (s === 'buy' || s === 'sell') { setBuyDir(s); setMode('buy'); }
+    else setMode(s); // 'schedule' | 'topup'
+  }
+  window.setSub = setSub;
+
+  // Recurring direction: Buy = pay USDC→get EURC; Sell = pay EURC→get USDC.
+  function setBuyDir(dir) {
+    state.dir = dir;
+    if (dir === 'sell') { buyTok.pay = 'EURC'; buyTok.buy = 'USDC'; }
+    else               { buyTok.pay = 'USDC'; buyTok.buy = 'EURC'; }
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('pay-tok-v', buyTok.pay);
+    set('buy-tok-v', buyTok.buy);
+    set('buy-pay-label', dir === 'sell' ? 'Sell' : 'Pay with');
+    set('buy-recv-label', dir === 'sell' ? 'Convert to' : 'Buy');
+    const pi = document.getElementById('pay-tok-ico'); if (pi) pi.src = TOK_ICON[buyTok.pay];
+    const bi = document.getElementById('buy-tok-ico'); if (bi) bi.src = TOK_ICON[buyTok.buy];
+  }
+  window.setBuyDir = setBuyDir;
+
+  // Drive group + sub + mode together (used by AI prefill and init).
+  function selectMode(mode, opts) {
+    const o = opts || {};
+    if (mode === 'buy') { setGroup('recurring'); setSub(o.dir === 'sell' ? 'sell' : 'buy'); }
+    else if (mode === 'topup') { setGroup('send'); setSub('topup'); }
+    else { setGroup('send'); setSub('schedule'); }
+  }
+
   function setMode(m) {
     state.mode = m;
-    document.querySelectorAll('.mode-pill').forEach(t => {
-      t.classList.toggle('active', t.dataset.mode === m);
-    });
     document.getElementById('rules-topup').style.display    = m === 'topup'    ? '' : 'none';
     document.getElementById('rules-schedule').style.display = m === 'schedule' ? '' : 'none';
     document.getElementById('rules-buy').style.display      = m === 'buy'      ? '' : 'none';
-    // Frequency + first-run block is shared by Scheduled Send and Recurring Buy.
+    // Frequency + first-run block is shared by Scheduled Send and Recurring Buy/Sell.
     document.getElementById('sched-shared').style.display   = (m === 'schedule' || m === 'buy') ? '' : 'none';
-    // Recurring Buy runs on Arc into your own wallet → no source/recipient steps.
+    // Recurring Buy/Sell runs on Arc into your own wallet → no source/recipient steps.
     document.getElementById('step-source').style.display    = m === 'buy' ? 'none' : '';
     document.getElementById('step-targets').style.display   = m === 'buy' ? 'none' : '';
+    const isSell = state.dir === 'sell';
     const step3 = document.getElementById('step3-label');
-    if (step3) step3.textContent = m === 'topup' ? 'Set the refill rule' : m === 'buy' ? 'Set the buy schedule' : 'Set the schedule';
+    if (step3) step3.textContent = m === 'topup' ? 'Set the refill rule' : m === 'buy' ? (isSell ? 'Set the sell schedule' : 'Set the buy schedule') : 'Set the schedule';
     // Hero binds to this mode's primary amount.
     const heroLabel = document.getElementById('amt-hero-label');
-    if (heroLabel) heroLabel.textContent = m === 'topup' ? 'Amount per refill' : m === 'buy' ? 'Amount per buy' : 'Amount per send';
+    if (heroLabel) heroLabel.textContent = m === 'topup' ? 'Amount per refill' : m === 'buy' ? (isSell ? 'Amount per sell' : 'Amount per buy') : 'Amount per send';
     const suffix = document.querySelector('.amt-hero-suffix');
     if (suffix) suffix.textContent = m === 'buy' ? buyTok.pay : 'USDC';
     const hero = document.getElementById('amt-hero-input');
@@ -1827,8 +1903,8 @@ select option:checked{background:#1a2c4a;color:#fff}
         ? `${new Date(startVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${fmt12(t)}`
         : `next ${fmt12(t)} slot`;
       card.innerHTML =
-        `<div class="track-card-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>Recurring buy · Arc</div>` +
-        `<div class="track-line"><span class="k">Buy</span><span class="v">${buyTok.buy} with ${buyTok.pay}</span></div>` +
+        `<div class="track-card-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>Recurring ${buyTok.pay === 'EURC' ? 'sell' : 'buy'} · Arc</div>` +
+        `<div class="track-line"><span class="k">${buyTok.pay === 'EURC' ? 'Sell' : 'Buy'}</span><span class="v">${buyTok.buy} with ${buyTok.pay}</span></div>` +
         `<div class="track-line"><span class="k">Repeat</span><span class="v">${CAD_LABEL[cad] || cad}</span></div>` +
         `<div class="track-line"><span class="k">First run</span><span class="v">${firstLabel}</span></div>` +
         `<div class="track-line"><span class="k">Per run</span><span class="v">$${amt.toFixed(2)} ${buyTok.pay} → ${buyTok.buy}</span></div>`;
@@ -1909,7 +1985,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     } else {
       state.sources.add(c);
     }
-    document.querySelectorAll('.chain-chip').forEach(el => {
+    document.querySelectorAll('.chain-row').forEach(el => {
       el.classList.toggle('selected', state.sources.has(el.dataset.chain));
     });
     updateSrcToggleLabel();
@@ -2563,18 +2639,18 @@ select option:checked{background:#1a2c4a;color:#fff}
     }
 
     const cadLabel = { once: 'One-time', daily: 'Every day', weekly: 'Every week', monthly: 'Every month' }[cadence] || cadence;
+    const isSell = buyTok.pay === 'EURC';
     const ok = await ArcUI.confirm({
-      title: '🔁 Review recurring buy',
+      title: isSell ? '🔁 Review recurring sell' : '🔁 Review recurring buy',
       body: `
         <div class="lede">This agent will swap on your behalf on Arc via OneliqRouter. Verify before signing.</div>
-        <div class="row"><span class="k">Buy</span><span class="v">${buyTok.buy}</span></div>
-        <div class="row"><span class="k">Pay with</span><span class="v">$${amount.toFixed(2)} ${buyTok.pay}</span></div>
+        <div class="row"><span class="k">Swap</span><span class="v">$${amount.toFixed(2)} ${buyTok.pay} → ${buyTok.buy}</span></div>
         <div class="row"><span class="k">Frequency</span><span class="v">${cadLabel} @ ${fmt12(time)} ${TZ_LABEL}</span></div>
         <div class="row"><span class="k">Route</span><span class="v">OneliqRouter · 0.3% fee</span></div>
         <div class="row"><span class="k">Expires</span><span class="v">in 30 days</span></div>
         <div class="footer">You'll sign one EIP-712 rule — no gas, no on-chain tx. Automated execution ships soon.</div>
       `,
-      confirmLabel: 'Sign buy rule',
+      confirmLabel: isSell ? 'Sign sell rule' : 'Sign buy rule',
       cancelLabel: 'Cancel',
     });
     if (!ok) { ArcUI.toast('warn', 'Cancelled', 'No agent created'); return; }
@@ -2627,8 +2703,8 @@ select option:checked{background:#1a2c4a;color:#fff}
 
     setTimeout(async () => {
       closeSignModal();
-      ArcUI.toast('success', 'Recurring buy deployed',
-        backendStatus === 'fallback' ? 'Saved locally · enable backend to persist' : `${cadLabel} · ${buyTok.buy}`);
+      ArcUI.toast('success', isSell ? 'Recurring sell deployed' : 'Recurring buy deployed',
+        backendStatus === 'fallback' ? 'Saved locally · enable backend to persist' : `${cadLabel} · ${buyTok.pay}→${buyTok.buy}`);
       try { ARC.track('agent-create', 'arc', null, null, 'agent', owner ? { address: owner } : null); } catch {}
       await refreshAgentsFromBackend();
       renderAgents();
@@ -2966,7 +3042,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       const isAutoPaused = a.state === 'paused' && a.autoPausedReason;
       const stateClass = a.state === 'paused' ? 'state-paused' : 'state-active';
       const stateLabel = isAutoPaused ? 'Auto-paused' : (a.state === 'paused' ? 'Paused' : 'Active');
-      const title = a.mode === 'topup' ? 'Auto Top-Up' : a.mode === 'buy' ? 'Recurring Buy' : 'Scheduled Send';
+      const title = a.mode === 'topup' ? 'Auto Top-Up' : a.mode === 'buy' ? ((a.params || {}).payToken === 'EURC' ? 'Recurring Sell' : 'Recurring Buy') : 'Scheduled Send';
       let sourcesHtml, destHtmlR;
       if (a.mode === 'buy') {
         // Recurring Buy shows the token pair, not chains (always on Arc).
@@ -3590,7 +3666,7 @@ select option:checked{background:#1a2c4a;color:#fff}
   renderAgents();
   renderExecLog();
   updateStats();
-  setMode('buy');          // default view = Recurring Buy (sets section visibility + hero)
+  setGroup('recurring');   // default view = Recurring · Buy (sets pills + sub-toggle + form)
   updateSummary();
   updateSrcToggleLabel();
 
@@ -3690,9 +3766,14 @@ select option:checked{background:#1a2c4a;color:#fff}
     if (!a || a.action !== 'prefill') return null;
     const applied = [];
 
-    if (['topup', 'schedule', 'buy'].includes(a.mode)) { setMode(a.mode); applied.push('mode'); }
+    if (['topup', 'schedule', 'buy'].includes(a.mode)) {
+      // payToken EURC ⇒ selling EURC for USDC; otherwise a buy.
+      const dir = (a.mode === 'buy' && a.payToken === 'EURC') ? 'sell' : 'buy';
+      selectMode(a.mode, { dir });
+      applied.push('mode');
+    }
 
-    // Recipients apply to topup/schedule only — Recurring Buy delivers to your own wallet.
+    // Recipients apply to topup/schedule only — Recurring Buy/Sell delivers to your own wallet.
     if (state.mode !== 'buy') {
       const valid = Array.isArray(a.targets)
         ? a.targets.filter(x => /^(0x)?[0-9a-fA-F]{40}$/.test(String(x).trim()))
@@ -3726,7 +3807,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       if (setVal('refill-amt', a.refill)) applied.push('refill amount');
       if (setVal('cap-amt',    a.cap))    applied.push('daily cap');
     } else if (state.mode === 'buy') {
-      if (a.payToken === 'USDC' || a.payToken === 'EURC') { pickPayTok(a.payToken); applied.push('pair'); }
+      // Direction (pair) already set by selectMode above.
       if (setVal('buy-amt', a.amount)) applied.push('amount');
       setCadence();
     } else {
