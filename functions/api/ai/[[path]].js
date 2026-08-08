@@ -112,7 +112,7 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   if (!url.pathname.endsWith('/selftest')) {
-    return json({ ok: true, route: 'ai', aiBinding: !!env.AI, model: MODEL });
+    return json({ ok: true, route: 'ai', build: 'probe-3', aiBinding: !!env.AI, model: MODEL });
   }
   if (!env.AI) return json({ error: 'unconfigured', message: 'AI binding missing.' }, 503);
   const model = url.searchParams.get('model') || MODEL;
