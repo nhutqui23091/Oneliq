@@ -500,6 +500,27 @@ select option:checked{background:#1a2c4a;color:#fff}
 .cal-selected{margin-top:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:11px 14px}
 .cal-selected-k{font-size:10px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
 .cal-selected-v{font-size:14px;font-weight:700;font-family:var(--mono)}
+
+/* ============================================================
+   COMPACT / TOWER DENSITY — drop step-number badges, tighten
+   spacing, slim the hero, hide the old collapsible summary
+   (the tracking card replaces it). Keeps the panel short & clean.
+============================================================ */
+.step-num{display:none}
+.step{margin-bottom:15px}
+.step-h{margin-bottom:8px;gap:8px}
+.step-label{font-size:12.5px;font-weight:600;letter-spacing:-.005em;color:var(--text)}
+.step-hint{font-size:10.5px}
+.amt-hero{padding:16px 18px 14px;margin-bottom:16px}
+.amt-hero-label{margin-bottom:6px}
+.amt-hero-input{font-size:46px}
+.amt-hero-cur{font-size:28px}
+.amt-hero-suffix{margin-top:4px}
+.amt-quick{margin-top:12px}
+.lbl-field{margin-bottom:12px}
+.card{padding:20px 22px}
+/* The verbose "// what the agent will do" accordion is redundant now. */
+.summary{display:none !important}
 </style>
 </head>
 <body>
@@ -619,7 +640,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="step-h">
           <div class="step-num">1</div>
           <div class="step-label" style="display:flex;align-items:center">
-            Pull USDC from your wallet on these chains
+            From — your USDC
             <span class="help-host">
               <button class="help-btn" type="button" data-help="step1" aria-label="More about source chains">?</button>
               <div class="help-pop" id="help-step1">
@@ -677,7 +698,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="step-h">
           <div class="step-num">2</div>
           <div class="step-label" style="display:flex;align-items:center">
-            Who receives USDC
+            To — recipients
             <span class="help-host">
               <button class="help-btn" type="button" data-help="step2" aria-label="More about target wallets">?</button>
               <div class="help-pop" id="help-step2">
@@ -2077,14 +2098,16 @@ select option:checked{background:#1a2c4a;color:#fff}
   function renderPreflight() {
     const el = document.getElementById('preflight');
     if (!el) return;
-    const { issues, warns, infos } = computeRealityCheck();
+    const { issues, warns } = computeRealityCheck();
+    // Only surface real problems — when the rule checks out we stay quiet so the
+    // panel reads clean (the tracking card already states the plan).
+    if (!issues.length && !warns.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
     const line = (txt, color, ico) => `<div class="pf-line" style="color:${color}"><span class="pf-ico" style="color:${color}">${ico}</span><span>${txt}</span></div>`;
     let html = '';
     issues.forEach(t => html += line(t, '#FF8BA3', '✕'));
     warns.forEach(t => html += line(t, '#FFC97A', '!'));
-    infos.forEach(t => html += line(t, 'var(--muted)', 'ℹ'));
     el.style.display = 'block';
-    el.innerHTML = `<div class="pf-h">Pre-flight check</div>${html}`;
+    el.innerHTML = `<div class="pf-h">Heads up</div>${html}`;
   }
 
   /* ============================================================
