@@ -63,24 +63,30 @@ USDC balances by chain:
 ${balLines}`;
 }
 
+// Matches a flat JSON object that contains an "action" key. Our action objects
+// never nest braces (targets is a []), so [^{}] between the braces is safe and
+// works whether or not the model wrapped it in a code fence.
+const ACTION_RE = /\{[^{}]*"action"[^{}]*\}/;
+
 function extractAction(text) {
   if (!text) return null;
   let raw = null;
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) raw = fence[1];
-  else {
-    const m = text.match(/\{[\s\S]*?"action"\s*:\s*"prefill"[\s\S]*?\}/);
-    if (m) raw = m[0];
-  }
+  if (fence && /"action"/.test(fence[1])) raw = fence[1];
+  else { const m = text.match(ACTION_RE); if (m) raw = m[0]; }
   if (!raw) return null;
   try {
     const o = JSON.parse(raw.trim());
-    return (o && o.action === 'prefill') ? o : null;
+    return (o && (o.action === 'prefill' || o.action === 'swap')) ? o : null;
   } catch { return null; }
 }
 
-// Remove any fenced code block from the visible reply so the raw JSON isn't shown.
-const stripAction = (text) => String(text || '').replace(/```(?:json)?\s*[\s\S]*?```/gi, '').trim();
+// Strip the action JSON (fenced OR bare) from the visible reply so the raw
+// object never shows as chat text.
+const stripAction = (text) => String(text || '')
+  .replace(/```(?:json)?\s*[\s\S]*?```/gi, '')
+  .replace(new RegExp(ACTION_RE, 'g'), '')
+  .trim();
 
 export async function onRequestPost({ request, env }) {
   // One outer try so ANY unexpected failure returns a parseable JSON error
