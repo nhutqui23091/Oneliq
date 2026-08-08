@@ -14,7 +14,11 @@
 // extractAction() below parses it and the client applies it via the existing
 // setMode/addTargetRow/… helpers.
 
-const MODEL = '@cf/meta/llama-3.1-8b-instruct';
+// NOTE: the plain "@cf/meta/llama-3.1-8b-instruct" id returns a Cloudflare
+// edge 502 on this account (not in its Workers AI catalog); the "-fast"
+// variant is available and quick (~0.4s), so we use it. Verified via
+// /api/ai/selftest against several models.
+const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 
 const HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: HEADERS });
@@ -112,23 +116,19 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   if (!url.pathname.endsWith('/selftest')) {
-    return json({ ok: true, route: 'ai', build: 'probe-3', aiBinding: !!env.AI, model: MODEL });
+    return json({ ok: true, route: 'ai', aiBinding: !!env.AI, model: MODEL });
   }
+  // Fixed-model self-test (no arbitrary ?model= execution) to confirm the
+  // configured model is reachable.
   if (!env.AI) return json({ error: 'unconfigured', message: 'AI binding missing.' }, 503);
-  const model = url.searchParams.get('model') || MODEL;
-  const mode = url.searchParams.get('mode') || 'messages';
-  const input = mode === 'prompt'
-    ? { prompt: 'Reply with the single word: pong', max_tokens: 16 }
-    : { messages: [{ role: 'user', content: 'Reply with the single word: pong' }], max_tokens: 16 };
   const t0 = Date.now();
   try {
-    const out = await env.AI.run(model, input);
-    return json({
-      ok: true, model, mode, ms: Date.now() - t0,
-      response: (out && (out.response ?? null)),
-      shape: Object.keys(out || {}),
+    const out = await env.AI.run(MODEL, {
+      messages: [{ role: 'user', content: 'Reply with the single word: pong' }],
+      max_tokens: 16,
     });
+    return json({ ok: true, model: MODEL, ms: Date.now() - t0, response: (out && (out.response ?? null)) });
   } catch (e) {
-    return json({ ok: false, model, mode, ms: Date.now() - t0, error: String((e && e.message) || e) }, 502);
+    return json({ ok: false, model: MODEL, ms: Date.now() - t0, error: String((e && e.message) || e) }, 502);
   }
 }
