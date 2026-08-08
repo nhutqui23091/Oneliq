@@ -399,6 +399,107 @@ select option:checked{background:#1a2c4a;color:#fff}
 .cfg-tab{padding:11px;border-radius:8px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
 .cfg-tab:hover{color:var(--text)}
 .cfg-tab.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.3);color:var(--text)}
+
+/* ============================================================
+   TOWER-GRADE AGENT PANEL — sleek mode bar, hero amount, token
+   pills, frequency modal, UTC-style calendar modal, tracking card.
+   These re-skin the existing inputs (which keep their ids so the
+   deploy/sign/preflight logic is untouched); modals write back to
+   the same hidden inputs.
+============================================================ */
+/* Mode bar — replaces the old chunky .mode-tabs with a slim segmented row */
+.mode-bar{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;padding:4px;margin-bottom:20px}
+.mode-pill{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 8px;border-radius:9px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:-.01em;cursor:pointer;transition:all .15s;position:relative;white-space:nowrap}
+.mode-pill:hover:not(:disabled){color:var(--text)}
+.mode-pill.active{background:rgba(77,214,219,.12);border-color:rgba(77,214,219,.32);color:var(--text)}
+.mode-pill svg{width:15px;height:15px;flex-shrink:0}
+.mode-pill:disabled{opacity:.5;cursor:not-allowed}
+.mode-pill .soon-tag{position:absolute;top:-7px;right:6px;font-size:8px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;color:var(--yellow,#FFC97A);background:rgba(255,201,122,.12);border:1px solid rgba(255,201,122,.3);border-radius:5px;padding:1px 4px;text-transform:uppercase}
+
+/* Hero amount — the big editable $ figure at the top of the form */
+.amt-hero{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:18px;padding:22px 20px 20px;text-align:center;margin-bottom:18px;position:relative;transition:border-color .15s}
+.amt-hero:focus-within{border-color:rgba(77,214,219,.4)}
+.amt-hero-label{font-size:11px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.amt-hero-input-row{display:flex;align-items:center;justify-content:center;gap:2px}
+.amt-hero-cur{font-family:var(--display);font-size:34px;font-weight:300;color:var(--muted);line-height:1}
+.amt-hero-input{width:auto;max-width:100%;field-sizing:content;background:none;border:none;outline:none;text-align:center;font-family:var(--display);font-size:52px;font-weight:300;letter-spacing:-.03em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;padding:0;min-width:1ch}
+.amt-hero-input::-webkit-outer-spin-button,.amt-hero-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.amt-hero-input{-moz-appearance:textfield}
+.amt-hero-suffix{font-size:13px;color:var(--muted);font-family:var(--mono);margin-top:8px}
+.amt-quick{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.amt-quick button{padding:5px 12px;border-radius:100px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);font-size:11.5px;font-weight:600;font-family:var(--mono);cursor:pointer;transition:all .15s}
+.amt-quick button:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.07)}
+
+/* Selector rows (Tower "Pay With" / Frequency / time triggers) */
+.sel-row{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;width:100%;font-family:var(--font);color:var(--text);text-align:left}
+.sel-row:hover{border-color:var(--border2)}
+.sel-row.static{cursor:default}
+.sel-row-ico{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(255,255,255,.06)}
+.sel-row-ico img{width:100%;height:100%;object-fit:cover}
+.sel-row-main{flex:1;min-width:0}
+.sel-row-k{font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.sel-row-v{font-size:14.5px;font-weight:600;letter-spacing:-.01em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-row-caret{font-size:10px;color:var(--muted);flex-shrink:0}
+.field-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.field-grid-2{grid-template-columns:1fr}}
+
+/* Tracking card (Tower "Tracking in UTC") */
+.track-card{margin-top:16px;background:rgba(77,214,219,.05);border:1px solid rgba(77,214,219,.16);border-radius:14px;padding:14px 16px}
+.track-card-h{display:flex;align-items:center;gap:7px;font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--arc1);margin-bottom:9px}
+.track-card-h svg{width:13px;height:13px}
+.track-line{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0;line-height:1.4}
+.track-line .k{color:var(--muted)}
+.track-line .v{font-family:var(--mono);font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+
+/* Generic Oneliq modal (frequency picker + calendar) */
+.olq-modal{position:fixed;inset:0;background:rgba(5,10,20,.65);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:9500;padding:20px;animation:drawerFade .15s ease}
+.olq-modal.open{display:flex}
+.olq-modal-card{background:linear-gradient(180deg,#16273F 0%,#0F1E36 100%);border:1px solid var(--border2);border-radius:22px;width:100%;max-width:440px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.olq-modal-head{padding:20px 24px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}
+.olq-modal-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.olq-modal-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.olq-modal-x{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:17px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.olq-modal-x:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.olq-modal-body{padding:16px 24px 20px;overflow-y:auto}
+.olq-modal-foot{padding:14px 24px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.olq-btn{padding:11px 18px;font-size:13px;font-weight:700;border-radius:11px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);transition:all .15s}
+.olq-btn:hover{background:rgba(255,255,255,.08);border-color:var(--border2)}
+.olq-btn.primary{background:linear-gradient(135deg,rgba(77,214,219,.22),rgba(74,123,236,.22));border-color:rgba(77,214,219,.4);color:var(--text)}
+.olq-btn.primary:hover{background:linear-gradient(135deg,rgba(77,214,219,.34),rgba(74,123,236,.34))}
+.olq-btn.ghost{background:none;border-color:transparent;color:var(--muted);margin-right:auto}
+.olq-btn.ghost:hover{color:var(--text);background:rgba(255,255,255,.04)}
+
+/* Frequency options */
+.freq-opt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:14px 16px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid var(--border);cursor:pointer;transition:all .15s;font-family:var(--font);margin-bottom:8px}
+.freq-opt:hover{border-color:var(--border2);background:rgba(255,255,255,.05)}
+.freq-opt.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.38)}
+.freq-opt-h{font-size:14.5px;font-weight:700;color:var(--text)}
+.freq-opt-d{font-size:12px;color:var(--muted)}
+
+/* Calendar */
+.cal-split{display:grid;grid-template-columns:1fr 150px;gap:16px}
+@media(max-width:460px){.cal-split{grid-template-columns:1fr}}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav button{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.cal-nav button:hover{background:rgba(255,255,255,.08)}
+.cal-month{font-size:14px;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{font-size:10px;font-family:var(--mono);color:var(--muted);text-align:center;padding:4px 0}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12.5px;border-radius:8px;background:none;border:1px solid transparent;color:var(--text);cursor:pointer;font-family:var(--font);transition:all .12s}
+.cal-day:hover:not(:disabled){background:rgba(255,255,255,.07)}
+.cal-day.muted{color:rgba(255,255,255,.2);cursor:not-allowed}
+.cal-day.today{border-color:var(--border2)}
+.cal-day.sel{background:#fff;color:#0b1220;font-weight:700}
+.cal-day:disabled{color:rgba(255,255,255,.15);cursor:not-allowed}
+.cal-times{display:flex;flex-direction:column}
+.cal-times-h{font-size:11px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cal-times-list{overflow-y:auto;max-height:230px;display:flex;flex-direction:column;gap:3px;padding-right:4px}
+.cal-time{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid transparent;color:var(--text);font-size:12.5px;font-family:var(--mono);cursor:pointer;text-align:left;transition:all .12s}
+.cal-time:hover{background:rgba(255,255,255,.07)}
+.cal-time.sel{background:rgba(77,214,219,.14);border-color:rgba(77,214,219,.4);color:var(--text)}
+.cal-selected{margin-top:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:11px 14px}
+.cal-selected-k{font-size:10px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.cal-selected-v{font-size:14px;font-weight:700;font-family:var(--mono)}
 </style>
 </head>
 <body>
@@ -481,26 +582,36 @@ select option:checked{background:#1a2c4a;color:#fff}
         </span>
       </div>
 
-      <!-- MODE TABS -->
-      <div class="lbl-field-label" style="margin-bottom:8px">
-        <span style="display:flex;align-items:center">
-          What should the agent do?
-          <span class="help-host">
-            <button class="help-btn" type="button" data-help="mode" aria-label="More about the two modes">?</button>
-            <div class="help-pop" id="help-mode">
-              <strong>Auto Top-Up</strong> - refill a wallet automatically whenever its balance drops below a threshold you set.
-              <br><br><strong>Scheduled Send</strong> - send USDC on a fixed schedule: once, daily, weekly, or monthly.
-            </div>
-          </span>
-        </span>
+      <!-- MODE BAR (sleek, Tower-style; Recurring Buy ships next) -->
+      <div class="mode-bar" id="mode-bar">
+        <button class="mode-pill" type="button" id="pill-buy" disabled title="Recurring Buy — coming next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+          Recurring Buy<span class="soon-tag">Soon</span>
+        </button>
+        <button class="mode-pill" type="button" data-mode="schedule" onclick="setMode('schedule')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+          Scheduled Send
+        </button>
+        <button class="mode-pill active" type="button" data-mode="topup" onclick="setMode('topup')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Auto Top-Up
+        </button>
       </div>
-      <div class="mode-tabs">
-        <button class="mode-tab active" data-mode="topup" onclick="setMode('topup')">
-          <div class="mode-tab-h"><span class="mode-tab-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>Auto Top-Up</div>
-        </button>
-        <button class="mode-tab" data-mode="schedule" onclick="setMode('schedule')">
-          <div class="mode-tab-h"><span class="mode-tab-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></span>Scheduled Send</div>
-        </button>
+
+      <!-- HERO AMOUNT — drives the active mode's primary amount (refill / send) -->
+      <div class="amt-hero">
+        <div class="amt-hero-label" id="amt-hero-label">Amount per refill</div>
+        <div class="amt-hero-input-row">
+          <span class="amt-hero-cur">$</span>
+          <input class="amt-hero-input" id="amt-hero-input" type="number" inputmode="decimal" min="0" step="any" value="100" oninput="onHeroAmount(this.value)" aria-label="Amount"/>
+        </div>
+        <div class="amt-hero-suffix">USDC</div>
+        <div class="amt-quick">
+          <button type="button" onclick="setHeroAmount(25)">$25</button>
+          <button type="button" onclick="setHeroAmount(50)">$50</button>
+          <button type="button" onclick="setHeroAmount(100)">$100</button>
+          <button type="button" onclick="setHeroAmount(250)">$250</button>
+        </div>
       </div>
 
       <!-- STEP 1: SOURCE CHAINS (multi) -->
@@ -613,7 +724,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
           </div>
 
-          <div class="lbl-field">
+          <div class="lbl-field" style="display:none"><!-- hero-driven: refill amount -->
             <div class="lbl-field-label">
               <span style="display:flex;align-items:center">
                 How much to send each refill
@@ -654,7 +765,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 
         <!-- SCHEDULE RULES -->
         <div id="rules-schedule" style="display:none">
-          <div class="lbl-field">
+          <div class="lbl-field" style="display:none"><!-- hero-driven: send amount -->
             <div class="lbl-field-label">
               <span style="display:flex;align-items:center">
                 How much to send each time
@@ -692,54 +803,49 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
           </div>
 
-          <div class="dual-fields">
-            <div class="lbl-field" style="margin-bottom:0">
-              <div class="lbl-field-label">Frequency</div>
-              <div class="field" style="padding:10px 14px">
-                <select id="sched-cadence" class="select-styled" onchange="updateSummary()">
-                  <option value="once">Once · one-time send</option>
-                  <option value="daily">Every day</option>
-                  <option value="weekly" selected>Every week</option>
-                  <option value="monthly">Every month</option>
-                </select>
+          <!-- Frequency — opens a Tower-style modal; writes the hidden #sched-cadence -->
+          <div class="lbl-field">
+            <div class="lbl-field-label">Frequency</div>
+            <button class="sel-row" type="button" onclick="openFreqModal()">
+              <div class="sel-row-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
+              <div class="sel-row-main">
+                <div class="sel-row-k">Repeat</div>
+                <div class="sel-row-v" id="freq-row-v">Every week</div>
               </div>
-            </div>
-            <div class="lbl-field" style="margin-bottom:0">
-              <div class="lbl-field-label">At time <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(your local time)</span></div>
-              <!-- Custom 3-select time picker. Native <input type="time"> renders
-                   AM/PM markers in the OS locale (e.g. "CH/SA" in Vietnamese)
-                   and Chrome ignores `lang` reliably enough across platforms,
-                   so we build our own with English AM/PM. The hidden #sched-time
-                   keeps the value in 24h "HH:MM" so the rest of the page stays
-                   the same. -->
-              <div class="field time-picker" style="padding:8px 12px;gap:6px">
-                <select id="sched-hour" class="time-sel" onchange="updateSchedTime()" aria-label="Hour"></select>
-                <span class="time-colon">:</span>
-                <select id="sched-min" class="time-sel" onchange="updateSchedTime()" aria-label="Minute"></select>
-                <select id="sched-ampm" class="time-sel time-sel-ampm" onchange="updateSchedTime()" aria-label="AM or PM">
-                  <option value="AM">AM</option>
-                  <option value="PM" selected>PM</option>
-                </select>
-                <input type="hidden" id="sched-time" value="19:00"/>
-              </div>
-            </div>
+              <span class="sel-row-caret">▾</span>
+            </button>
           </div>
 
-          <div class="lbl-field" style="margin-top:14px">
-            <div class="lbl-field-label">
-              <span style="display:flex;align-items:center">
-                First send · starting on
-                <span class="help-host">
-                  <button class="help-btn" type="button" data-help="start" aria-label="More about start date">?</button>
-                  <div class="help-pop" id="help-start">
-                    Leave blank to start at the next available slot today.
-                  </div>
-                </span>
-              </span>
-            </div>
-            <div class="field" style="padding:8px 14px">
-              <input class="field-input" id="sched-start" type="date" oninput="updateSummary()" style="font-size:14px"/>
-            </div>
+          <!-- First send — opens a calendar+time modal; writes #sched-start + #sched-time -->
+          <div class="lbl-field">
+            <div class="lbl-field-label">First send <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(your local time)</span></div>
+            <button class="sel-row" type="button" onclick="openCalModal()">
+              <div class="sel-row-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="sel-row-main">
+                <div class="sel-row-k">Starts</div>
+                <div class="sel-row-v" id="cal-row-v">Next available slot</div>
+              </div>
+              <span class="sel-row-caret">▾</span>
+            </button>
+          </div>
+
+          <!-- Original controls kept as the hidden data store for deploy/preflight.
+               The pretty rows above just write into these. -->
+          <div style="display:none" aria-hidden="true">
+            <select id="sched-cadence" onchange="updateSummary()">
+              <option value="once">Once · one-time send</option>
+              <option value="daily">Every day</option>
+              <option value="weekly" selected>Every week</option>
+              <option value="monthly">Every month</option>
+            </select>
+            <select id="sched-hour" onchange="updateSchedTime()" aria-label="Hour"></select>
+            <select id="sched-min" onchange="updateSchedTime()" aria-label="Minute"></select>
+            <select id="sched-ampm" onchange="updateSchedTime()" aria-label="AM or PM">
+              <option value="AM">AM</option>
+              <option value="PM" selected>PM</option>
+            </select>
+            <input type="hidden" id="sched-time" value="19:00"/>
+            <input id="sched-start" type="date" oninput="updateSummary()"/>
           </div>
         </div>
       </div>
@@ -752,6 +858,9 @@ select option:checked{background:#1a2c4a;color:#fff}
         </button>
         <div id="summary-rows" style="display:none"></div>
       </div>
+
+      <!-- TRACKING CARD (Tower-style plan summary, rendered by updateTracking) -->
+      <div id="track-card" class="track-card" style="display:none"></div>
 
       <!-- PRE-FLIGHT CHECK - reality-checks the rule against live balances before signing -->
       <div id="preflight" class="preflight" style="display:none"></div>
@@ -843,6 +952,71 @@ select option:checked{background:#1a2c4a;color:#fff}
     </div>
     <div class="drawer-body" id="drawer-body"></div>
     <div class="drawer-foot" id="drawer-foot"></div>
+  </div>
+</div>
+
+<!-- FREQUENCY MODAL (Tower-style) -->
+<div class="olq-modal" id="freq-modal">
+  <div class="olq-modal-card">
+    <div class="olq-modal-head">
+      <div>
+        <div class="olq-modal-title">Select frequency</div>
+        <div class="olq-modal-sub">How often should this agent run?</div>
+      </div>
+      <button class="olq-modal-x" type="button" onclick="closeFreqModal()" aria-label="Close">×</button>
+    </div>
+    <div class="olq-modal-body" id="freq-modal-body">
+      <button class="freq-opt" type="button" data-cad="once" onclick="pickFreq('once')">
+        <div class="freq-opt-h">Once</div><div class="freq-opt-d">A single one-time send</div>
+      </button>
+      <button class="freq-opt" type="button" data-cad="daily" onclick="pickFreq('daily')">
+        <div class="freq-opt-h">Daily</div><div class="freq-opt-d">Every day at the set time</div>
+      </button>
+      <button class="freq-opt" type="button" data-cad="weekly" onclick="pickFreq('weekly')">
+        <div class="freq-opt-h">Weekly</div><div class="freq-opt-d">Every week on this weekday</div>
+      </button>
+      <button class="freq-opt" type="button" data-cad="monthly" onclick="pickFreq('monthly')" style="margin-bottom:0">
+        <div class="freq-opt-h">Monthly</div><div class="freq-opt-d">Every month on this date</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CALENDAR MODAL (first-send date + time) -->
+<div class="olq-modal" id="cal-modal">
+  <div class="olq-modal-card">
+    <div class="olq-modal-head">
+      <div>
+        <div class="olq-modal-title">Choose first send</div>
+        <div class="olq-modal-sub" id="cal-modal-sub">Pick the first date & time this agent runs (your local time).</div>
+      </div>
+      <button class="olq-modal-x" type="button" onclick="closeCalModal()" aria-label="Close">×</button>
+    </div>
+    <div class="olq-modal-body">
+      <div class="cal-split">
+        <div>
+          <div class="cal-nav">
+            <button type="button" onclick="calShiftMonth(-1)" aria-label="Previous month">‹</button>
+            <div class="cal-month" id="cal-month">—</div>
+            <button type="button" onclick="calShiftMonth(1)" aria-label="Next month">›</button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+        <div class="cal-times">
+          <div class="cal-times-h">Time</div>
+          <div class="cal-times-list" id="cal-times"></div>
+        </div>
+      </div>
+      <div class="cal-selected">
+        <div class="cal-selected-k">Selected</div>
+        <div class="cal-selected-v" id="cal-selected-v">—</div>
+      </div>
+    </div>
+    <div class="olq-modal-foot">
+      <button class="olq-btn ghost" type="button" onclick="calClear()">Start ASAP</button>
+      <button class="olq-btn" type="button" onclick="closeCalModal()">Cancel</button>
+      <button class="olq-btn primary" type="button" onclick="calSave()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -1354,15 +1528,185 @@ select option:checked{background:#1a2c4a;color:#fff}
   ============================================================ */
   function setMode(m) {
     state.mode = m;
-    document.querySelectorAll('.mode-tab').forEach(t => {
+    document.querySelectorAll('.mode-pill').forEach(t => {
       t.classList.toggle('active', t.dataset.mode === m);
     });
     document.getElementById('rules-topup').style.display = m === 'topup' ? '' : 'none';
     document.getElementById('rules-schedule').style.display = m === 'schedule' ? '' : 'none';
     document.getElementById('step3-label').textContent = m === 'topup' ? 'Set the refill rule' : 'Set the schedule';
+    // Point the hero amount at this mode's primary input (refill / send).
+    const heroLabel = document.getElementById('amt-hero-label');
+    if (heroLabel) heroLabel.textContent = m === 'topup' ? 'Amount per refill' : 'Amount per send';
+    const hero = document.getElementById('amt-hero-input');
+    const primary = document.getElementById(m === 'topup' ? 'refill-amt' : 'send-amt');
+    if (hero && primary) hero.value = primary.value;
     updateSummary();
   }
   window.setMode = setMode;
+
+  /* ============================================================
+     HERO AMOUNT ⇄ per-mode primary input (refill-amt / send-amt)
+  ============================================================ */
+  function onHeroAmount(v) {
+    const el = document.getElementById(state.mode === 'topup' ? 'refill-amt' : 'send-amt');
+    if (el) el.value = v;
+    updateSummary();
+  }
+  window.onHeroAmount = onHeroAmount;
+  function setHeroAmount(v) {
+    const hero = document.getElementById('amt-hero-input');
+    if (hero) hero.value = v;
+    onHeroAmount(v);
+  }
+  window.setHeroAmount = setHeroAmount;
+
+  /* ============================================================
+     TOWER-STYLE PICKERS — frequency modal + calendar/time modal.
+     Both write into the existing hidden inputs (#sched-cadence,
+     #sched-time, #sched-start) so deploy/preflight are unchanged.
+  ============================================================ */
+  const CAD_LABEL = { once: 'One time', daily: 'Every day', weekly: 'Every week', monthly: 'Every month' };
+
+  function openFreqModal() {
+    const cur = document.getElementById('sched-cadence').value;
+    document.querySelectorAll('#freq-modal .freq-opt').forEach(o =>
+      o.classList.toggle('active', o.dataset.cad === cur));
+    document.getElementById('freq-modal').classList.add('open');
+  }
+  window.openFreqModal = openFreqModal;
+  function closeFreqModal() { document.getElementById('freq-modal').classList.remove('open'); }
+  window.closeFreqModal = closeFreqModal;
+  function pickFreq(cad) {
+    document.getElementById('sched-cadence').value = cad;
+    const v = document.getElementById('freq-row-v');
+    if (v) v.textContent = CAD_LABEL[cad] || cad;
+    closeFreqModal();
+    updateSummary();
+  }
+  window.pickFreq = pickFreq;
+
+  let calYear, calMonth, calSelDate = null, calTimeVal = '19:00';
+  function fmtDateISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function openCalModal() {
+    const startVal = document.getElementById('sched-start').value;
+    calTimeVal = document.getElementById('sched-time').value || '19:00';
+    const base = startVal ? new Date(startVal + 'T00:00:00') : new Date();
+    calSelDate = startVal ? new Date(startVal + 'T00:00:00') : null;
+    calYear = base.getFullYear(); calMonth = base.getMonth();
+    renderCal();
+    document.getElementById('cal-modal').classList.add('open');
+  }
+  window.openCalModal = openCalModal;
+  function closeCalModal() { document.getElementById('cal-modal').classList.remove('open'); }
+  window.closeCalModal = closeCalModal;
+  function calShiftMonth(delta) {
+    calMonth += delta;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCal();
+  }
+  window.calShiftMonth = calShiftMonth;
+  function calPickDay(day) { calSelDate = new Date(calYear, calMonth, day); renderCal(); }
+  window.calPickDay = calPickDay;
+  function calPickTime(v) { calTimeVal = v; renderCal(); }
+  window.calPickTime = calPickTime;
+
+  function renderCal() {
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('cal-month').textContent = `${MONTHS[calMonth]} ${calYear}`;
+    const dows = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+    const startDow = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const today = new Date(); today.setHours(0,0,0,0);
+    for (let i = 0; i < startDow; i++) html += `<div></div>`;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(calYear, calMonth, day);
+      const past = d < today;
+      const isToday = d.getTime() === today.getTime();
+      const isSel = calSelDate && d.getFullYear() === calSelDate.getFullYear() &&
+                    d.getMonth() === calSelDate.getMonth() && d.getDate() === calSelDate.getDate();
+      html += `<button type="button" class="cal-day${isSel ? ' sel' : ''}${isToday && !isSel ? ' today' : ''}" ${past ? 'disabled' : ''} onclick="calPickDay(${day})">${day}</button>`;
+    }
+    document.getElementById('cal-grid').innerHTML = html;
+
+    let th = '';
+    for (let h = 0; h < 24; h++) for (const m of [0, 30]) {
+      const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      th += `<button type="button" class="cal-time${val === calTimeVal ? ' sel' : ''}" onclick="calPickTime('${val}')">${fmt12(val)}</button>`;
+    }
+    const times = document.getElementById('cal-times');
+    times.innerHTML = th;
+    const el = document.getElementById('cal-selected-v');
+    if (el) el.textContent = calSelDate
+      ? `${calSelDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${fmt12(calTimeVal)}`
+      : `Next available slot · ${fmt12(calTimeVal)}`;
+    const selT = times.querySelector('.cal-time.sel'); if (selT) selT.scrollIntoView({ block: 'center' });
+  }
+  function updateCalRowLabel() {
+    const el = document.getElementById('cal-row-v');
+    if (!el) return;
+    const startVal = document.getElementById('sched-start').value;
+    const t = document.getElementById('sched-time').value;
+    el.textContent = startVal
+      ? `${new Date(startVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${fmt12(t)}`
+      : `Next slot · ${fmt12(t)}`;
+  }
+  function calSave() {
+    document.getElementById('sched-time').value = calTimeVal;
+    setTimePicker(calTimeVal);
+    document.getElementById('sched-start').value = calSelDate ? fmtDateISO(calSelDate) : '';
+    updateCalRowLabel();
+    closeCalModal();
+    updateSummary();
+  }
+  window.calSave = calSave;
+  function calClear() {
+    calSelDate = null;
+    document.getElementById('sched-start').value = '';
+    updateCalRowLabel();
+    closeCalModal();
+    updateSummary();
+  }
+  window.calClear = calClear;
+
+  /* ============================================================
+     TRACKING CARD — Tower-style plan summary above the deploy button.
+     Rendered on every updateSummary() so it always reflects the form.
+  ============================================================ */
+  function updateTracking() {
+    const card = document.getElementById('track-card');
+    if (!card) return;
+    const n = Math.max(getValidTargets().length, 1);
+    if (state.mode === 'topup') {
+      const floor  = parseFloat(document.getElementById('floor-amt').value)  || 0;
+      const refill = parseFloat(document.getElementById('refill-amt').value) || 0;
+      const cap    = parseFloat(document.getElementById('cap-amt').value)    || 0;
+      card.innerHTML =
+        `<div class="track-card-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Auto top-up</div>` +
+        `<div class="track-line"><span class="k">Trigger below</span><span class="v">$${floor.toFixed(2)}</span></div>` +
+        `<div class="track-line"><span class="k">Refill</span><span class="v">$${refill.toFixed(2)} / wallet</span></div>` +
+        `<div class="track-line"><span class="k">Daily cap</span><span class="v">$${cap.toFixed(2)}</span></div>` +
+        `<div class="track-line"><span class="k">Watching</span><span class="v">${n} wallet${n > 1 ? 's' : ''}</span></div>`;
+    } else {
+      const amt = parseFloat(document.getElementById('send-amt').value) || 0;
+      const cad = document.getElementById('sched-cadence').value;
+      const t = document.getElementById('sched-time').value;
+      const startVal = document.getElementById('sched-start').value;
+      const total = state.dist === 'each' ? amt * n : amt;
+      const firstLabel = startVal
+        ? `${new Date(startVal + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${fmt12(t)}`
+        : `next ${fmt12(t)} slot`;
+      card.innerHTML =
+        `<div class="track-card-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Scheduled send · ${TZ_LABEL}</div>` +
+        `<div class="track-line"><span class="k">Repeat</span><span class="v">${CAD_LABEL[cad] || cad}</span></div>` +
+        `<div class="track-line"><span class="k">First send</span><span class="v">${firstLabel}</span></div>` +
+        `<div class="track-line"><span class="k">Per run</span><span class="v">$${total.toFixed(2)} · ${n} wallet${n > 1 ? 's' : ''}</span></div>`;
+    }
+    card.style.display = 'block';
+  }
 
   // Collapsible "What the agent will do" summary - starts collapsed to keep
   // the form compact; the rows stay populated by updateSummary() either way.
@@ -1671,6 +2015,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       btn.innerHTML = 'Sign &amp; Deploy Agent';
     }
     renderPreflight();
+    updateTracking();
   }
   window.updateSummary = updateSummary;
 
@@ -2939,6 +3284,19 @@ select option:checked{background:#1a2c4a;color:#fff}
   updateSummary();
   updateSrcToggleLabel();
 
+  // Keep the Tower-style displays (hero amount, frequency row, first-send row)
+  // in sync with the underlying inputs — at boot and after any AI prefill.
+  function syncPanelDisplays() {
+    const hero = document.getElementById('amt-hero-input');
+    const primary = document.getElementById(state.mode === 'topup' ? 'refill-amt' : 'send-amt');
+    if (hero && primary) hero.value = primary.value;
+    const fv = document.getElementById('freq-row-v');
+    if (fv) fv.textContent = CAD_LABEL[document.getElementById('sched-cadence').value] || 'Every week';
+    updateCalRowLabel();
+  }
+  window.syncPanelDisplays = syncPanelDisplays;
+  syncPanelDisplays();
+
   /* ============================================================
      HELP TOOLTIPS - wire the ? buttons. Mirrors trade.html src-help
      pattern: click toggles `.open` on the matching .help-pop; clicking
@@ -3057,6 +3415,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       if (a.dist === 'each' || a.dist === 'split') { setDist(a.dist); applied.push('distribution'); }
     }
 
+    if (typeof syncPanelDisplays === 'function') syncPanelDisplays();
     updateSummary();
     if (applied.length) setCfgTab('build'); // surface the filled form
     return applied.length ? applied : null;
