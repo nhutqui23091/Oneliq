@@ -115,19 +115,20 @@ export async function onRequestGet({ request, env }) {
     return json({ ok: true, route: 'ai', aiBinding: !!env.AI, model: MODEL });
   }
   if (!env.AI) return json({ error: 'unconfigured', message: 'AI binding missing.' }, 503);
+  const model = url.searchParams.get('model') || MODEL;
+  const mode = url.searchParams.get('mode') || 'messages';
+  const input = mode === 'prompt'
+    ? { prompt: 'Reply with the single word: pong', max_tokens: 16 }
+    : { messages: [{ role: 'user', content: 'Reply with the single word: pong' }], max_tokens: 16 };
   const t0 = Date.now();
   try {
-    const out = await env.AI.run(MODEL, {
-      messages: [{ role: 'user', content: 'Reply with the single word: pong' }],
-      max_tokens: 16,
-    });
+    const out = await env.AI.run(model, input);
     return json({
-      ok: true,
-      ms: Date.now() - t0,
-      response: (out && out.response) || null,
+      ok: true, model, mode, ms: Date.now() - t0,
+      response: (out && (out.response ?? null)),
       shape: Object.keys(out || {}),
     });
   } catch (e) {
-    return json({ ok: false, ms: Date.now() - t0, error: String((e && e.message) || e) }, 502);
+    return json({ ok: false, model, mode, ms: Date.now() - t0, error: String((e && e.message) || e) }, 502);
   }
 }
