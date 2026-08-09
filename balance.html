@@ -139,6 +139,20 @@ html{scroll-behavior:smooth}
 .cs-row.active{border-color:rgba(77,214,219,.5);background:rgba(77,214,219,.08)}
 .cs-row-ico{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#fff}
 .cs-row-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Manual mode source rows: dimmed logo + name; click a row to activate (light
+   up) and reveal its amount field — no checkboxes. */
+.src-row{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;border:1px solid var(--border);background:var(--surface);margin-bottom:7px;cursor:pointer;opacity:.5;transition:opacity .15s,border-color .15s,background .15s}
+.src-row:hover:not(.disabled){opacity:.82;border-color:var(--border2)}
+.src-row.active{opacity:1;border-color:rgba(77,214,219,.55);background:rgba(77,214,219,.07)}
+.src-row.disabled{opacity:.3;cursor:not-allowed}
+.src-ico{width:28px;height:28px;border-radius:50%;flex-shrink:0;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;filter:grayscale(1);transition:filter .15s}
+.src-row.active .src-ico{filter:none}
+.src-ico img{width:100%;height:100%;object-fit:cover;display:block}
+.src-meta{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.src-name{font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-max{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.src-amt{width:112px;flex-shrink:0;padding:7px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;text-align:right;outline:none;display:none}
+.src-row.active .src-amt{display:block}
 .gw-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px}
 .gw-row strong{color:var(--text);font-family:var(--mono);font-weight:600}
 .gw-action{width:100%;margin-top:18px;padding:14px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);transition:all .2s;letter-spacing:.02em}
@@ -1364,32 +1378,42 @@ html{scroll-behavior:smooth}
     eligible.forEach(b => {
       const burnable = ARC.gateway.maxBurnableFromBalance(b.canonical, b.chainKey);
       const usable = burnable > 0n;
-      const row = document.createElement('div');
-      row.style.cssText = 'display:grid;grid-template-columns:18px 1fr 110px;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border)';
-      if (!usable) row.style.opacity = '0.35';
       const cid = `smc-${b.chainKey}`;
       const iid = `smi-${b.chainKey}`;
+      let icon = ''; try { icon = ARC.chainIcon ? (ARC.chainIcon(b.chainKey) || '') : ''; } catch {}
+      const row = document.createElement('div');
+      row.className = 'src-row' + (usable ? '' : ' disabled');
+      // The checkbox is kept (hidden) as the state holder so syncManualTotal /
+      // the spend handler keep reading `.checked` unchanged — the row itself is
+      // now the click target that lights up and reveals the amount field.
       row.innerHTML = `
-        <input type="checkbox" id="${cid}" data-chain="${b.chainKey}" ${usable ? '' : 'disabled'}
-          style="width:16px;height:16px;cursor:${usable ? 'pointer' : 'default'};accent-color:var(--arc1);flex-shrink:0">
-        <label for="${cid}" style="cursor:${usable ? 'pointer' : 'default'};display:flex;flex-direction:column;gap:1px">
-          <span style="font-size:14px;font-weight:600;color:var(--text)">${chainName(b.chainKey)}</span>
-          <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">Max ${ARC.formatAmt(burnable, 6, 4)} USDC</span>
-        </label>
-        <input type="text" id="${iid}" data-chain="${b.chainKey}" placeholder="0.00" disabled inputmode="decimal"
-          style="padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;text-align:right;outline:none;width:100%;transition:border .15s;opacity:.4">`;
+        <input type="checkbox" id="${cid}" data-chain="${b.chainKey}" ${usable ? '' : 'disabled'} hidden>
+        <span class="src-ico"><img src="${icon}" alt="" onerror="this.style.visibility='hidden'"/></span>
+        <span class="src-meta">
+          <span class="src-name">${chainName(b.chainKey)}</span>
+          <span class="src-max">Max ${ARC.formatAmt(burnable, 6, 4)} USDC</span>
+        </span>
+        <input type="text" id="${iid}" data-chain="${b.chainKey}" placeholder="0.00" disabled inputmode="decimal" class="src-amt">`;
       const check = row.querySelector(`#${cid}`);
       const inp = row.querySelector(`#${iid}`);
-      check.addEventListener('change', () => {
-        inp.disabled = !check.checked;
-        inp.style.opacity = check.checked ? '1' : '.4';
-        if (!check.checked) { inp.value = ''; inp.style.borderColor = 'var(--border)'; }
-        else inp.focus();
+      function applyRowState() {
+        const on = check.checked;
+        row.classList.toggle('active', on);
+        inp.disabled = !on;
+        if (!on) { inp.value = ''; inp.style.borderColor = ''; }
+      }
+      row.addEventListener('click', () => {
+        if (!usable) return;
+        check.checked = !check.checked;
+        applyRowState();
+        if (check.checked) inp.focus();
         syncManualTotal();
       });
+      inp.addEventListener('click', (e) => e.stopPropagation()); // don't toggle the row while editing
       inp.addEventListener('input', syncManualTotal);
       inp.addEventListener('focus', () => { inp.style.borderColor = 'var(--arc1)'; });
-      inp.addEventListener('blur', () => { inp.style.borderColor = 'var(--border)'; });
+      inp.addEventListener('blur', () => { inp.style.borderColor = ''; });
+      applyRowState();
       container.appendChild(row);
     });
     syncManualTotal();
