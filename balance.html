@@ -11,7 +11,7 @@
 <meta name="description" content="Oneliq Unified Balance: deposit USDC from any chain, spend on Arc instantly. Powered by Circle Gateway."/>
 <title>Unified Balance | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -41,7 +41,7 @@ html{scroll-behavior:smooth}
 @media(max-width:900px){.wrap{padding:72px 18px 60px}}
 
 .hero-strip{margin-bottom:24px}
-.hero-strip h1{font-family:var(--display);font-size:clamp(40px,5.5vw,72px);letter-spacing:-.03em;font-weight:700;line-height:1;text-transform:uppercase}
+.hero-strip h1{font-family:var(--display);font-size:clamp(40px,5.5vw,72px);letter-spacing:-.03em;font-weight:400;line-height:1;text-transform:uppercase}
 .hero-strip p{color:var(--muted);font-size:14px;margin-top:6px;max-width:680px;line-height:1.55}
 .eyebrow{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--arc3);margin-bottom:14px}
 .eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
@@ -50,8 +50,8 @@ html{scroll-behavior:smooth}
 .balance-card{margin-top:18px;padding:32px;border-radius:20px;background:linear-gradient(135deg,rgba(244,200,154,0.10),rgba(77,214,219,0.06),rgba(74,123,236,0.08));border:1px solid var(--border);position:relative;overflow:hidden}
 .balance-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(244,200,154,0.10),transparent 50%);pointer-events:none}
 .balance-label{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;position:relative}
-.balance-amount{font-family:var(--display);font-size:64px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;color:var(--text);position:relative}
-.balance-token{font-size:24px;font-weight:600;color:var(--muted);margin-left:8px;letter-spacing:-.02em}
+.balance-amount{font-family:var(--display);font-size:64px;font-weight:300;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;color:var(--text);position:relative}
+.balance-token{font-size:24px;font-weight:500;color:var(--muted);margin-left:8px;letter-spacing:-.02em}
 .balance-sub{font-size:13px;color:var(--muted);margin-top:8px;font-family:var(--mono);position:relative}
 .balance-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;position:relative}
 .act-btn{padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .2s;display:inline-flex;align-items:center;gap:8px}
@@ -101,7 +101,7 @@ html{scroll-behavior:smooth}
 #modal-spend .gw-modal{max-width:560px;padding:28px}
 @keyframes slide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .gw-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.gw-modal-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.gw-modal-title{font-size:18px;font-weight:600;letter-spacing:-.02em}
 .gw-modal-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0 4px}
 .gw-modal-close:hover{color:var(--text)}
 .gw-label{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
