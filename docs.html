@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
 <link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
-<meta name="description" content="Oneliq Documentation - the engineering reference for the unified stablecoin terminal on Arc. Covers Trade, Unified Balance (Circle Gateway), the Auto-Replenish Agent, History, Dashboard, plus the full contract / API surface."/>
+<meta name="description" content="Oneliq Documentation - the engineering reference for the unified stablecoin terminal on Arc. Covers Trade, Unified Balance (Circle Gateway), the Oneliq AI, History, Dashboard, plus the full contract / API surface."/>
 <title>Documentation - Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
@@ -294,7 +294,7 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
       <div class="side-title">Products</div>
       <a class="side-link" href="#trade">Trade</a>
       <a class="side-link" href="#balance">Unified Balance</a>
-      <a class="side-link" href="#agent">Auto-Replenish Agent</a>
+      <a class="side-link" href="#agent">Oneliq AI</a>
       <a class="side-link" href="#history">History</a>
       <a class="side-link" href="#dashboard">Dashboard</a>
     </div>
@@ -350,7 +350,7 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
         <div class="qcard-desc">One USDC balance across every supported chain - powered by Circle Gateway.</div>
       </a>
       <a class="qcard" href="#agent">
-        <div class="qcard-title">→ Auto-Replenish Agent</div>
+        <div class="qcard-title">→ Oneliq AI</div>
         <div class="qcard-desc">Keep any wallet topped up automatically with one signature. Preview.</div>
       </a>
       <a class="qcard" href="#contracts">
@@ -371,7 +371,7 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
       <tr><th style="width:24%">Surface</th><th>What it does</th><th style="width:22%">Built on</th></tr>
       <tr><td><strong>Trade</strong></td><td>Spend USDC anywhere - swap inside Arc (USDC ⇄ EURC) or bridge cross-chain. One panel, one source picker (wallet + Gateway pre-deposits), one destination.</td><td>OneliqRouter → Circle Curve pool + CCTP V2</td></tr>
       <tr><td><strong>Unified Balance</strong></td><td>One USDC balance across every supported chain. Deposit from any chain, spend instantly on Arc - no bridge clicks, no wrapped tokens.</td><td>Circle Gateway V1</td></tr>
-      <tr><td><strong>Auto-Replenish Agent</strong> <em style="color:var(--peach);font-size:12px">preview</em></td><td>Sign once. Your agent keeps any wallet topped up automatically - or runs scheduled USDC transfers across chains. Daily safety cap, revocable anytime.</td><td>Circle Programmable Wallets + Paymaster</td></tr>
+      <tr><td><strong>Oneliq AI</strong> <em style="color:var(--peach);font-size:12px">preview</em></td><td>Sign once. Your agent keeps any wallet topped up automatically - or runs scheduled USDC transfers across chains. Daily safety cap, revocable anytime.</td><td>Circle Programmable Wallets + Paymaster</td></tr>
       <tr><td><strong>History</strong></td><td>A receipt-style feed of every Trade, Balance, and Agent moment on your USDC activity. Filter by surface, jump to the chain explorer in one click.</td><td>Local activity log + agent API</td></tr>
       <tr><td><strong>Dashboard</strong> <em style="color:var(--muted);font-size:12px">soon</em></td><td>Operator control center. Live portfolio across chains, agent fleet view, settlement volume, quick-actions tile grid.</td><td>Read-only aggregator</td></tr>
     </table>
@@ -575,13 +575,59 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
       <li>Native USDC appears on the destination, ready to spend or hold.</li>
     </ol>
 
-    <h4 class="docs-h4">Multi-source spend (the killer flow)</h4>
+    <h4 class="docs-h4">Spend: three modes</h4>
     <p class="docs-p">
-      The Spend modal has a toggle: <em>⚡ Unified (auto, multi-source)</em> vs <em>Single chain</em>.
-      Unified mode lets Gateway draw from N different chain deposits in one transfer - one attestation,
-      one mint on the destination, combined amount. Single mode forces a specific source chain (useful
-      for testing or when you want to drain one balance).
+      The <strong>↗ Spend</strong> modal lets you choose how the source funds are allocated. You enter a
+      recipient, an amount, and a destination chain; the mode decides where the USDC comes from.
     </p>
+    <table class="docs-table">
+      <tr><th>Mode</th><th>Sourcing</th><th>Use case</th></tr>
+      <tr><td><strong>⚡ Auto</strong></td><td>Oneliq picks source chains for you, available-USDC first. If no single chain covers the amount, it aggregates several into one <code>BurnIntentSet</code> and settles in <strong>one signature</strong>.</td><td>The default - just spend without thinking about where funds sit.</td></tr>
+      <tr><td><strong>Single</strong></td><td>The full amount is drawn from one chain you pick.</td><td>Predictable draw-down when you know which balance to drain.</td></tr>
+      <tr><td><strong>Manual</strong></td><td>You set an amount from each chain individually; the spend is assembled from your custom allocation.</td><td>Full control over exactly how each leg settles.</td></tr>
+    </table>
+    <p class="docs-p">
+      In every mode, a <em>partial-liquidity route</em> that spans several chains is still a single
+      EIP-712 signature: one <code>BurnIntentSet</code> → one attestation → one mint on the destination.
+      No popup-per-chain.
+    </p>
+
+    <h4 class="docs-h4">Estimate before you sign</h4>
+    <p class="docs-p">
+      Before the wallet popup, Oneliq shows the <strong>route, the per-intent fee, and the recipient
+      outcome</strong> via <code>ARC.gateway.estimateSpend()</code>. Cost is visible up front. When a
+      spend can't be fully covered, the UI names <em>why</em> - insufficient balance, no viable route,
+      or needs aggregation across sources - instead of a generic error.
+    </p>
+
+    <h4 class="docs-h4">⇉ Batch Pay</h4>
+    <p class="docs-p">
+      <strong>Batch Pay</strong> sends USDC to many recipients from one Unified Balance. Each recipient
+      has its own address, amount, and destination chain. Oneliq runs a non-overlapping allocation across
+      your balances so no chain's funds are double-spent, then groups recipients <strong>by destination
+      chain</strong>: one signature per destination. Recipients that all land on the same chain settle in
+      a single signature; a payout spanning K destination chains becomes K signatures, one click each.
+      Built for payroll, contributor payouts, or fanning funds out to a set of wallets.
+    </p>
+    <div class="callout note">
+      <div class="callout-title">Circle's per-request rules</div>
+      <div class="callout-body">A single <code>BurnIntentSet</code> must share one destination domain, so cross-chain batches are grouped per destination. Each group is also capped at <strong>16 intents</strong> per request; the preview warns and hides Pay if a destination exceeds it.</div>
+    </div>
+
+    <h4 class="docs-h4">⤵ Consolidate</h4>
+    <p class="docs-p">
+      <strong>Consolidate</strong> is the mirror of Batch Pay. It sweeps your entire spendable balance
+      from every chain except a chosen destination onto that one chain, in a <strong>single
+      signature</strong>, minting back to your own wallet. It reuses the Auto-spend engine with the
+      recipient set to you. Chains whose balance is too small to clear their per-intent fee floor are
+      skipped automatically (and listed in the preview) rather than failing the whole sweep. Use it to
+      tidy dust across chains or stage liquidity where you need it next.
+    </p>
+
+    <div class="callout note">
+      <div class="callout-title">Gasless mint, on by default</div>
+      <div class="callout-body">Cross-chain spends route the destination mint through <strong>Circle's Forwarding Service</strong>, so Circle submits and pays for the mint. The recipient receives USDC <strong>without holding gas first</strong> - which matters on Arc, where gas is USDC. The per-intent source burn fee is separate and always applies.</div>
+    </div>
 
     <h3 class="docs-h3">Withdrawals</h3>
     <p class="docs-p">
@@ -604,13 +650,28 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
     </p>
 
     <!-- ─── AGENT ─── -->
-    <h2 class="docs-h2" id="agent">Auto-Replenish Agent <span style="font-size:11px;font-family:var(--mono);background:linear-gradient(135deg,#A78BFA,#4A7BEC);color:#fff;padding:2px 8px;border-radius:6px;letter-spacing:.06em;vertical-align:middle">PREVIEW</span></h2>
+    <h2 class="docs-h2" id="agent">Oneliq AI <span style="font-size:11px;font-family:var(--mono);background:linear-gradient(135deg,#A78BFA,#4A7BEC);color:#fff;padding:2px 8px;border-radius:6px;letter-spacing:.06em;vertical-align:middle">PREVIEW</span></h2>
     <p class="docs-p">
-      The <a href="/agent"><code>/agent</code></a> page is the autopilot layer for your USDC. Two modes
-      today: <strong>Auto Top-Up</strong> (keep a target wallet above a floor) and <strong>Scheduled
-      Send</strong> (recurring USDC transfers across chains and wallets, once/daily/weekly/monthly).
-      Both run on Circle Programmable Wallets with Circle Paymaster-sponsored gas - you sign once, the
-      agent runs forever, you can pause or revoke at any moment.
+      The <a href="/agent"><code>/agent</code></a> page is <strong>Oneliq AI</strong>: a chat assistant on
+      the left, a config panel on the right. Describe what you want in plain language and the assistant
+      fills in the rule for you. It also answers questions about your holdings and can prep a USDC ⇄ EURC
+      swap right in the conversation. <strong>The AI never moves funds on its own</strong> - it prefills;
+      you review and sign every action.
+    </p>
+    <p class="docs-p">
+      Under the chat is the same autopilot engine, in two modes: <strong>Auto Top-Up</strong> (keep a
+      target wallet above a floor) and <strong>Scheduled Send</strong> (recurring USDC transfers across
+      chains and wallets, once/daily/weekly/monthly). Both run on Circle Programmable Wallets with Circle
+      Paymaster-sponsored gas - you sign once, the agent runs on its own, and you can pause or revoke at
+      any moment.
+    </p>
+
+    <h3 class="docs-h3">Chat interface</h3>
+    <p class="docs-p">
+      The assistant is powered by Cloudflare Workers AI (served through <code>/api/ai</code>). Ask it to
+      "top up my ops wallet whenever it drops below 50 USDC" or "send 100 USDC to this address every
+      Monday" and it populates the config panel with the matching rule. Nothing is authorized until you
+      confirm and sign - the chat is an input method, not an executor.
     </p>
 
     <h3 class="docs-h3">How it works</h3>
@@ -753,7 +814,7 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
     <h2 class="docs-h2" id="programmable-wallets">Programmable Wallets &amp; Paymaster</h2>
     <p class="docs-p">
       Circle <strong>Programmable Wallets</strong> are smart-account wallets Circle issues on demand
-      via REST API. Oneliq's <a href="#agent">Auto-Replenish Agent</a> uses them as the executor
+      via REST API. Oneliq's <a href="#agent">Oneliq AI</a> uses them as the executor
       account - every scheduled or threshold-triggered USDC move is a userOp signed by a Programmable
       Wallet under server-side custody, paid for by <strong>Circle Paymaster</strong>.
     </p>
@@ -805,7 +866,7 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
     <h2 class="docs-h2" id="supported-chains">Supported chains</h2>
     <p class="docs-p">
       Oneliq surfaces eight testnets - Arc as the home chain plus seven external chains for
-      Unified Balance, CCTP bridging, and the Auto-Replenish Agent.
+      Unified Balance, CCTP bridging, and the Oneliq AI.
     </p>
     <table class="docs-table">
       <tr><th>Chain</th><th>Chain ID</th><th>CCTP domain</th><th>RPC</th><th>Role</th></tr>
@@ -870,7 +931,7 @@ pre code{background:none;border:none;padding:0;color:#C8D1E0;font-size:13px}
     <h2 class="docs-h2" id="api">API endpoints</h2>
     <p class="docs-p">
       Oneliq exposes a handful of Cloudflare Pages Functions. Two are read-only proxies to Circle's
-      public APIs; the others are the minimal backend the <a href="#agent">Auto-Replenish Agent</a>
+      public APIs; the others are the minimal backend the <a href="#agent">Oneliq AI</a>
       needs (rule storage, cron triggers, execution log). None hold private keys, none custody funds.
     </p>
 
@@ -1044,6 +1105,10 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
     <h2 class="docs-h2" id="changelog">Changelog</h2>
     <p class="docs-p" style="font-family:var(--mono);font-size:13px;color:var(--muted)">v0.10.x - Public Beta on Arc Testnet</p>
     <ul class="docs-ul">
+      <li><strong>2026-08-09</strong> - Balance power-ups. <strong>⇉ Batch Pay</strong> (pay N recipients, grouped by destination, one signature per chain) and <strong>⤵ Consolidate</strong> (sweep every chain onto one in a single signature). Spend gains a <strong>Manual</strong> mode alongside Auto and Single, plus estimate-before-sign and three explicit partial-liquidity states.</li>
+      <li><strong>2026-08-09</strong> - <strong>Oneliq AI</strong>. The agent grows a chat layer: describe a rule in plain language, the assistant prefills the config, you sign. Powered by Cloudflare Workers AI.</li>
+      <li><strong>2026-08-04</strong> - <strong>Dashboard</strong> live - read-only portfolio view of everything your wallet holds on Arc, priced from CoinGecko.</li>
+      <li><strong>2026-06-18</strong> - <strong>Gasless mint</strong> default-on. Cross-chain spends route the destination mint through Circle's Forwarding Service, so recipients receive USDC without holding gas first.</li>
       <li><strong>2026-05-20</strong> - Docs rewrite. Dropped Vault / Pools / Points sections (no longer being built). Added Trade, Agent, History, Create Token, Dashboard reference pages. Updated contract registry - USYC removed, App Kit fallback noted on the Uniswap V2 entry.</li>
       <li><strong>2026-05-18</strong> - Trade declutter - removed App Kit ready pill, Gateway hint pill, Liquidity card. Quote latency cut via 150ms debounce + SDK prefetch.</li>
       <li><strong>2026-05-15</strong> - Balance polish - circular chain logos, Unichain added to the chain registry, CCTP-domain subtext dropped.</li>
@@ -1056,8 +1121,7 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
 
     <p class="docs-p" style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:24px">Upcoming</p>
     <ul class="docs-ul">
-      <li><strong>Balance / Agent / Trade - UX deepening</strong> - Q2 2026 focus on polishing the three live surfaces. Intent / approval / revoke flows, quote &amp; route polish.</li>
-      <li><strong>Dashboard GA</strong> - operator control center moves from <em>soon</em> to public.</li>
+      <li><strong>Balance / Oneliq AI / Trade - UX deepening</strong> - continued polish across the live surfaces. Intent / approval / revoke flows, quote &amp; route polish.</li>
       <li><strong>WalletConnect / Reown AppKit</strong> - mobile wallet support.</li>
       <li><strong>Circle Wallets onboarding</strong> - non-crypto-native users land directly on a Programmable Wallet.</li>
       <li><strong>StableFX</strong> - RFQ-driven USDC ⇄ EURC ⇄ USDP PvP settlement via the Arc <code>FxEscrow</code> contract.</li>

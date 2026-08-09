@@ -17,7 +17,7 @@ Oneliq is a **non-custodial stablecoin terminal** built on the [Arc Layer 1](htt
 
 | Surface | What it does | Powered by |
 |---|---|---|
-| **Unified Balance** | See USDC across 8 chains as one number. Spend cross-chain with a single EIP-712 signature, **Consolidate** scattered dust into one chain, and mint gasless on the destination via the Circle forwarder. | [Circle Gateway](https://www.circle.com/gateway) |
+| **Unified Balance** | See USDC across 8 chains as one number. Spend cross-chain with a single EIP-712 signature (**Auto**, **Single**, or **Manual** sourcing), **Batch Pay** many recipients grouped by destination, **Consolidate** scattered dust into one chain, and mint gasless on the destination via the Circle forwarder. | [Circle Gateway](https://www.circle.com/gateway) |
 | **Trade** | On-Arc stablecoin swap (USDC ⇄ EURC) routed through Circle App Kit into the Arc Curve StableSwap pool, with `OneliqRouter` (0.3% fee) recording every trade, plus a CCTP V2 bridge merged into one flow. Fast (~20s) or Standard (free) mode. | [Circle App Kit](https://developers.circle.com/) + [Circle CCTP V2](https://www.circle.com/cross-chain-transfer-protocol) |
 | **Agent** | Bounded autonomous USDC operations. Pre-sign EIP-712 intents with hard ceilings; software executes within those bounds. | [Circle Programmable Wallets](https://developers.circle.com/w3s/programmable-wallets) |
 | **Portal** | Daily on-chain check-in (`OneliqCheckIn`) with Star Points, streaks, badges, and a live leaderboard - the loyalty layer for everything above. | Arc L1 + on-chain check-in contract |
