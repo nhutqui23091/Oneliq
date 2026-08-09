@@ -55,20 +55,28 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .chain-select .chip.active{background:linear-gradient(135deg,rgba(77,214,219,.2),rgba(74,123,236,.15));border-color:rgba(77,214,219,.5);color:#fff}
 .chain-select .chip .cdot{width:6px;height:6px;border-radius:50%}
 
-/* Smart-routing destination dropdown (native select kept for simplicity) */
-.dst-select{
-  width:100%;padding:9px 36px 9px 14px;border-radius:12px;
+/* Destination chain picker - custom trigger + modal of logo rows (like the
+   Oneliq AI "Deliver on" panel). Replaces the native <select> which rendered
+   an ugly OS dropdown and couldn't show chain logos. */
+.dst-trigger{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 14px;border-radius:12px;
   background:var(--surface2);border:1px solid var(--border);
-  color:var(--text);font-size:13px;font-weight:600;font-family:var(--font);
-  outline:none;cursor:pointer;
-  appearance:none;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238CA0BD' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;
-  transition:border .15s;
+  color:var(--text);font-size:13px;font-weight:600;cursor:pointer;
+  text-align:left;font-family:var(--font);transition:all .15s;
 }
-.dst-select:hover,.dst-select:focus{border-color:var(--border2)}
-.dst-select option{background:#0F1E36;color:var(--text);padding:8px}
-.dst-select option:checked{background:#1a2c4a;color:#fff}
+.dst-trigger:hover{border-color:var(--border2)}
+.dst-trigger-cur{display:flex;align-items:center;gap:8px;min-width:0}
+.dst-trigger-ico{width:20px;height:20px;border-radius:6px;flex-shrink:0;object-fit:cover;background:rgba(255,255,255,.06)}
+.dst-trigger-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dst-trigger-caret{color:var(--muted);font-size:11px;flex-shrink:0}
+.dst-list{display:flex;flex-direction:column;gap:7px}
+.dst-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font-family:var(--font);color:var(--text);transition:background .12s,border-color .12s}
+.dst-row:hover{background:rgba(255,255,255,.05);border-color:var(--border2)}
+.dst-row.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.45);box-shadow:0 0 0 2px rgba(77,214,219,.18)}
+.dst-row-ico{width:30px;height:30px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.06)}
+.dst-row-ico img{width:100%;height:100%;object-fit:cover;display:block}
+.dst-row-name{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Custom 2-column source picker (Wallet | Gateway) ─ replaces native select.
    Native <select> can't render two columns, can't show colour dots, can't
@@ -350,7 +358,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       <!-- FROM leg -->
       <div class="leg" id="from-leg">
         <div class="leg-head">
-          <span class="leg-lbl">You pay · Source</span>
+          <span class="leg-lbl">Sell</span>
           <div style="display:flex;align-items:center;gap:5px">
             <span class="leg-bal" id="from-bal">Balance: -</span>
             <button class="pct-btn" id="pct-20-btn" type="button">20%</button>
@@ -388,10 +396,16 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       <!-- TO leg -->
       <div class="leg" id="to-leg">
         <div class="leg-head">
-          <span class="leg-lbl">You receive · Destination</span>
+          <span class="leg-lbl">Receive</span>
           <span class="leg-bal" id="to-bal">Balance: -</span>
         </div>
-        <select class="dst-select" id="to-dest" aria-label="Destination chain"></select>
+        <button class="dst-trigger" id="to-dest-btn" type="button" aria-label="Destination chain">
+          <span class="dst-trigger-cur">
+            <img class="dst-trigger-ico" id="to-dest-ico" alt=""/>
+            <span class="dst-trigger-name" id="to-dest-current">Arc Testnet</span>
+          </span>
+          <span class="dst-trigger-caret">▾</span>
+        </button>
         <div style="height:10px"></div>
         <div class="leg-row">
           <div style="min-width:0">
@@ -679,7 +693,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   const fromTriggerEl  = document.getElementById('from-source-btn');
   const fromCurrentEl  = document.getElementById('from-source-current');
   const fromPanelEl    = document.getElementById('from-source-panel');
-  const toSelectEl     = document.getElementById('to-dest');
+  const toDestBtn      = document.getElementById('to-dest-btn');
 
   // Sort comparator used inside each column: Arc first, then balance desc.
   function colSort(a, b) {
@@ -862,28 +876,63 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 
   function renderSourceSelect() { renderSourceTrigger(); /* alias for callers */ }
 
-  function renderDestSelect() {
-    const sorted = [...ALL_CHAINS].sort((a, b) => {
+  function destSorted() {
+    return [...ALL_CHAINS].sort((a, b) => {
       if (a === 'arc') return -1;
       if (b === 'arc') return 1;
       return chainName(a).localeCompare(chainName(b));
     });
-    toSelectEl.innerHTML = sorted.map(k => {
-      const c = CHAINS[k];
-      const sel = state.dst.chainKey === k ? 'selected' : '';
-      return `<option value="${k}" ${sel}>${c.name}</option>`;
-    }).join('');
   }
 
-  toSelectEl.onchange = () => {
-    state.dst = { chainKey: toSelectEl.value };
+  // Reflect the selected destination chain on the trigger button (logo + name).
+  function renderDestSelect() {
+    const k = state.dst.chainKey;
+    const nameEl = document.getElementById('to-dest-current');
+    const icoEl  = document.getElementById('to-dest-ico');
+    if (nameEl) nameEl.textContent = chainName(k);
+    if (icoEl) {
+      try { icoEl.src = ARC.chainIcon(k); icoEl.style.display = ''; }
+      catch { icoEl.style.display = 'none'; }
+    }
+  }
+
+  function pickDest(k) {
+    state.dst = { chainKey: k };
     if (state.dst.chainKey !== 'arc') {
       state.toToken = TOKENS[state.dst.chainKey]?.USDC || state.toToken;
     }
+    renderDestSelect();
     renderPickBtn('to');
     updateBalances();
     triggerQuote();
-  };
+    ArcUI.closeModal();
+  }
+
+  // Modal picker of destination chains - a clean list of logo rows, styled
+  // like the Oneliq AI "Deliver on" panel. No routing labels; the route
+  // planner figures out same-chain vs. cross-chain automatically.
+  function openDestPicker() {
+    const body = document.createElement('div');
+    body.className = 'dst-list';
+    body.innerHTML = destSorted().map(k => {
+      const active = state.dst.chainKey === k ? ' active' : '';
+      let icon = ''; try { icon = ARC.chainIcon(k); } catch {}
+      return `<button class="dst-row${active}" type="button" data-k="${k}">
+        <span class="dst-row-ico"><img src="${icon}" alt=""/></span>
+        <span class="dst-row-name">${chainName(k)}</span>
+      </button>`;
+    }).join('');
+    ArcUI.openModal({
+      title: 'Deliver on', body,
+      onOpen: () => {
+        body.querySelectorAll('.dst-row').forEach(el => {
+          el.onclick = () => pickDest(el.dataset.k);
+        });
+      }
+    });
+  }
+
+  toDestBtn.onclick = openDestPicker;
 
   renderSourceTrigger();
   renderDestSelect();
@@ -1018,8 +1067,8 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         fLabel = 'Wallet';
       }
       const tb = await tokenBalance(state.dst.chainKey, state.toToken, addr);
-      fromBal.innerHTML = `${fLabel}: <b id="from-bal-b">${formatAmt(fb, state.fromToken.decimals)}</b> ${state.fromToken.symbol}`;
-      toBal.innerHTML = `Balance: <b>${formatAmt(tb, state.toToken.decimals)}</b> ${state.toToken.symbol}`;
+      fromBal.innerHTML = `${fLabel}: <b id="from-bal-b">${formatAmt(fb, state.fromToken.decimals, 4)}</b> ${state.fromToken.symbol}`;
+      toBal.innerHTML = `Balance: <b>${formatAmt(tb, state.toToken.decimals, 4)}</b> ${state.toToken.symbol}`;
       const setMaxAmount = () => {
         let avail = fb;
         // USDC is Arc's native gas token — maxing out the entire wallet balance
@@ -1031,7 +1080,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           const reserve = (10n ** BigInt(state.fromToken.decimals)) / 10n; // ~0.1 USDC for gas
           avail = fb > reserve ? fb - reserve : 0n;
         }
-        const max = formatAmt(avail, state.fromToken.decimals, state.fromToken.decimals);
+        const max = formatAmt(avail, state.fromToken.decimals, 4);
         document.getElementById('amount-in').value = max;
         state.amountIn = max; triggerQuote();
       };
@@ -1040,13 +1089,13 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       if (maxBtn) maxBtn.onclick = setMaxAmount;
       const pct20Btn = document.getElementById('pct-20-btn');
       if (pct20Btn) pct20Btn.onclick = () => {
-        const amt = formatAmt((fb * 20n) / 100n, state.fromToken.decimals, state.fromToken.decimals);
+        const amt = formatAmt((fb * 20n) / 100n, state.fromToken.decimals, 4);
         document.getElementById('amount-in').value = amt;
         state.amountIn = amt; triggerQuote();
       };
       const pct50Btn = document.getElementById('pct-50-btn');
       if (pct50Btn) pct50Btn.onclick = () => {
-        const amt = formatAmt((fb * 50n) / 100n, state.fromToken.decimals, state.fromToken.decimals);
+        const amt = formatAmt((fb * 50n) / 100n, state.fromToken.decimals, 4);
         document.getElementById('amount-in').value = amt;
         state.amountIn = amt; triggerQuote();
       };
@@ -1428,7 +1477,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       const rateNum = inFloat > 0 ? outFloat / inFloat : 0;
 
       state.quote = { steps, amountOut: runAmt, minOut, fees, totalSec };
-      document.getElementById('amount-out').value = formatAmt(runAmt, state.toToken.decimals);
+      document.getElementById('amount-out').value = formatAmt(runAmt, state.toToken.decimals, 4);
       document.getElementById('to-usd').textContent = '≈ $' + estimateUSD(runAmt, state.toToken);
       document.getElementById('from-usd').textContent = '≈ $' + estimateUSD(amt, state.fromToken);
       const timeLbl = totalSec < 60 ? `~${totalSec}s` : `~${Math.round(totalSec / 60)} min`;
