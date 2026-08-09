@@ -854,6 +854,98 @@
     return { intents, attResp, mint, sources };
   }
 
+  /**
+   * Batch pay: N recipients (each on their own destination chain) funded from the
+   * Unified Balance, in ONE wallet signature.
+   *
+   * `payments`: [{ dstChainKey, recipient, sources:[{chainKey, valueCanonical}] }]
+   *   - each source leg becomes its own burn intent (src → that recipient/dst)
+   *   - the caller (balance.html) allocates non-overlapping source legs across all
+   *     recipients so the same balance is never double-spent.
+   *
+   * All intents are packed into ONE BurnIntentSet and signed with a SINGLE
+   * signature (Circle verifies it for every intent — the EIP-712 domain has no
+   * chainId, so one signature is valid across all sources). Circle returns one
+   * `attestation` set + one `transferId`.
+   *
+   * FORWARDER-ONLY: with ?enableForwarder=true Circle's Forwarding Service mints
+   * EVERY destination server-side, so we just poll the single transferId. We do
+   * NOT fall back to self-mint here — a multi-destination attestation set can't be
+   * minted with one gatewayMint call, and the forwarder lands mints even if the
+   * tab closes. Docs: burn-intent sets allow ≤16 intents, response is one object
+   * (one transferId/attestation), and the whole submit is atomic.
+   *
+   * Returns { intents, attResp, forwarded, mint:{tx:{hash}} }.
+   */
+  async function batchSpend({ payments, onStep, beforeResign }) {
+    if (!ARC.wallet.signer) throw new Error('Connect wallet');
+    if (!payments || !payments.length) throw new Error('No payments to send');
+
+    onStep?.('Building burn intents…');
+    const intents = [];
+    for (const pmt of payments) {
+      for (const leg of (pmt.sources || [])) {
+        intents.push(buildBurnIntent({
+          srcChainKey: leg.chainKey,
+          dstChainKey: pmt.dstChainKey,
+          recipient: pmt.recipient,
+          valueCanonical: leg.valueCanonical,
+          maxFee: defaultMaxFee(leg.valueCanonical, leg.chainKey),
+        }));
+      }
+    }
+    if (!intents.length) throw new Error('No source legs to spend from');
+    // Circle caps a burn-intent set at 16 intents per signature.
+    if (intents.length > 16) {
+      throw new Error(`This batch needs ${intents.length} burn intents but Circle allows max 16 per signature. Reduce recipients, or Consolidate first so fewer source chains are needed.`);
+    }
+
+    const signBundle = async (label) => {
+      if (intents.length === 1) {
+        onStep?.(`${label} in your wallet…`);
+        const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, intents[0]);
+        return [{ burnIntent: burnIntentToJson(intents[0]), signature }];
+      }
+      onStep?.(`${label} — one signature covers all ${intents.length} transfers…`);
+      const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES_SET, { intents });
+      return [{ burnIntentSet: { intents: intents.map(burnIntentToJson) }, signature }];
+    };
+    const submit = async (signed) => {
+      onStep?.('Submitting to Gateway API…');
+      const res = await fetch(`${GW_BASE}/v1/transfer?enableForwarder=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signed),
+      });
+      const txt = res.ok ? null : await res.text().catch(() => '');
+      return { res, txt };
+    };
+
+    let signed = await signBundle('Sign batch');
+    let { res, txt } = await submit(signed);
+    if (!res.ok && res.status === 400) {
+      const required = parseRequiredFee(txt);
+      if (required) {
+        const bumped = required + (required / 4n); // +25% headroom
+        let bumpedAny = false;
+        intents.forEach(it => { if (bumped > it.maxFee) { it.maxFee = bumped; bumpedAny = true; } });
+        if (bumpedAny) {
+          onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
+          if (beforeResign) await beforeResign(bumped);
+          signed = await signBundle('Re-sign');
+          ({ res, txt } = await submit(signed));
+        }
+      }
+    }
+    if (!res.ok) throw new Error(`Gateway /v1/transfer ${res.status}: ${(txt || '').slice(0, 300)}`);
+    const attResp = await res.json();
+    if (!attResp.transferId) throw new Error('Gateway did not return a transferId for the forwarded batch.');
+
+    // Circle forwards & mints every destination server-side; poll the one transferId.
+    const forwarded = await awaitForwarded(attResp, payments[0].dstChainKey, { onStep });
+    return { intents, attResp, forwarded, mint: { tx: { hash: forwarded.transactionHash } } };
+  }
+
   // ───────── EXPORTS ─────────
   ARC.gateway = {
     GW_BASE, EIP712_DOMAIN, EIP712_TYPES, CANONICAL_DECIMALS,
@@ -865,7 +957,7 @@
     deposit, initiateWithdrawal, finalizeWithdrawal,
     getWithdrawalInfo, withdrawalDelay,
     buildBurnIntent, signAndSubmitBurnIntent, gatewayMint, spend,
-    pickSources, multiSpend, pollTransfer,
+    pickSources, multiSpend, batchSpend, pollTransfer,
     resumePending, listPending: loadPending,
   };
 })(window);
