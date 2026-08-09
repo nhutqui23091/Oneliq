@@ -79,6 +79,7 @@ ${balLines}`;
 const ACTION_RE = /\{[^{}]*"action"[^{}]*\}/;
 
 function extractAction(text) {
+  text = String(text || '');
   if (!text) return null;
   let raw = null;
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -126,9 +127,22 @@ export async function onRequestPost({ request, env }) {
       return json({ error: 'ai_error', message: 'Workers AI: ' + String((e && e.message) || e) }, 502);
     }
 
-    const text = (out && (out.response ?? (out.result && out.result.response))) || '';
-    if (!text) return json({ error: 'empty_reply', message: 'Model returned no text.', raw: JSON.stringify(out).slice(0, 300) }, 502);
-    return json({ reply: stripAction(text) || String(text).trim(), action: extractAction(text) });
+    // Some Workers AI runtimes return `response` already parsed (an object) when
+    // the model's whole reply is a JSON action (e.g. a bare swap object). Coerce
+    // to a string so match()/strip work instead of throwing "text.match is not a
+    // function" — which the outer catch would surface as the chat message.
+    let text = out && (out.response ?? (out.result && out.result.response));
+    if (text && typeof text === 'object') text = JSON.stringify(text);
+    text = text == null ? '' : String(text);
+    if (!text.trim()) return json({ error: 'empty_reply', message: 'Model returned no text.', raw: JSON.stringify(out).slice(0, 300) }, 502);
+    const action = extractAction(text);
+    let reply = stripAction(text);
+    if (!reply) reply = action
+      ? (action.action === 'swap'
+          ? 'Here you go — review the quote below and sign.'
+          : "Done — I've pre-filled the form on the right for you to review.")
+      : text.trim();
+    return json({ reply, action });
   } catch (e) {
     return json({ error: 'server_error', message: String((e && e.message) || e) }, 500);
   }
