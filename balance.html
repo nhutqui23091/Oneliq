@@ -52,6 +52,13 @@ html{scroll-behavior:smooth}
 .balance-label{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;position:relative}
 .balance-amount{font-family:var(--display);font-size:64px;font-weight:300;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;color:var(--text);position:relative}
 .balance-token{font-size:24px;font-weight:500;color:var(--muted);margin-left:8px;letter-spacing:-.02em}
+.balance-amount-row{display:flex;align-items:center;flex-wrap:wrap;position:relative}
+/* Refresh is now a compact glyph next to the total (no full-width text button). */
+.ub-refresh-icon{width:34px;height:34px;margin-left:14px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:17px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .25s,color .2s,border-color .2s;flex-shrink:0}
+.ub-refresh-icon:hover{color:var(--text);border-color:rgba(255,255,255,.3);transform:rotate(90deg)}
+.ub-refresh-icon:disabled{cursor:not-allowed;transform:none}
+.ub-refresh-icon:disabled .ub-refresh-glyph{display:none}
+.ub-refresh-icon .btn-spinner{margin:0}
 .balance-sub{font-size:13px;color:var(--muted);margin-top:8px;font-family:var(--mono);position:relative}
 .balance-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;position:relative}
 .act-btn{padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .2s;display:inline-flex;align-items:center;gap:8px}
@@ -113,6 +120,25 @@ html{scroll-behavior:smooth}
    dark themes, so we explicitly paint the dropdown items dark. */
 .gw-select option{background:#0F1E36;color:var(--text);padding:6px}
 .gw-select option:checked,.gw-select option:hover{background:#1a2c4a;color:#fff}
+/* Custom chain picker (logo + name, drops straight down) — replaces the native
+   <select> in the Spend & Consolidate modals so each chain shows its logo. */
+.cs{position:relative;width:100%}
+.cs-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-family:var(--font);cursor:pointer;transition:border .15s}
+.cs-trigger:hover{border-color:var(--border2)}
+.cs.open .cs-trigger{border-color:var(--arc1)}
+.cs-cur{display:flex;align-items:center;gap:10px;min-width:0}
+.cs-cur-ico{width:22px;height:22px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#fff}
+.cs-cur-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-caret{color:var(--muted);font-size:11px;transition:transform .18s;flex-shrink:0}
+.cs.open .cs-caret{transform:rotate(180deg)}
+.cs-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:#0F1E36;border:1px solid var(--border2);border-radius:12px;padding:6px;max-height:280px;overflow-y:auto;overscroll-behavior:contain;box-shadow:0 18px 44px rgba(0,0,0,.55);display:none;animation:cs-drop .16s ease-out}
+.cs.open .cs-menu{display:block}
+@keyframes cs-drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.cs-row{width:100%;display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;background:transparent;border:1px solid transparent;color:var(--text);font-size:14px;font-family:var(--font);cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
+.cs-row:hover{background:var(--surface2)}
+.cs-row.active{border-color:rgba(77,214,219,.5);background:rgba(77,214,219,.08)}
+.cs-row-ico{width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover;background:#fff}
+.cs-row-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gw-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px}
 .gw-row strong{color:var(--text);font-family:var(--mono);font-weight:600}
 .gw-action{width:100%;margin-top:18px;padding:14px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);transition:all .2s;letter-spacing:.02em}
@@ -181,14 +207,14 @@ html{scroll-behavior:smooth}
   <!-- TOTAL CARD -->
   <div class="balance-card">
     <div class="balance-label">Total Unified Balance</div>
-    <div>
+    <div class="balance-amount-row">
       <span class="balance-amount" id="ub-total">-</span>
       <span class="balance-token">USDC</span>
+      <button class="ub-refresh-icon" id="ub-refresh" type="button" title="Refresh" aria-label="Refresh balance"><span class="btn-spinner" style="display:none"></span><span class="ub-refresh-glyph">↻</span></button>
     </div>
     <div class="balance-sub" id="ub-sub">Connect wallet to view your balance across all Gateway chains.</div>
     <div class="balance-actions">
-      <button class="act-btn primary" id="ub-refresh" type="button"><span class="btn-spinner" style="display:none"></span>↻ Refresh</button>
-      <button class="act-btn" id="ub-spend-top" type="button">↗ Spend cross-chain</button>
+      <button class="act-btn primary" id="ub-spend-top" type="button">↗ Spend cross-chain</button>
       <button class="act-btn" id="ub-consolidate-top" type="button">⤵ Consolidate</button>
     </div>
     <div class="sync-line" id="sync-line"><span class="sync-dot"></span><span id="sync-line-txt">Not synced</span></div>
@@ -311,11 +337,11 @@ html{scroll-behavior:smooth}
     <!-- Single chain mode (hidden by default) -->
     <div id="spend-single-section" style="display:none">
       <div class="gw-label">From (USDC will be burned here)</div>
-      <select id="spend-src" class="gw-select"></select>
+      <div id="spend-src" class="cs"></div>
     </div>
 
     <div class="gw-label">Destination chain</div>
-    <select id="spend-dst" class="gw-select"></select>
+    <div id="spend-dst" class="cs"></div>
     <div class="gw-label" style="display:flex;justify-content:space-between;align-items:center">Amount<button id="spend-max" class="max-btn" type="button">Max</button></div>
     <input id="spend-amount" class="gw-input amount" type="text" inputmode="decimal" placeholder="0.00"/>
     <div class="gw-label">Recipient</div>
@@ -382,7 +408,7 @@ html{scroll-behavior:smooth}
       Sweep your entire spendable Gateway balance from every other chain onto one chain — in a <strong style="color:var(--text)">single signature</strong>. Funds stay yours the whole time (minted back to your own wallet).
     </p>
     <div class="gw-label">Destination chain</div>
-    <select id="consol-dst" class="gw-select"></select>
+    <div id="consol-dst" class="cs"></div>
 
     <!-- Gasless mint is ALWAYS on (no toggle) — see the Spend modal note. -->
     <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.5">
@@ -601,10 +627,69 @@ html{scroll-behavior:smooth}
   const depositable = (k) => !ARC.CHAINS[k]?.gatewayDepositDisabled;
   fillSelect('deposit-chain', { bySync: true, filter: depositable });
   fillSelect('withdraw-chain');
-  fillSelect('spend-src');
-  fillSelect('spend-dst');
-  // default destination = Arc
-  document.getElementById('spend-dst').value = 'arc';
+
+  // ───── Custom chain picker (logo + name, drops straight down) ─────
+  // Replaces the native <select> in the Spend / Consolidate modals. Exposes the
+  // same interface the rest of the code already uses: a `.value` get/set and a
+  // 'change' event on user selection, so no downstream logic changes.
+  function closeAllChainSelects() {
+    document.querySelectorAll('.cs.open').forEach(el => el.classList.remove('open'));
+  }
+  document.addEventListener('click', closeAllChainSelects);
+  function initChainSelect(hostId, opts = {}) {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    const keys = opts.chains || chainKeys;
+    let current = (opts.value && keys.includes(opts.value)) ? opts.value : keys[0];
+    const icoSrc = (k) => { try { return ARC.chainIcon ? (ARC.chainIcon(k) || '') : ''; } catch { return ''; } };
+    host.innerHTML = `
+      <button class="cs-trigger" type="button" aria-haspopup="listbox">
+        <span class="cs-cur">
+          <img class="cs-cur-ico" alt="" onerror="this.style.visibility='hidden'"/>
+          <span class="cs-cur-name"></span>
+        </span>
+        <span class="cs-caret">▾</span>
+      </button>
+      <div class="cs-menu" role="listbox">
+        ${keys.map(k => `
+          <button class="cs-row" type="button" role="option" data-k="${k}">
+            <img class="cs-row-ico" src="${icoSrc(k)}" alt="" onerror="this.style.visibility='hidden'"/>
+            <span class="cs-row-name">${chainName(k)}</span>
+          </button>`).join('')}
+      </div>`;
+    const trigger = host.querySelector('.cs-trigger');
+    const curIco = host.querySelector('.cs-cur-ico');
+    const curName = host.querySelector('.cs-cur-name');
+    function paint() {
+      curName.textContent = chainName(current);
+      const s = icoSrc(current);
+      if (s) { curIco.src = s; curIco.style.visibility = ''; } else { curIco.style.visibility = 'hidden'; }
+      host.querySelectorAll('.cs-row').forEach(r => r.classList.toggle('active', r.dataset.k === current));
+    }
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = host.classList.contains('open');
+      closeAllChainSelects();
+      if (!wasOpen) host.classList.add('open');
+    });
+    host.querySelectorAll('.cs-row').forEach(r => {
+      r.addEventListener('click', (e) => {
+        e.stopPropagation();
+        current = r.dataset.k;
+        paint();
+        host.classList.remove('open');
+        host.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+    Object.defineProperty(host, 'value', {
+      configurable: true,
+      get() { return current; },
+      set(v) { if (v && keys.includes(v)) { current = v; paint(); } },
+    });
+    paint();
+  }
+  initChainSelect('spend-src');
+  initChainSelect('spend-dst', { value: 'arc' });
 
   // ───── Render table rows ─────
   function chainShort(k) { return ARC.CHAINS[k]?.short || k.slice(0, 4).toUpperCase(); }
@@ -881,8 +966,7 @@ html{scroll-behavior:smooth}
      is burned in ONE BurnIntentSet signature → one attestation → one mint on
      the chosen chain (gasless via forwarder). recipient = your own wallet, so
      funds never leave your control. No per-chain transactions — one popup. */
-  fillSelect('consol-dst');
-  document.getElementById('consol-dst').value = 'arc';
+  initChainSelect('consol-dst', { value: 'arc' });
 
   function buildConsolSources(dst) {
     return state.balances
