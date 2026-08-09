@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="oneliq-discord-client-id" content="1514587016157859900"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://api.coingecko.com https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
+<link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
+<meta name="description" content="Oneliq Dashboard is your portfolio home on Arc: holdings, allocation, cross-chain USDC and recent activity in one read-only view, priced live from CoinGecko."/>
+<link rel="canonical" href="https://oneliq.xyz/blog/launch-dashboard"/>
+<meta property="og:title" content="Your Portfolio, in One View: the Oneliq Dashboard"/>
+<meta property="og:description" content="Holdings, allocation, cross-chain USDC and recent activity — one read-only view of everything your wallet holds on Arc, priced live. No signing, just numbers."/>
+<meta property="og:image" content="https://oneliq.xyz/assets/social/blog-dashboard-banner.svg"/>
+<meta property="og:url" content="https://oneliq.xyz/blog/launch-dashboard"/>
+<meta property="og:type" content="article"/>
+<title>Your Portfolio, in One View | Oneliq Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A1628;--bg2:#0F1E36;
+  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
+  --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
+  --agent:#4DD6DB;
+  --warn:#FFB454;--danger:#FF7A7A;
+  --display:'Space Grotesk','Inter',system-ui,sans-serif; --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.7}
+.aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  background:radial-gradient(ellipse 100% 40% at 50% 0%,rgba(77,214,219,0.10) 0%,transparent 60%),
+  linear-gradient(180deg,#0A1628 0%,#0E1F39 60%,#0A1628 100%)}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .nav-logo{justify-self:start}
+nav .nav-links{justify-self:center}
+nav .nav-right{justify-self:end}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-img{height:28px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
+.logo-tag{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);font-family:var(--mono);text-transform:uppercase;border-left:1px solid var(--border);padding-left:10px;margin-left:4px}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:8px 16px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;text-decoration:none}
+.nav-link:hover{color:var(--text);background:var(--surface)}
+.nav-link.active{color:var(--text);background:var(--surface)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(255,255,255,0.14)}
+
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:120px 24px 80px}
+.crumb{font-size:12px;font-family:var(--mono);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px}
+.crumb a{color:var(--muted);text-decoration:none}
+.crumb a:hover{color:var(--text)}
+.eyebrow{font-size:12px;font-family:var(--mono);color:var(--arc1);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+h1.title{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin-bottom:18px}
+h1.title .grad{background:linear-gradient(90deg,var(--arc1),var(--arc2),var(--arc3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lead{font-size:19px;color:#C8D1E0;line-height:1.6;margin-bottom:28px;font-weight:400}
+.byline{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.byline-author{font-weight:600;color:var(--text)}
+.byline-sep{color:var(--border2)}
+.byline-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:rgba(77,214,219,0.10);border:1px solid rgba(77,214,219,0.35);color:var(--arc1);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.banner{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:48px;background:#0A1628}
+
+article{font-size:17px;line-height:1.78}
+article p{color:#D8DFEA;margin-bottom:22px}
+article p strong{color:var(--text);font-weight:600}
+article p em{color:var(--text);font-style:italic;background:rgba(77,214,219,0.10);padding:1px 4px;border-radius:3px}
+article a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.3);transition:border-color .2s}
+article a:hover{border-bottom-color:var(--arc1)}
+article a:visited{color:var(--arc1)}
+article h2{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:72px 0 20px;line-height:1.2;color:var(--text)}
+article h2:first-of-type{margin-top:12px}
+article h3{font-size:22px;font-weight:600;margin:44px 0 14px;letter-spacing:-.01em;color:var(--text)}
+article ul,article ol{padding-left:24px;margin-bottom:24px}
+article li{color:#D8DFEA;margin-bottom:8px}
+article li::marker{color:var(--arc1)}
+
+code{font-family:var(--mono);font-size:14px;background:rgba(77,214,219,0.10);border:1px solid rgba(77,214,219,0.22);padding:1px 6px;border-radius:5px;color:var(--arc1)}
+
+.callout{border-left:3px solid var(--arc1);background:rgba(77,214,219,0.07);padding:16px 20px;border-radius:0 10px 10px 0;margin:28px 0}
+.callout.info{border-left-color:var(--arc2);background:rgba(74,123,236,0.06)}
+.callout.warn{border-left-color:var(--warn);background:rgba(255,180,84,0.06)}
+.callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--arc1)}
+.callout.info .callout-title{color:var(--arc2)}
+.callout.warn .callout-title{color:var(--warn)}
+.callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
+
+.modes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:36px 0 44px}
+.mode-card{padding:24px 24px 26px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));position:relative;overflow:hidden;transition:border-color .2s}
+.mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:140px;background:linear-gradient(180deg,var(--accent-glow,rgba(77,214,219,0.16)) 0%,transparent 100%);pointer-events:none}
+.mode-card:hover{border-color:var(--border2)}
+.mode-card.c-a{--accent-glow:rgba(77,214,219,0.18);--accent:var(--arc1)}
+.mode-card.c-b{--accent-glow:rgba(74,123,236,0.18);--accent:var(--arc2)}
+.mode-card.c-c{--accent-glow:rgba(244,200,154,0.16);--accent:var(--arc3)}
+.mode-card.c-d{--accent-glow:rgba(123,228,149,0.16);--accent:var(--arc4)}
+.mode-card .mcard-icon{font-size:24px;margin-bottom:14px;display:block;position:relative}
+.mode-card .mcard-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:block;position:relative}
+.mode-card .mcard-name{font-size:20px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.015em;line-height:1.25;position:relative}
+.mode-card .mcard-desc{font-size:14.5px;color:#D8DFEA;line-height:1.55;margin-bottom:16px;position:relative}
+.mode-card .mcard-meta{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;color:var(--accent);opacity:.9;text-transform:uppercase;position:relative;border-top:1px solid var(--border);padding-top:12px;margin-top:auto}
+@media(max-width:720px){.modes-grid{grid-template-columns:1fr}}
+
+table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.t th,.t td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.t th{background:rgba(255,255,255,0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.t td{color:#C8D1E0}
+.t tr:last-child td{border-bottom:none}
+
+.steps{counter-reset:step;list-style:none;padding:0;margin:28px 0}
+.steps li{padding:20px 22px 20px 68px;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;position:relative;background:var(--surface)}
+.steps li::before{counter-increment:step;content:counter(step);position:absolute;left:18px;top:20px;width:34px;height:34px;border-radius:9px;background:rgba(77,214,219,0.14);border:1px solid rgba(77,214,219,0.36);color:var(--arc1);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px}
+.steps li > strong:first-child{color:var(--text);font-weight:700;display:block;margin-bottom:6px;font-size:16.5px;letter-spacing:-.005em}
+.steps li span{display:block;font-size:15px;color:#E2E8F0;line-height:1.65}
+.steps li span strong{color:var(--text);font-weight:600}
+.steps li a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.35);transition:border-color .2s}
+.steps li a:hover{border-bottom-color:var(--arc1)}
+
+.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(77,214,219,0.10),rgba(255,255,255,0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
+.cta-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
+.cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(77,214,219,0.14);border:1px solid rgba(77,214,219,0.42);color:var(--arc1);transition:all .2s;margin:0 4px}
+.cta-card a:hover{background:rgba(77,214,219,0.24);border-color:var(--arc1)}
+.cta-card a.alt{background:rgba(74,123,236,0.12);border-color:rgba(74,123,236,0.36);color:var(--arc2)}
+.cta-card a.alt:hover{background:rgba(74,123,236,0.2);border-color:var(--arc2)}
+
+.foot{margin-top:60px;padding-top:28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
+.foot a{color:var(--muted);text-decoration:none}
+.foot a:hover{color:var(--arc1)}
+
+@media(max-width:768px){.wrap{padding:100px 18px 60px}.nav-links{display:none}h1.title{font-size:32px}article h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<nav>
+  <a class="nav-logo" href="/">
+    <img class="logo-img" src="/assets/logos/wordmark-oneliq.png" alt="Oneliq" height="28"/>
+    <span class="logo-tag">Blog</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/trade">Trade</a>
+    <a class="nav-link" href="/balance">Balance</a>
+    <a class="nav-link" href="/agent">Oneliq AI</a>
+    <a class="nav-link active" href="/blog">Blog</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn-ghost" href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    <a class="btn-primary" href="/dashboard">Open Dashboard ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; Your Portfolio, in One View</div>
+  <div class="eyebrow">New Surface · Live</div>
+  <h1 class="title">Your portfolio, <span class="grad">in one view</span></h1>
+  <p class="lead">The Oneliq Dashboard is the home screen for a connected wallet: what you hold, how it's split, your USDC across chains, and your latest activity — priced live, read-only, all on one page. Connect a wallet and it's just there.</p>
+
+  <div class="byline">
+    <span class="byline-author">Oneliq Team</span>
+    <span class="byline-sep">·</span>
+    <span>Aug 4, 2026</span>
+    <span class="byline-sep">·</span>
+    <span>4 min read</span>
+    <span class="byline-sep">·</span>
+    <span class="byline-pill"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--arc1)"></span>Live</span>
+  </div>
+
+  <img class="banner" src="/assets/social/blog-dashboard-banner.svg" alt="Oneliq Dashboard — your portfolio in one view"/>
+
+  <article>
+
+    <p>Everything Oneliq does — <a href="/trade">Trade</a>, <a href="/balance">Balance</a>, the agent, the <a href="/history">History</a> feed — produces a number that matters to you: <em>how much do I hold, and where?</em> Until now those numbers lived on separate pages. The <strong>Dashboard</strong> pulls them into one place, at <a href="https://oneliq.xyz/dashboard">oneliq.xyz/dashboard</a>.</p>
+
+    <div class="callout">
+      <div class="callout-title">TL;DR</div>
+      <div class="callout-body">
+        One read-only portfolio home. <strong>Holdings</strong> (USDC, EURC, cirBTC on Arc), an <strong>Allocation</strong> donut, <strong>Cross-chain USDC</strong> from Circle Gateway, and <strong>Recent activity</strong> — with a profile hero showing your total in USD. Prices come live from CoinGecko and are cached locally so a rate-limited fetch never blanks your portfolio. No signing, no transactions — it only reads.
+      </div>
+    </div>
+
+    <h2>Five modules, one page</h2>
+
+    <div class="modes-grid">
+      <div class="mode-card c-a">
+        <span class="mcard-icon">◈</span>
+        <span class="mcard-tag">// Profile</span>
+        <div class="mcard-name">Who and how much</div>
+        <p class="mcard-desc">A deterministic avatar for your address, your connected wallet, and your total portfolio value in USD with a 24-hour change.</p>
+        <div class="mcard-meta">Avatar · Address · Total · 24h Δ</div>
+      </div>
+      <div class="mode-card c-b">
+        <span class="mcard-icon">▦</span>
+        <span class="mcard-tag">// Holdings</span>
+        <div class="mcard-name">Every asset, priced</div>
+        <p class="mcard-desc">Your Arc token balances — USDC, EURC and cirBTC — each multiplied by a live price to give a per-asset USD value. Switch the tab to see allocation.</p>
+        <div class="mcard-meta">USDC · EURC · cirBTC</div>
+      </div>
+      <div class="mode-card c-c">
+        <span class="mcard-icon">◔</span>
+        <span class="mcard-tag">// Allocation</span>
+        <div class="mcard-name">How it's split</div>
+        <p class="mcard-desc">A donut of your holdings by USD weight, so a glance tells you whether you're mostly in dollars, euros, or BTC exposure.</p>
+        <div class="mcard-meta">Weighted by value</div>
+      </div>
+      <div class="mode-card c-d">
+        <span class="mcard-icon">⇄</span>
+        <span class="mcard-tag">// Cross-chain</span>
+        <div class="mcard-name">USDC everywhere</div>
+        <p class="mcard-desc">Your unified USDC across the chains Circle Gateway covers — the same balance <a href="/balance">Balance</a> spends from — summarised right on the home page.</p>
+        <div class="mcard-meta">Circle Gateway</div>
+      </div>
+    </div>
+
+    <p>The fifth module is <strong>Recent activity</strong>: the latest receipts from the exact same feed that powers the <a href="/history">History</a> page — swaps, sends, top-ups — so your dashboard and your history never disagree. Every card also carries a deep link (<code>Trade →</code>, <code>Balance →</code>, <code>History →</code>) to jump straight to the surface that owns it.</p>
+
+    <h2>Prices you can trust — or at least reason about</h2>
+
+    <p>USD values need prices, and prices need a source. Ours is <strong>CoinGecko</strong>: BTC drives the cirBTC value, EUR drives EURC, and USDC is pinned to $1. Two design choices keep it honest:</p>
+
+    <ul>
+      <li><strong>Live, but cached.</strong> The last good price set is saved in your browser. If a fetch is rate-limited or fails, the dashboard degrades to the last known numbers instead of showing you a blank or a zero.</li>
+      <li><strong>Balances are on-chain, prices are off-chain.</strong> The token amounts are read directly from Arc. Only the USD conversion depends on a third party — so even if pricing hiccups, your holdings are always real.</li>
+    </ul>
+
+    <div class="callout info">
+      <div class="callout-title">Read-only by design</div>
+      <div class="callout-body">The Dashboard never asks you to sign anything. It reads chain balances and public prices and renders them. There's no transaction to approve because there's nothing to approve — it's a window, not a lever. To actually move funds you head to Trade, Balance, or Oneliq AI.</div>
+    </div>
+
+    <h2>Small touches</h2>
+
+    <ul>
+      <li><strong>Collapsible sections.</strong> Every card folds away, and the layout remembers what you collapsed — per browser — so it stays how you left it.</li>
+      <li><strong>Wallet-reactive.</strong> Connect, disconnect, or switch accounts and every module re-renders instantly. No refresh.</li>
+      <li><strong>Tap to copy.</strong> Your address in the hero copies with a click.</li>
+    </ul>
+
+    <h2>How to open it</h2>
+
+    <ol class="steps">
+      <li><strong>Connect a wallet.</strong> <span>Head to <a href="/dashboard">oneliq.xyz/dashboard</a> and connect. Everything below the hero fills in as balances and prices load.</span></li>
+      <li><strong>Read your portfolio.</strong> <span>Total value up top; holdings and allocation in the first card; cross-chain USDC and recent activity below.</span></li>
+      <li><strong>Jump to the action.</strong> <span>Use the <code>Trade →</code>, <code>Balance →</code> and <code>History →</code> links on each card to go straight to the surface you need.</span></li>
+    </ol>
+
+    <div class="callout warn">
+      <div class="callout-title">Testnet only</div>
+      <div class="callout-body">Oneliq runs on <strong>Arc Testnet</strong> today. Balances and prices are shown for testnet assets. <strong>Never send mainnet funds to a testnet address</strong> — they're unrecoverable.</div>
+    </div>
+
+    <h2>What's next</h2>
+
+    <p>The Dashboard is deliberately simple: read your position, then act. Over the coming milestones we'll deepen the analytics side — richer allocation and portfolio views land alongside the broader <strong>Multi-Asset Automation</strong> and <strong>Treasury Operations</strong> work on our <a href="/#roadmap">roadmap</a>. This user dashboard is the personal, at-a-glance version of that story.</p>
+
+    <div class="cta-card">
+      <h3>See everything your wallet holds.</h3>
+      <p>User Dashboard · Live on Arc Testnet · Priced by CoinGecko · Read-only.</p>
+      <a href="/dashboard">Open Dashboard</a>
+      <a class="alt" href="/trade">Go to Trade</a>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend currently on Arc Testnet. The Dashboard is a read-only view of on-chain balances and public prices. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+
+  </article>
+
+  <div class="foot">
+    <span>© 2026 Oneliq · Built on Arc Testnet</span>
+    <div>
+      <a href="/blog">← Back to blog</a> &nbsp;·&nbsp;
+      <a href="https://x.com/oneliq_" target="_blank" rel="noopener noreferrer">X</a> &nbsp;·&nbsp;
+      <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
