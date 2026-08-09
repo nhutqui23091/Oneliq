@@ -30,7 +30,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .leg + .leg{margin-top:8px}
 .leg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;flex-wrap:wrap}
 .leg-lbl{font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;font-weight:600}
-.leg-bal{font-size:12.5px;color:#B7C4D6;font-family:var(--mono)}
+.leg-bal{font-size:12.5px;color:#B7C4D6;font-family:var(--font);font-variant-numeric:tabular-nums}
 .leg-bal b{color:var(--text);cursor:pointer;font-weight:700}
 .leg-bal b:hover{color:var(--arc2)}
 
@@ -40,9 +40,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .max-btn:hover{background:linear-gradient(135deg,rgba(77,214,219,.32),rgba(74,123,236,.28));border-color:rgba(77,214,219,.65)}
 
 .leg-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
-.amt-in{font-family:var(--mono);font-size:32px;font-weight:600;background:none;border:none;outline:none;color:var(--text);width:100%;min-width:0}
+.amt-in{font-family:var(--display);font-size:34px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums;background:none;border:none;outline:none;color:var(--text);width:100%;min-width:0}
 .amt-in::placeholder{color:rgba(139,126,170,.4)}
-.amt-usd{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.amt-usd{font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--font)}
 
 .pick-btn{display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:all .2s;color:var(--text);font-weight:600;font-size:14px;min-width:fit-content}
 .pick-btn:hover{border-color:var(--border2);background:rgba(255,255,255,.08)}
