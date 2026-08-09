@@ -164,7 +164,7 @@ html{scroll-behavior:smooth}
 .src-collapse.open{display:block}
 .gw-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px}
 .gw-row strong{color:var(--text);font-family:var(--mono);font-weight:600}
-.gw-action{width:100%;margin-top:18px;padding:14px;border-radius:12px;font-size:14px;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);transition:all .2s;letter-spacing:.02em}
+.gw-action{width:100%;margin-top:18px;padding:14px;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);transition:all .2s;letter-spacing:.02em}
 .gw-action:hover:not(:disabled){box-shadow:0 4px 24px rgba(77,214,219,.4);transform:translateY(-1px)}
 .gw-action:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2);color:var(--muted)}
 .gw-status{margin-top:12px;padding:11px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;color:var(--muted);font-family:var(--mono);display:none}
@@ -469,7 +469,7 @@ html{scroll-behavior:smooth}
     </p>
     <div id="bp-rows"></div>
     <button id="bp-add" type="button" style="width:100%;padding:9px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font)">+ Add recipient</button>
-    <button id="bp-review" class="gw-action" type="button" style="margin-top:12px">Review</button>
+    <button id="bp-review" class="gw-action" type="button" style="margin-top:12px">Preview payment</button>
 
     <div id="bp-preview" style="display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(244,200,154,.06);border:1px solid rgba(244,200,154,.22);font-size:12.5px;color:var(--muted);line-height:1.5">
       <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#FFB454;margin-bottom:6px">⇉ Payment plan</div>
@@ -1159,9 +1159,9 @@ html{scroll-behavior:smooth}
     row.innerHTML = `
       <input class="gw-input bp-addr" type="text" spellcheck="false" placeholder="0x… recipient address" style="margin-bottom:8px">
       <div style="display:flex;gap:8px;align-items:stretch">
-        <input class="gw-input bp-amt" type="text" inputmode="decimal" placeholder="0.00" style="flex:1;min-width:0">
-        <div class="cs bp-chain" id="bp-chain-${id}" style="flex:1;min-width:0"></div>
-        <button class="bp-remove" type="button" title="Remove recipient" style="flex:0 0 auto;width:38px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:10px;cursor:pointer;font-size:18px;line-height:1">×</button>
+        <input class="gw-input bp-amt" type="text" inputmode="decimal" placeholder="0.00" style="flex:0 0 104px;min-width:0">
+        <div class="cs bp-chain" id="bp-chain-${id}" style="flex:1 1 auto;min-width:0"></div>
+        <button class="bp-remove" type="button" title="Remove recipient" style="flex:0 0 40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:10px;cursor:pointer;font-size:18px;line-height:1">×</button>
       </div>`;
     document.getElementById('bp-rows').appendChild(row);
     row.querySelector('.bp-addr').value = addr;
