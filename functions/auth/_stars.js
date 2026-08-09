@@ -31,6 +31,9 @@ export const STAR_VALUES = {
   like3:     5, // Like the new tweet
   retweet3:  5, // Retweet the new tweet
   reply3:    5, // Reply to the new tweet
+  like4:     5, // Like the newest tweet
+  retweet4:  5, // Retweet the newest tweet
+  reply4:    5, // Reply to the newest tweet
 
   // Badges (one-time bonus on top of the tasks that unlock them)
   badge: {
@@ -69,6 +72,9 @@ export function computeStars(gm = {}, profile = {}) {
   if (gm.like3_done)       stars += STAR_VALUES.like3;
   if (gm.retweet3_done)    stars += STAR_VALUES.retweet3;
   if (gm.reply3_done)      stars += STAR_VALUES.reply3;
+  if (gm.like4_done)       stars += STAR_VALUES.like4;
+  if (gm.retweet4_done)    stars += STAR_VALUES.retweet4;
+  if (gm.reply4_done)      stars += STAR_VALUES.reply4;
 
   // -- Badges --
   const badges = Array.isArray(gm.badges) ? gm.badges : [];

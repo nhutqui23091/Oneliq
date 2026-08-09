@@ -141,6 +141,7 @@ async function handlePost(request, env, context) {
     like: 'like_done', retweet: 'retweet_done', reply: 'reply_done',                 // launch tweet
     like2: 'like2_done', retweet2: 'retweet2_done', reply2: 'reply2_done',            // latest tweet
     like3: 'like3_done', retweet3: 'retweet3_done', reply3: 'reply3_done',            // new tweet
+    like4: 'like4_done', retweet4: 'retweet4_done', reply4: 'reply4_done',            // newest tweet
   };
   if (TRUST_FLAGS[body.action]) {
     const updated = { ...state, [TRUST_FLAGS[body.action]]: true };
