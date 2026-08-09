@@ -71,6 +71,8 @@ scratch/
 # ─── Generated social previews (raster exports — keep SVG sources only) ──────
 assets/social/*.png
 !assets/social/blog-rebrand-banner.png
+!assets/social/aioneliq.png
+!assets/social/Dashboard.png
 assets/social/*.jpg
 !assets/social/gasless-mint-banner.jpg
 
