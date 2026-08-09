@@ -128,6 +128,11 @@ nav.scrolled{background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bo
 .nav-link.new-pill{position:relative}
 .nav-link.new-pill::after{content:'NEW';position:absolute;top:-3px;right:-10px;font-size:8px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#A78BFA,#4A7BEC);color:#fff;padding:2px 5px;border-radius:6px}
 .nav-right{display:flex;align-items:center;gap:10px}
+.nav-burger{display:none;width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:17px;cursor:pointer;align-items:center;justify-content:center;font-family:var(--font)}
+.mobile-menu{display:none;position:fixed;top:68px;left:12px;right:12px;z-index:999;flex-direction:column;gap:2px;border-radius:16px;background:rgba(10,22,40,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.mobile-menu.open{display:flex}
+.mobile-menu a{padding:12px 14px;border-radius:10px;font-size:15px;font-weight:600;color:var(--text);text-decoration:none;transition:background .15s}
+.mobile-menu a:hover{background:var(--surface)}
 .btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);font-family:var(--font);transition:all .2s}
 .btn-ghost:hover{color:var(--text);border-color:var(--border2)}
 .btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;letter-spacing:-.01em;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);font-family:var(--font);transition:all .2s;white-space:nowrap}
@@ -231,9 +236,14 @@ section{position:relative;z-index:1}
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:24px;overflow:hidden}
 .feat-card{
   padding:40px 36px;background:var(--bg2);transition:background .3s;
-  display:flex;flex-direction:column;gap:16px;
+  display:flex;flex-direction:column;gap:16px;position:relative;
 }
 .feat-card:hover{background:rgba(255,255,255,0.025)}
+/* Bento layout: flagship spend card spans 2 cols, dashboard card spans full width */
+.feat-wide{grid-column:span 2;flex-direction:row;align-items:stretch;gap:32px}
+.feat-full{grid-column:1/-1;flex-direction:row;align-items:center;gap:32px}
+.feat-main{display:flex;flex-direction:column;gap:16px;flex:1;min-width:0}
+.feat-wide .feat-stat,.feat-full .feat-stat{border-top:none;border-left:1px solid var(--border);padding:0 0 0 32px;margin:0;display:flex;flex-direction:column;justify-content:flex-end;min-width:210px;flex-shrink:0}
 .feat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:8px;flex-shrink:0}
 .fi-blue{background:linear-gradient(135deg,rgba(108,63,255,.25),rgba(0,207,255,.15));border:1px solid rgba(108,63,255,.3)}
 .fi-green{background:linear-gradient(135deg,rgba(0,255,178,.15),rgba(0,207,255,.1));border:1px solid rgba(0,255,178,.25)}
@@ -268,67 +278,29 @@ section{position:relative;z-index:1}
 }
 .sw-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
 .sw-title{font-size:18px;font-weight:700}
-.sw-settings{
-  width:34px;height:34px;border-radius:10px;background:var(--surface);
-  border:1px solid var(--border);display:flex;align-items:center;
-  justify-content:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:16px;
-}
-.sw-settings:hover{color:var(--arc2);border-color:rgba(0,207,255,.4)}
-.token-input{
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:16px;padding:16px 18px;margin-bottom:8px;transition:border-color .2s;
-}
-.token-input:hover{border-color:rgba(255,255,255,.15)}
-.token-input:focus-within{border-color:rgba(77,214,219,.5)}
-.ti-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.ti-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.ti-bal{font-size:12px;color:var(--muted)}
-.ti-main{display:flex;align-items:center;gap:12px}
-.token-pill{
-  display:flex;align-items:center;gap:8px;
-  background:rgba(255,255,255,.07);border:1px solid var(--border2);
-  border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .2s;
-  min-width:110px;flex-shrink:0;
-}
-.token-pill:hover{background:rgba(255,255,255,.12)}
-.tp-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
-.tpi-arc{background:linear-gradient(135deg,#6C3FFF,#00CFFF)}
-.tpi-usdc{background:linear-gradient(135deg,#2775CA,#5BA4F5)}
-.tpi-eth{background:linear-gradient(135deg,#627EEA,#A4B3F5)}
-.tpi-bnb{background:linear-gradient(135deg,#F3BA2F,#FFDD88);color:#7B5200}
-.tp-name{font-size:14px;font-weight:700;color:var(--text)}
-.tp-arr{color:var(--muted);font-size:11px;margin-left:auto}
-.amount-field{
-  background:none;border:none;outline:none;
-  color:var(--text);font-size:26px;font-weight:700;font-family:var(--font);
-  width:100%;text-align:right;min-width:0;
-}
-.amount-field::placeholder{color:rgba(139,126,170,.35)}
-.usd-hint{font-size:12px;color:var(--muted);text-align:right;margin-top:4px;font-family:var(--mono)}
-.sw-flip{display:flex;justify-content:center;margin:4px 0;position:relative;z-index:2}
-.flip-btn{
-  width:40px;height:40px;border-radius:12px;
-  background:linear-gradient(135deg,var(--arc1),var(--arc2));
-  border:3px solid #101F3A;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;color:#fff;font-size:16px;transition:transform .4s cubic-bezier(.34,1.56,.64,1);
-}
-.flip-btn:hover{transform:rotate(180deg)}
 .sw-details{padding:14px 0;border-top:1px solid var(--border);margin-top:16px}
 .sw-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
 .sw-row-label{color:var(--muted)}
 .sw-row-val{font-weight:600;font-family:var(--mono);font-size:12px}
-.sw-btn{
-  width:100%;padding:16px;border-radius:14px;border:none;
-  background:linear-gradient(135deg,var(--arc1) 0%,var(--arc2) 50%,var(--arc4) 100%);
-  color:#000;font-family:var(--font);font-size:16px;font-weight:800;
-  cursor:pointer;margin-top:16px;transition:all .3s;
-  position:relative;overflow:hidden;letter-spacing:-.2px;
-}
-.sw-btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .2s}
-.sw-btn:hover{box-shadow:0 10px 40px rgba(0,255,178,.3);transform:translateY(-1px)}
-.sw-btn:hover::after{background:rgba(255,255,255,.08)}
-.sw-btn:active{transform:scale(.99)}
 .sw-notice{text-align:center;font-size:12px;color:var(--muted);margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px}
+/* UNIFIED BALANCE SHOWCASE */
+.ub-pill{font-size:9px;font-weight:700;letter-spacing:.14em;padding:3px 9px;border-radius:20px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-family:var(--mono)}
+.ub-hero{text-align:center;padding:8px 0 20px}
+.ub-chains{display:flex;justify-content:center;margin-bottom:16px}
+.ub-chains img{width:28px;height:28px;border-radius:50%;border:2px solid #101F3A;background:#101F3A;object-fit:cover;margin-left:-7px}
+.ub-chains img:first-child{margin-left:0}
+.ub-num{font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.ub-num span{font-size:16px;font-weight:700;color:var(--muted)}
+.ub-cap{font-size:12px;color:var(--muted);margin-top:8px}
+.ub-modes{display:flex;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:10px}
+.ub-mode{flex:1;padding:8px 0;border:none;border-radius:9px;background:none;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.ub-mode:hover{color:var(--text)}
+.ub-mode.active{background:rgba(77,214,219,.14);color:var(--arc1)}
+.ub-actions{display:flex;gap:8px;margin-top:12px}
+.ub-btn{flex:1;text-align:center;padding:12px 4px;border-radius:12px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--text);background:var(--surface);border:1px solid var(--border2);transition:all .2s;white-space:nowrap}
+.ub-btn:hover{background:var(--surface2);transform:translateY(-1px)}
+.ub-btn.primary{background:linear-gradient(135deg,var(--arc1),var(--arc2));color:#04121F;border:1px solid transparent}
+.ub-btn.primary:hover{box-shadow:0 8px 30px rgba(77,214,219,.3)}
 .notice-dot{width:6px;height:6px;border-radius:50%;background:var(--arc4)}
 
 /* ===== NUMBERS ===== */
@@ -337,7 +309,7 @@ section{position:relative;z-index:1}
 .big-num{font-size:clamp(72px,14vw,160px);font-weight:900;line-height:.9;letter-spacing:-6px;background:linear-gradient(135deg,var(--text) 0%,rgba(255,255,255,.4) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .big-label{font-size:18px;color:var(--muted);margin-top:16px;font-weight:500}
 .mini-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:24px;overflow:hidden;max-width:700px;margin:0 auto}
-.mini-card{padding:40px;background:var(--bg2);text-align:left}
+.mini-card{padding:40px;background:var(--bg2);text-align:left;position:relative}
 .mini-num{font-size:48px;font-weight:900;letter-spacing:-2px;background:linear-gradient(135deg,var(--arc2),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .mini-label{font-size:15px;color:var(--muted);margin-top:8px;font-weight:500}
 
@@ -397,18 +369,40 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
 .footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s}
 .footer-links a:hover{color:var(--text)}
 
+/* ===== POLISH: pointer-follow glow + animated CTA border ===== */
+/* Glow overlay: --mx/--my set by JS on pointermove. step-card's ::after is taken
+   by the data-n watermark, so the glow uses ::before there. */
+.feat-card::after,.mini-card::after,.step-card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
+  background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(77,214,219,.10),transparent 70%);
+}
+.feat-card:hover::after,.mini-card:hover::after,.step-card:hover::before{opacity:1}
+/* Rotating conic gradient border on the CTA card (needs @property; older
+   browsers just keep the static border) */
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+.cta-card::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:conic-gradient(from var(--ang,0deg),rgba(77,214,219,.55),rgba(74,123,236,.15),rgba(244,200,154,.45),rgba(74,123,236,.15),rgba(77,214,219,.55));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+  animation:spin-border 9s linear infinite;
+}
+@keyframes spin-border{to{--ang:360deg}}
+
 /* ===== ANIMATIONS ===== */
 @keyframes fade-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
 .reveal.visible{opacity:1;transform:translateY(0)}
 @media(prefers-reduced-motion:reduce){
-  .aurora-bg::after,.hero-title span.grad,.cta-title span.grad,.grad-blue,.grad-green,.grad-pink,.orb,.wave{animation:none!important}
+  .aurora-bg::after,.hero-title span.grad,.cta-title span.grad,.grad-blue,.grad-green,.grad-pink,.orb,.wave,.cta-card::after{animation:none!important}
   .hero-title .line-inner{animation:none!important;transform:none!important}
 }
 
 /* ===== RESPONSIVE ===== */
 @media(max-width:1024px){
   .features-grid,.app-grid{grid-template-columns:1fr}
+  .feat-wide,.feat-full{grid-column:auto;flex-direction:column;align-items:stretch}
+  .feat-wide .feat-stat,.feat-full .feat-stat{border-left:none;border-top:1px solid var(--border);padding:20px 0 0;min-width:0}
   .steps-grid{grid-template-columns:repeat(2,1fr)}
   .testi-grid{grid-template-columns:1fr}
   .testi-mid{transform:none}
@@ -417,6 +411,8 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
 }
 @media(max-width:768px){
   .nav-links{display:none}
+  .nav-burger{display:flex}
+  .nav-right .btn-ghost{display:none}
   .steps-grid{grid-template-columns:1fr}
   .mini-metrics{grid-template-columns:1fr}
   .mini-card{padding:28px}
@@ -460,8 +456,21 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
   <div class="nav-right">
     <a class="btn-ghost" href="/docs" style="text-decoration:none">Docs</a>
     <button class="btn-primary" onclick="window.location.href='/trade'">Launch App ↗</button>
+    <button class="nav-burger" id="nav-burger" aria-label="Open menu" aria-expanded="false" onclick="toggleMobileMenu()">☰</button>
   </div>
 </nav>
+
+<!-- MOBILE MENU (shown via hamburger under 768px) -->
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/trade">⇄ Trade</a>
+  <a href="/balance">◈ Balance</a>
+  <a href="/agent">✦ Oneliq AI</a>
+  <a href="/portal">◎ Portal</a>
+  <a href="/dashboard">▦ Dashboard</a>
+  <a href="/blog">Blog</a>
+  <a href="/docs">Docs</a>
+  <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">💧 Faucet ↗</a>
+</div>
 
 <!-- HERO -->
 <section class="hero">
@@ -549,10 +558,12 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
       <p class="section-sub">Spend USDC anywhere via Circle Gateway and CCTP V2, automate wallet top-ups with Oneliq AI, and track every balance and move in your Dashboard.</p>
     </div>
     <div class="features-grid glass">
-      <a class="feat-card" href="/balance" style="text-decoration:none;color:inherit;cursor:pointer">
-        <div class="feat-icon fi-blue">◆</div>
-        <div class="feat-name">Unified Stablecoin Spend</div>
-        <p class="feat-desc">See USDC on eight chains as one spendable number. Spend with Auto, Single, or Manual sourcing, pay many recipients at once with Batch Pay, or sweep everything onto one chain with Consolidate - each settles in a single signature, with gasless mint on the destination.</p>
+      <a class="feat-card feat-wide" href="/balance" style="text-decoration:none;color:inherit;cursor:pointer">
+        <div class="feat-main">
+          <div class="feat-icon fi-blue">◆</div>
+          <div class="feat-name">Unified Stablecoin Spend</div>
+          <p class="feat-desc">See USDC on eight chains as one spendable number. Spend with Auto, Single, or Manual sourcing, pay many recipients at once with Batch Pay, or sweep everything onto one chain with Consolidate - each settles in a single signature, with gasless mint on the destination.</p>
+        </div>
         <div class="feat-stat">
           <div class="feat-stat-num grad-blue">8 Chains · 1 Signature</div>
           <div class="feat-stat-label">Spend · Batch Pay · Consolidate</div>
@@ -567,10 +578,12 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
           <div class="feat-stat-label">Chat · prefill · you sign</div>
         </div>
       </a>
-      <a class="feat-card" href="/dashboard" style="text-decoration:none;color:inherit;cursor:pointer">
-        <div class="feat-icon fi-pink">▦</div>
-        <div class="feat-name">Portfolio Dashboard</div>
-        <p class="feat-desc">Your whole position in one place - balances across every chain with live prices and allocation, plus a receipt-style activity feed for Trade, Balance, and Oneliq AI moves, every tx hash one-click linkable to the right chain explorer.</p>
+      <a class="feat-card feat-full" href="/dashboard" style="text-decoration:none;color:inherit;cursor:pointer">
+        <div class="feat-main">
+          <div class="feat-icon fi-pink">▦</div>
+          <div class="feat-name">Portfolio Dashboard</div>
+          <p class="feat-desc">Your whole position in one place - balances across every chain with live prices and allocation, plus a receipt-style activity feed for Trade, Balance, and Oneliq AI moves, every tx hash one-click linkable to the right chain explorer.</p>
+        </div>
         <div class="feat-stat">
           <div class="feat-stat-num grad-pink">Balances · Prices · Activity</div>
           <div class="feat-stat-label">One dashboard · synced to your wallet</div>
@@ -585,79 +598,56 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
   <div class="section-inner">
     <div class="app-grid">
       <div class="app-content">
-        <div class="app-eyebrow">◆ Unified Trade Panel</div>
+        <div class="app-eyebrow">◆ Unified Balance</div>
         <h2 class="app-title">One Balance.<br>Every Chain.</h2>
-        <p class="app-desc">Pick a source - wallet on any chain or Circle Gateway pre-deposits - and spend USDC anywhere. CCTP V2 settles cross-chain in seconds. No bridging tab, no second app.</p>
+        <p class="app-desc">Deposit USDC once and it becomes one spendable balance across eight chains. Pick where it lands, sign once, done - Circle Gateway settles the rest. No bridging tab, no second app.</p>
         <div class="app-features">
-          <div class="af-item"><div class="af-dot"></div>Unified Balance · wallet + Gateway in one selector</div>
-          <div class="af-item"><div class="af-dot"></div>CCTP V2 for cross-chain USDC settlement</div>
-          <div class="af-item"><div class="af-dot"></div>USDC ⇄ EURC ⇄ ARC native swap inside Arc</div>
-          <div class="af-item"><div class="af-dot"></div>Non-custodial - your keys, your stablecoins</div>
+          <div class="af-item"><div class="af-dot"></div>⚡ Auto, Single, or Manual source selection</div>
+          <div class="af-item"><div class="af-dot"></div>⇉ Batch Pay - many recipients, grouped by destination</div>
+          <div class="af-item"><div class="af-dot"></div>⤵ Consolidate - sweep every chain into one</div>
+          <div class="af-item"><div class="af-dot"></div>Gasless mint on the destination · non-custodial</div>
         </div>
-        <button class="btn-launch" style="width:fit-content" onclick="window.location.href='/trade'">
-          Open Trade ↗
+        <button class="btn-launch" style="width:fit-content" onclick="window.location.href='/balance'">
+          Open Balance ↗
         </button>
       </div>
-      <!-- SWAP WIDGET -->
-      <div class="swap-widget" id="swap-widget">
+      <!-- UNIFIED BALANCE SHOWCASE (static mock - the real thing lives at /balance) -->
+      <div class="swap-widget" id="balance-widget">
         <div class="swap-inner">
           <div class="sw-header">
-            <span class="sw-title">Swap</span>
-            <div class="sw-settings" onclick="toggleSettings()">⚙</div>
+            <span class="sw-title">Unified Balance</span>
+            <span class="ub-pill">TESTNET</span>
           </div>
-          <!-- Slippage settings (hidden by default) -->
-          <div id="slip-panel" style="display:none;margin-bottom:16px;padding:14px;background:rgba(255,255,255,.03);border-radius:12px;border:1px solid var(--border)">
-            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Slippage Tolerance</div>
-            <div style="display:flex;gap:8px">
-              <button class="slip-opt" onclick="setSlip(this,'0.1')">0.1%</button>
-              <button class="slip-opt active" onclick="setSlip(this,'0.5')">0.5%</button>
-              <button class="slip-opt" onclick="setSlip(this,'1.0')">1.0%</button>
+          <div class="ub-hero">
+            <div class="ub-chains">
+              <img src="/assets/logos/chains/arc.svg" alt="Arc" loading="lazy"/>
+              <img src="/assets/logos/chains/ethereum.png" alt="Ethereum Sepolia" loading="lazy"/>
+              <img src="/assets/logos/chains/base.svg" alt="Base Sepolia" loading="lazy"/>
+              <img src="/assets/logos/chains/avalanche.svg" alt="Avalanche Fuji" loading="lazy"/>
+              <img src="/assets/logos/chains/arbitrum.png" alt="Arbitrum Sepolia" loading="lazy"/>
+              <img src="/assets/logos/chains/optimism.png" alt="OP Sepolia" loading="lazy"/>
+              <img src="/assets/logos/chains/polygon.svg" alt="Polygon Amoy" loading="lazy"/>
+              <img src="/assets/logos/chains/unichain.svg" alt="Unichain Sepolia" loading="lazy"/>
             </div>
+            <div class="ub-num">1,284.50 <span>USDC</span></div>
+            <div class="ub-cap">Spendable on any chain · 8 chains, one number</div>
           </div>
-          <!-- From -->
-          <div class="token-input">
-            <div class="ti-top">
-              <span class="ti-label">From</span>
-              <span class="ti-bal">Balance: <span id="from-bal-sw">500 USDC</span></span>
-            </div>
-            <div class="ti-main">
-              <div class="token-pill" onclick="cycleFrom()">
-                <div class="tp-icon tpi-usdc" id="from-icon-sw">U</div>
-                <span class="tp-name" id="from-name-sw">USDC</span>
-                <span class="tp-arr">▾</span>
-              </div>
-              <input class="amount-field" id="from-val" type="number" placeholder="0.0" oninput="calcOut()"/>
-            </div>
-            <div class="usd-hint" id="from-usd-sw">≈ $0.00</div>
+          <div class="ub-modes">
+            <button class="ub-mode active" onclick="ubMode(this)">⚡ Auto</button>
+            <button class="ub-mode" onclick="ubMode(this)">Single</button>
+            <button class="ub-mode" onclick="ubMode(this)">Manual</button>
           </div>
-          <!-- Flip -->
-          <div class="sw-flip">
-            <div class="flip-btn" onclick="flipPair()">⇅</div>
+          <div class="sw-details" style="border-top:none;margin-top:0;padding-top:4px">
+            <div class="sw-row"><span class="sw-row-label">To</span><span class="sw-row-val">Base Sepolia</span></div>
+            <div class="sw-row"><span class="sw-row-label">Route</span><span class="sw-row-val">3 sources → 1 signature</span></div>
+            <div class="sw-row"><span class="sw-row-label">Gas on destination</span><span class="sw-row-val" style="color:var(--arc4)">Free · Circle forwarder</span></div>
           </div>
-          <!-- To -->
-          <div class="token-input">
-            <div class="ti-top">
-              <span class="ti-label">To</span>
-              <span class="ti-bal">Balance: <span id="to-bal-sw">0 ARC</span></span>
-            </div>
-            <div class="ti-main">
-              <div class="token-pill" onclick="cycleTo()">
-                <div class="tp-icon tpi-arc" id="to-icon-sw">A</div>
-                <span class="tp-name" id="to-name-sw">ARC</span>
-                <span class="tp-arr">▾</span>
-              </div>
-              <input class="amount-field" id="to-val" type="number" placeholder="0.0" readonly/>
-            </div>
-            <div class="usd-hint" id="to-usd-sw">≈ $0.00</div>
+          <div class="ub-actions">
+            <a class="ub-btn primary" href="/balance">↗ Spend</a>
+            <a class="ub-btn" href="/balance">⇉ Batch Pay</a>
+            <a class="ub-btn" href="/balance">⤵ Consolidate</a>
           </div>
-          <div class="sw-details">
-            <div class="sw-row"><span class="sw-row-label">Rate</span><span class="sw-row-val" id="rate-sw">1 USDC = - ARC</span></div>
-            <div class="sw-row"><span class="sw-row-label">Fee (0.3%)</span><span class="sw-row-val" id="fee-sw">-</span></div>
-            <div class="sw-row"><span class="sw-row-label">Price Impact</span><span class="sw-row-val" id="impact-sw" style="color:var(--arc4)">-</span></div>
-            <div class="sw-row"><span class="sw-row-label">Min Received</span><span class="sw-row-val" id="min-sw">-</span></div>
-          </div>
-          <button class="sw-btn" id="sw-main-btn" onclick="doSwap()">Connect Wallet</button>
-          <div class="sw-notice"><div class="notice-dot"></div>Powered by Arc Testnet · Non-custodial</div>
+          <div class="sw-notice"><div class="notice-dot"></div>One EIP-712 signature · Circle Gateway · Non-custodial</div>
         </div>
       </div>
     </div>
@@ -668,17 +658,17 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
 <section class="numbers-section reveal">
   <div class="section-inner">
     <div class="big-metric">
-      <div class="big-num" data-count="2.4" data-prefix="$" data-suffix="B">$2.4B</div>
-      <div class="big-label">Simulated volume on Arc Testnet</div>
+      <div class="big-num" id="m-volume">-</div>
+      <div class="big-label">Lifetime USDC volume moved through Oneliq · live, on-chain verified</div>
     </div>
     <div class="mini-metrics glass">
       <div class="mini-card">
-        <div class="mini-num" data-count="18" data-suffix="M">18M</div>
-        <div class="mini-label">Testnet transactions processed</div>
+        <div class="mini-num" id="m-users">-</div>
+        <div class="mini-label">Total users across all surfaces</div>
       </div>
       <div class="mini-card" style="border-left:1px solid var(--border)">
-        <div class="mini-num" data-count="99.97" data-suffix="%">99.97%</div>
-        <div class="mini-label">Network uptime since launch</div>
+        <div class="mini-num" id="m-tx">-</div>
+        <div class="mini-label">Transactions tracked on 8 chains</div>
       </div>
     </div>
   </div>
@@ -876,11 +866,6 @@ HIDDEN_END -->
   </div>
 </footer>
 
-<style>
-.slip-opt{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
-.slip-opt.active{background:rgba(108,63,255,.2);border-color:rgba(108,63,255,.5);color:#A68FFF}
-</style>
-
 <script>
 
 // NAVBAR SCROLL
@@ -942,68 +927,69 @@ document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
   });
 })();
 
-// SWAP LOGIC
-const tokens={
-  USDC:{icon:'tpi-usdc',abbr:'U',name:'USDC',price:1,bal:'500 USDC'},
-  ARC:{icon:'tpi-arc',abbr:'A',name:'ARC',price:0.045,bal:'0 ARC'},
-  ETH:{icon:'tpi-eth',abbr:'E',name:'ETH',price:2590,bal:'0.12 ETH'},
-  BNB:{icon:'tpi-bnb',abbr:'B',name:'BNB',price:610,bal:'0.5 BNB'},
-};
-const tkeys=Object.keys(tokens);
-let fi=0,ti=1,walletConnected=false,slippage=0.005;
+// UNIFIED BALANCE SHOWCASE - mode tabs (visual mock only, real thing at /balance)
+function ubMode(el){
+  document.querySelectorAll('.ub-mode').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
 
-function updateSwapUI(){
-  const f=tokens[tkeys[fi]],t=tokens[tkeys[ti]];
-  document.getElementById('from-icon-sw').className='tp-icon '+f.icon;
-  document.getElementById('from-icon-sw').textContent=f.abbr;
-  document.getElementById('from-name-sw').textContent=f.name;
-  document.getElementById('to-icon-sw').className='tp-icon '+t.icon;
-  document.getElementById('to-icon-sw').textContent=t.abbr;
-  document.getElementById('to-name-sw').textContent=t.name;
-  document.getElementById('from-bal-sw').textContent=f.bal;
-  document.getElementById('to-bal-sw').textContent=t.bal;
-  const rate=f.price/t.price;
-  document.getElementById('rate-sw').textContent='1 '+f.name+' = '+(rate<0.01?rate.toFixed(4):rate<1?rate.toFixed(3):rate.toFixed(2))+' '+t.name;
-  calcOut();
+// MOBILE MENU
+function toggleMobileMenu(){
+  const m=document.getElementById('mobile-menu'),b=document.getElementById('nav-burger');
+  const open=m.classList.toggle('open');
+  b.setAttribute('aria-expanded',open?'true':'false');
+  b.textContent=open?'✕':'☰';
 }
-function calcOut(){
-  const f=tokens[tkeys[fi]],t=tokens[tkeys[ti]];
-  const amt=parseFloat(document.getElementById('from-val').value)||0;
-  const out=amt*(f.price/t.price)*(1-0.003);
-  document.getElementById('to-val').value=out>0?out.toFixed(t.price<1?4:6):'';
-  document.getElementById('from-usd-sw').textContent='≈ $'+(amt*f.price).toLocaleString('en',{maximumFractionDigits:2});
-  document.getElementById('to-usd-sw').textContent='≈ $'+(out*t.price).toLocaleString('en',{maximumFractionDigits:2});
-  const fee=amt*f.price*0.003;
-  document.getElementById('fee-sw').textContent=fee>0?'$'+fee.toFixed(4):'-';
-  const impact=amt>1000?'1.2%':amt>100?'0.15%':'< 0.01%';
-  document.getElementById('impact-sw').textContent=amt>0?impact:'-';
-  const minOut=out*(1-slippage);
-  document.getElementById('min-sw').textContent=out>0?minOut.toFixed(t.price<1?3:5)+' '+t.name:'-';
-  if(walletConnected){
-    const btn=document.getElementById('sw-main-btn');
-    btn.textContent=amt>0?'Swap '+f.name+' → '+t.name:'Enter Amount';
+document.querySelectorAll('#mobile-menu a').forEach(a=>a.addEventListener('click',()=>{
+  document.getElementById('mobile-menu').classList.remove('open');
+  const b=document.getElementById('nav-burger');
+  b.setAttribute('aria-expanded','false');b.textContent='☰';
+}));
+
+// CARD GLOW - radial highlight follows the pointer on feature/step/metric cards
+document.querySelectorAll('.feat-card,.step-card,.mini-card').forEach(c=>{
+  c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    c.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* LIVE METRICS - real numbers from /api/metrics/summary (same source as status page).
+   Animates count-up once the section scrolls into view AND data has arrived. */
+(async()=>{
+  const vol=document.getElementById('m-volume'),users=document.getElementById('m-users'),tx=document.getElementById('m-tx');
+  if(!vol)return;
+  const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const fmt=(n,dec)=>n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  function animate(el,pre,target,suf,dec){
+    if(reduce){el.textContent=pre+fmt(target,dec)+suf;return;}
+    const dur=1400,t0=performance.now();
+    function frame(now){
+      const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3);
+      el.textContent=pre+fmt(target*e,dec)+suf;
+      if(p<1)requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
-}
-function flipPair(){const tmp=fi;fi=ti;ti=tmp;document.getElementById('from-val').value='';updateSwapUI()}
-function cycleFrom(){fi=(fi+1)%tkeys.length;if(fi===ti)fi=(fi+1)%tkeys.length;updateSwapUI()}
-function cycleTo(){ti=(ti+1)%tkeys.length;if(ti===fi)ti=(ti+1)%tkeys.length;updateSwapUI()}
-function toggleSettings(){const p=document.getElementById('slip-panel');p.style.display=p.style.display==='none'?'block':'none'}
-function setSlip(el,val){slippage=parseFloat(val)/100;document.querySelectorAll('.slip-opt').forEach(b=>b.classList.remove('active'));el.classList.add('active');calcOut()}
-function doSwap(){
-  const btn=document.getElementById('sw-main-btn');
-  if(!walletConnected){
-    walletConnected=true;btn.textContent='Enter Amount';
-    btn.style.background='linear-gradient(135deg,#6C3FFF,#00CFFF,#00FFB2)';
-    return;
+  let data=null,seen=false,fired=false;
+  function maybe(){
+    if(!data||!seen||fired)return;fired=true;
+    const v=data.totalVolume||0;
+    if(v>=1e6)animate(vol,'$',v/1e6,'M',2);
+    else if(v>=1e4)animate(vol,'$',v/1e3,'K',1);
+    else animate(vol,'$',v,'',0);
+    animate(users,'',data.totalUsers||0,'',0);
+    animate(tx,'',data.grandTotal||0,'',0);
   }
-  const amt=parseFloat(document.getElementById('from-val').value);
-  if(!amt||amt<=0)return;
-  const orig=btn.textContent;
-  btn.textContent='Confirming on Arc...';btn.style.opacity='.8';
-  setTimeout(()=>{btn.textContent='✓ Swapped Successfully!';btn.style.opacity='1';btn.style.background='linear-gradient(135deg,#00C070,#00CFFF)'},1500);
-  setTimeout(()=>{btn.textContent=orig;btn.style.background='linear-gradient(135deg,#6C3FFF,#00CFFF,#00FFB2)';document.getElementById('from-val').value='';calcOut()},4000);
-}
-updateSwapUI();
+  const io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){seen=true;io.disconnect();maybe();}}),{threshold:.3});
+  io.observe(vol);
+  try{
+    const r=await fetch('/api/metrics/summary');
+    const j=await r.json();
+    if(j&&j.ready!==false){data=j;maybe();}
+  }catch(e){console.warn('metrics fail',e);}
+})();
 
 /* Live hero stat - read latest Arc block from Arc Testnet RPC */
 (async () => {
