@@ -238,6 +238,7 @@ html{scroll-behavior:smooth}
     <div class="balance-sub" id="ub-sub">Connect wallet to view your balance across all Gateway chains.</div>
     <div class="balance-actions">
       <button class="act-btn" id="ub-spend-top" type="button">↗ Spend</button>
+      <button class="act-btn" id="ub-batchpay-top" type="button">⇉ Batch Pay</button>
       <button class="act-btn" id="ub-consolidate-top" type="button">⤵ Consolidate</button>
     </div>
     <div class="sync-line" id="sync-line"><span class="sync-dot"></span><span id="sync-line-txt">Not synced</span></div>
@@ -453,6 +454,37 @@ html{scroll-behavior:smooth}
 
     <button id="consol-go" class="gw-action" type="button">Consolidate now</button>
     <div id="consol-status" class="gw-status"></div>
+  </div>
+</div>
+
+<!-- ──────── BATCH PAY MODAL ──────── -->
+<div class="gw-modal-bg" id="modal-batchpay">
+  <div class="gw-modal">
+    <div class="gw-modal-head">
+      <div class="gw-modal-title">Batch Pay</div>
+      <button class="gw-modal-close" data-close>×</button>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 14px">
+      Pay several recipients straight from your Unified Balance — sources are auto-picked across your chains and every payment is gasless. One recipient per line: <code>address, amount</code> (add a third field like <code>base</code> to override the destination chain for that line).
+    </p>
+    <div class="gw-label">Default chain (used when a line omits one)</div>
+    <div id="bp-dst" class="cs"></div>
+    <div class="gw-label" style="margin-top:12px">Recipients</div>
+    <textarea id="bp-input" class="gw-input" rows="5" spellcheck="false" style="resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.6" placeholder="0xAbc…123, 50&#10;0xDef…456, 30, base&#10;0x789…abc, 20, arbitrum"></textarea>
+    <button id="bp-review" class="gw-action" type="button" style="margin-top:10px">Review</button>
+
+    <div id="bp-preview" style="display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(244,200,154,.06);border:1px solid rgba(244,200,154,.22);font-size:12.5px;color:var(--muted);line-height:1.5">
+      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#FFB454;margin-bottom:6px">⇉ Payment plan</div>
+      <div id="bp-preview-rows"></div>
+      <div id="bp-total" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(244,200,154,.2);color:var(--text);font-weight:600"></div>
+      <div id="bp-errors" style="display:none;margin-top:8px;color:var(--danger);font-size:11.5px;line-height:1.6"></div>
+    </div>
+
+    <button id="bp-go" class="gw-action" type="button" style="display:none;margin-top:10px">Pay</button>
+    <div id="bp-status" class="gw-status"></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.55">
+      Each recipient is one signature (a full unified spend). You'll sign them one at a time — click <strong style="color:var(--text)">Pay</strong> for the next recipient after each completes.
+    </div>
   </div>
 </div>
 
@@ -1111,6 +1143,176 @@ html{scroll-behavior:smooth}
     }
   }
   document.getElementById('consol-go').onclick = runConsolidate;
+
+  /* ───── Batch Pay (pay N recipients from the Unified Balance) ─────
+     Each recipient is a full, proven multiSpend: auto multi-source pick →
+     ONE signature → gasless mint to that recipient on their chosen chain. We
+     run them one at a time (one click per recipient) so each signature fires
+     inside a fresh user gesture — Chrome only auto-opens the wallet popup within
+     a click's transient activation, and awaiting the previous payment's network
+     work would have consumed it. No arc-gateway.js change: this reuses the exact
+     multiSpend path the Spend modal uses. */
+  initChainSelect('bp-dst', { value: 'arc' });
+  let bpRows = [];
+  const bpShort = (a) => (ARC.shortAddr ? ARC.shortAddr(a) : (a.slice(0, 6) + '…' + a.slice(-4)));
+
+  function resolveBpChain(word) {
+    const w = String(word || '').toLowerCase().trim();
+    if (!w) return null;
+    if (chainKeys.includes(w)) return w;
+    const alias = {
+      fuji: 'avalancheFuji', avalanche: 'avalancheFuji', avax: 'avalancheFuji',
+      base: 'baseSepolia', arb: 'arbitrumSepolia', arbitrum: 'arbitrumSepolia',
+      op: 'optimismSepolia', optimism: 'optimismSepolia',
+      polygon: 'polygonAmoy', amoy: 'polygonAmoy', matic: 'polygonAmoy', pol: 'polygonAmoy',
+      uni: 'unichainSepolia', unichain: 'unichainSepolia',
+      eth: 'sepolia', ethereum: 'sepolia', sepolia: 'sepolia', arc: 'arc',
+    };
+    if (alias[w] && chainKeys.includes(alias[w])) return alias[w];
+    for (const k of chainKeys) {
+      const n = (ARC.CHAINS[k].name || '').toLowerCase();
+      const s = (ARC.CHAINS[k].short || '').toLowerCase();
+      if (n.includes(w) || s === w) return k;
+    }
+    return null;
+  }
+
+  function bpRender() {
+    const wrap = document.getElementById('bp-preview');
+    const rowsEl = document.getElementById('bp-preview-rows');
+    const totalEl = document.getElementById('bp-total');
+    wrap.style.display = 'block';
+    rowsEl.innerHTML = bpRows.map((r, i) => {
+      const badge = r.status === 'done' ? '✅' : r.status === 'error' ? '⚠' : '•';
+      const link = (r.hash && ARC.CHAINS[r.dst]?.explorerTx)
+        ? ` · <a href="${ARC.CHAINS[r.dst].explorerTx(r.hash)}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">tx ↗</a>` : '';
+      const err = r.status === 'error' ? `<div style="color:var(--danger);font-size:11px;margin-top:2px">${r.error || ''}</div>` : '';
+      return `<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span>${badge} <strong style="color:var(--text)">${bpShort(r.addr)}</strong> <span style="color:var(--muted)">→ ${chainName(r.dst)}</span>${link}${err}</span>
+        <strong style="font-family:var(--mono);color:var(--text);white-space:nowrap">${r.amount} USDC</strong>
+      </div>`;
+    }).join('');
+    const total = bpRows.reduce((a, r) => a + r.amtCanonical, 0n);
+    const spendable = ARC.gateway.totalSpendable(state.balances || []);
+    totalEl.innerHTML = `Total <strong style="font-family:var(--mono)">${ARC.formatAmt(total, 6, 4)}</strong> USDC · spendable <span style="font-family:var(--mono)">${ARC.formatAmt(spendable, 6, 4)}</span>` +
+      (total > spendable ? ` <span style="color:var(--danger)">— insufficient</span>` : '');
+  }
+
+  function bpUpdateGoLabel() {
+    const btn = document.getElementById('bp-go');
+    const paid = bpRows.filter(r => r.status === 'done').length;
+    if (paid >= bpRows.length) { btn.textContent = '✅ All paid'; btn.disabled = true; return; }
+    btn.disabled = false;
+    btn.textContent = bpRows.length === 1 ? 'Pay' : `Pay ${paid + 1} of ${bpRows.length} →`;
+  }
+
+  function bpReview() {
+    const raw = document.getElementById('bp-input').value || '';
+    const defDst = document.getElementById('bp-dst').value;
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const rows = [];
+    const errors = [];
+    lines.forEach((line, i) => {
+      const parts = line.split(/[,\s]+/).filter(Boolean);
+      const addr = parts[0];
+      const amtStr = parts[1];
+      const chainWord = parts[2];
+      if (!addr || !ethers.isAddress(addr)) { errors.push(`Line ${i + 1}: invalid address`); return; }
+      if (!amtStr) { errors.push(`Line ${i + 1}: missing amount`); return; }
+      let amtCanonical;
+      try { amtCanonical = ARC.parseAmt(amtStr, 6); } catch { errors.push(`Line ${i + 1}: bad amount "${amtStr}"`); return; }
+      if (amtCanonical <= 0n) { errors.push(`Line ${i + 1}: amount must be > 0`); return; }
+      let dst = defDst;
+      if (chainWord) {
+        const resolved = resolveBpChain(chainWord);
+        if (!resolved) { errors.push(`Line ${i + 1}: unknown chain "${chainWord}"`); return; }
+        dst = resolved;
+      }
+      rows.push({ addr: ethers.getAddress(addr), amount: amtStr, amtCanonical, dst, status: 'pending', hash: null, error: null });
+    });
+    bpRows = rows;
+    bpRender();
+    const errEl = document.getElementById('bp-errors');
+    if (errors.length) { errEl.style.display = 'block'; errEl.innerHTML = errors.map(e => `• ${e}`).join('<br>'); }
+    else { errEl.style.display = 'none'; }
+    const go = document.getElementById('bp-go');
+    if (rows.length && !errors.length) { go.style.display = 'block'; bpUpdateGoLabel(); }
+    else { go.style.display = 'none'; }
+  }
+
+  async function bpPayNext() {
+    const btn = document.getElementById('bp-go');
+    const idx = bpRows.findIndex(r => r.status !== 'done');
+    if (idx < 0) { setStatus('bp-status', 'ok', '✅ All payments complete'); btn.disabled = true; return; }
+    const row = bpRows[idx];
+    const eligible = (state.balances || []).filter(b => b.chainKey !== row.dst);
+    const est = ARC.gateway.estimateSpend({ targetCanonical: row.amtCanonical, dstChainKey: row.dst, available: eligible, useForwarder: true });
+    if (!est.ok) {
+      row.status = 'error'; row.error = est.reason; bpRender();
+      setStatus('bp-status', 'err', `Recipient ${idx + 1}: ${est.reason}`);
+      return;
+    }
+    btn.disabled = true; btn.textContent = 'Working…';
+    // Fee bump: multiSpend re-signs if Circle quotes a higher per-intent fee. That
+    // second signTypedData fires after an awaited fetch, so gate it behind a fresh
+    // click on this button so the wallet popup surfaces in-app (see runConsolidate).
+    const beforeResign = (bumped) => new Promise((resolve) => {
+      setStatus('bp-status', '', `Circle requires a higher fee (~${ARC.formatAmt(bumped, 6, 4)} USDC). Click to re-sign.`);
+      btn.disabled = false; btn.textContent = '⚠ Approve higher fee';
+      btn.onclick = () => { btn.onclick = bpPayNext; btn.disabled = true; btn.textContent = 'Working…'; resolve(); };
+    });
+    try {
+      const res = await ARC.gateway.multiSpend({
+        sources: est.sources, dstChainKey: row.dst, recipient: row.addr, useForwarder: true, beforeResign,
+        onStep: (m) => setStatus('bp-status', '', `Recipient ${idx + 1}/${bpRows.length}: ${m}`),
+      });
+      const mintHash = res?.mint?.tx?.hash || res?.forwarded?.transactionHash || null;
+      row.status = 'done'; row.hash = mintHash;
+      pushToHistory('bridge', row.dst, mintHash, `Batch pay ${row.amount} USDC → ${bpShort(row.addr)} on ${chainName(row.dst)}`);
+      try { ARC.track('spend', row.dst, Number(row.amount), mintHash, 'balance', { address: state.addr, batch: true, recipient: row.addr }); } catch {}
+      bpRender();
+      await refreshAll();
+    } catch (e) {
+      row.status = 'error'; row.error = ARC.explainError ? ARC.explainError(e) : String(e?.message || e);
+      bpRender();
+      setStatus('bp-status', 'err', `Recipient ${idx + 1}: ${row.error}`);
+    } finally {
+      btn.onclick = bpPayNext;
+      bpUpdateGoLabel();
+      if (bpRows.length && bpRows.every(r => r.status === 'done')) setStatus('bp-status', 'ok', '✅ All payments complete');
+    }
+  }
+
+  function openBatchPayModal() {
+    if (!state.addr) { alert('Connect wallet first'); return; }
+    document.getElementById('bp-input').value = '';
+    document.getElementById('bp-preview').style.display = 'none';
+    document.getElementById('bp-go').style.display = 'none';
+    document.getElementById('bp-errors').style.display = 'none';
+    bpRows = [];
+    clearStatus('bp-status');
+    openModal('modal-batchpay');
+  }
+
+  document.getElementById('ub-batchpay-top').onclick = async () => {
+    if (!state.addr) {
+      try { await ARC.wallet.connect(); }
+      catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError(e)); return; }
+      state.addr = ARC.wallet.address;
+      refreshAll();
+      return;
+    }
+    openBatchPayModal();
+  };
+  document.getElementById('bp-review').onclick = bpReview;
+  document.getElementById('bp-go').onclick = bpPayNext;
+  // Editing the recipient list invalidates a prior review — force a re-review.
+  document.getElementById('bp-input').addEventListener('input', () => {
+    bpRows = [];
+    document.getElementById('bp-preview').style.display = 'none';
+    document.getElementById('bp-go').style.display = 'none';
+    clearStatus('bp-status');
+  });
 
   // ───── Deposit modal ─────
   // Default chain: if user clicked from a per-chain row use that. Otherwise
