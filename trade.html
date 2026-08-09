@@ -2111,16 +2111,22 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   tick(); setInterval(tick, 8000);
 
   // ── Wallet reactivity ────────────────────────────────
-  ARC.wallet.on(async () => {
-    await loadAllSources().catch(() => null);
+  // Balance must appear IMMEDIATELY on connect / reload. The default source is the
+  // wallet, whose balance is a direct RPC balanceOf (sub-second). Do NOT gate it
+  // behind loadAllSources() — that also waits on Circle's Gateway REST API, which
+  // can take 10-30s and was stalling the whole balance display (and blocking swaps
+  // because the amount showed as "loading"). Render wallet balances first, then let
+  // loadAllSources() fill the Gateway/Unified source dropdown in the background and
+  // re-render balances when it resolves.
+  ARC.wallet.on(() => {
     updateBalances(); refreshExec(); renderActivity();
     syncRecipientDisplay();
+    loadAllSources().then(() => updateBalances()).catch(() => null);
   });
   // Initial load - fires after autoConnect resolves (ArcUI.boot already awaited it).
-  loadAllSources().catch(() => null).then(() => {
-    updateBalances(); refreshExec();
-    syncRecipientDisplay();
-  });
+  updateBalances(); refreshExec();
+  syncRecipientDisplay();
+  loadAllSources().then(() => updateBalances()).catch(() => null);
 
   // Auto-refresh sources every 15s while page is visible. Circle's operator
   // can take 12-15min to credit deposits (Sepolia/L2 finality), so this loop
