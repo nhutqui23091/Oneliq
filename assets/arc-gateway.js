@@ -869,17 +869,27 @@
    * `attestation` set + one `transferId`.
    *
    * FORWARDER-ONLY: with ?enableForwarder=true Circle's Forwarding Service mints
-   * EVERY destination server-side, so we just poll the single transferId. We do
-   * NOT fall back to self-mint here — a multi-destination attestation set can't be
-   * minted with one gatewayMint call, and the forwarder lands mints even if the
-   * tab closes. Docs: burn-intent sets allow ≤16 intents, response is one object
-   * (one transferId/attestation), and the whole submit is atomic.
+   * the destination server-side, so we just poll the single transferId. We do NOT
+   * fall back to self-mint here — the forwarder lands the mint even if the tab
+   * closes.
+   *
+   * SINGLE DESTINATION PER CALL: Circle's /v1/transfer rejects a request whose
+   * burn intents span more than one destination domain ("All burn intents in a
+   * request must have the same destination domain"). So every payment here MUST
+   * share one dstChainKey; the caller groups a cross-chain batch by destination
+   * and calls batchSpend once per group (one signature each). Docs: a set allows
+   * ≤16 intents, response is one object (one transferId/attestation), submit is atomic.
    *
    * Returns { intents, attResp, forwarded, mint:{tx:{hash}} }.
    */
   async function batchSpend({ payments, onStep, beforeResign }) {
     if (!ARC.wallet.signer) throw new Error('Connect wallet');
     if (!payments || !payments.length) throw new Error('No payments to send');
+    // Enforce the same-destination-domain rule so a bad caller fails fast here
+    // rather than as an opaque Gateway 400.
+    if (new Set(payments.map(p => p.dstChainKey)).size > 1) {
+      throw new Error('A batch request must target a single destination chain (Circle requires one destination domain per signature). Group by destination first.');
+    }
 
     onStep?.('Building burn intents…');
     const intents = [];

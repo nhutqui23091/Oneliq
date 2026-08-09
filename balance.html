@@ -106,6 +106,7 @@ html{scroll-behavior:smooth}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 .gw-modal{width:100%;max-width:460px;max-height:90vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg,#101F36 0%,#0B1729 100%);border:1px solid var(--border2);border-radius:18px;padding:24px;animation:slide .25s ease-out}
 #modal-spend .gw-modal{max-width:560px;padding:28px}
+#modal-batchpay .gw-modal{max-width:720px;padding:28px}
 @keyframes slide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .gw-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .gw-modal-title{font-size:18px;font-weight:600;letter-spacing:-.02em}
@@ -465,7 +466,7 @@ html{scroll-behavior:smooth}
       <button class="gw-modal-close" data-close>×</button>
     </div>
     <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 14px">
-      Pay several recipients straight from your Unified Balance in <strong style="color:var(--text)">one signature</strong> — sources are auto-picked across your chains and every payment is gasless. Add a recipient, its amount, and the chain they receive on.
+      Pay several recipients straight from your Unified Balance — sources are auto-picked across your chains and every payment is gasless. Recipients on the <strong style="color:var(--text)">same destination chain</strong> are paid in one signature; different chains take one signature each. Add a recipient, its amount, and the chain they receive on.
     </p>
     <div id="bp-rows"></div>
     <button id="bp-add" type="button" style="width:100%;padding:9px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font)">+ Add recipient</button>
@@ -490,7 +491,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.11.0"></script>
+<script src="/assets/arc-gateway.js?v=9.12.0"></script>
 <script src="/assets/arc-ui.js?v=9.10.29"></script>
 <script>
 (async () => {
@@ -714,7 +715,7 @@ html{scroll-behavior:smooth}
     const curIco = host.querySelector('.cs-cur-ico');
     const curName = host.querySelector('.cs-cur-name');
     function paint() {
-      curName.textContent = chainName(current);
+      curName.textContent = opts.short ? chainShort(current) : chainName(current);
       const s = icoSrc(current);
       if (s) { curIco.src = s; curIco.style.visibility = ''; } else { curIco.style.visibility = 'hidden'; }
       host.querySelectorAll('.cs-row').forEach(r => r.classList.toggle('active', r.dataset.k === current));
@@ -1140,15 +1141,18 @@ html{scroll-behavior:smooth}
   document.getElementById('consol-go').onclick = runConsolidate;
 
   /* ───── Batch Pay (pay N recipients from the Unified Balance) ─────
-     ONE signature for the WHOLE batch: each recipient's source legs become burn
-     intents, all packed into a single BurnIntentSet (Circle verifies one
-     signature for every intent — the EIP-712 domain has no chainId). Forwarder
-     mints every destination server-side, so we poll one transferId. Max 16
-     intents/signature (Circle limit). See ARC.gateway.batchSpend. Allocation is
-     done here (bpAllocate) so source legs never overlap between recipients. */
+     ONE signature per DESTINATION CHAIN: Circle's /v1/transfer rejects a request
+     whose burn intents span >1 destination domain ("All burn intents in a request
+     must have the same destination domain"). So we group recipients by their
+     destination chain and call ARC.gateway.batchSpend once per group (a single
+     BurnIntentSet signature each; forwarder mints server-side; ≤16 intents/group).
+     All recipients on the same chain → one signature; K distinct chains → K
+     signatures, processed one click per group (fresh gesture each). Allocation
+     (bpAllocate) is global so source legs never overlap between recipients. */
   const bpShort = (a) => (ARC.shortAddr ? ARC.shortAddr(a) : (a.slice(0, 6) + '…' + a.slice(-4)));
   let bpRowSeq = 0;
   let bpPayments = null; // set by a successful bpReview()
+  let bpGroups = null;   // bpPayments grouped by destination chain (one signature each)
 
   function bpAddRow(addr = '', amt = '', chain = 'arc') {
     const id = ++bpRowSeq;
@@ -1157,16 +1161,22 @@ html{scroll-behavior:smooth}
     row.dataset.id = id;
     row.style.cssText = 'margin-bottom:10px;padding:10px;border:1px solid var(--border);border-radius:11px;background:var(--surface)';
     row.innerHTML = `
-      <input class="gw-input bp-addr" type="text" spellcheck="false" placeholder="0x… recipient address" style="margin-bottom:8px">
-      <div style="display:flex;gap:8px;align-items:stretch">
-        <input class="gw-input bp-amt" type="text" inputmode="decimal" placeholder="0.00" style="flex:0 0 104px;min-width:0">
-        <div class="cs bp-chain" id="bp-chain-${id}" style="flex:1 1 auto;min-width:0"></div>
+      <div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap">
+        <input class="gw-input bp-addr" type="text" spellcheck="false" placeholder="0x… recipient address" style="flex:1 1 220px;min-width:0">
+        <div style="position:relative;flex:0 0 148px;min-width:0">
+          <input class="gw-input bp-amt" type="text" inputmode="decimal" placeholder="0.00" style="width:100%;padding-right:58px">
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;pointer-events:none">
+            <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="" style="width:15px;height:15px;border-radius:50%" onerror="this.style.display='none'">
+            <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">USDC</span>
+          </span>
+        </div>
+        <div class="cs bp-chain" id="bp-chain-${id}" style="flex:1 1 150px;min-width:0"></div>
         <button class="bp-remove" type="button" title="Remove recipient" style="flex:0 0 40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:10px;cursor:pointer;font-size:18px;line-height:1">×</button>
       </div>`;
     document.getElementById('bp-rows').appendChild(row);
     row.querySelector('.bp-addr').value = addr;
     row.querySelector('.bp-amt').value = amt;
-    initChainSelect(`bp-chain-${id}`, { value: chain });
+    initChainSelect(`bp-chain-${id}`, { value: chain, short: true });
     row.querySelector('.bp-remove').onclick = () => {
       if (document.querySelectorAll('#bp-rows .bp-row').length <= 1) return; // keep at least one
       row.remove(); bpInvalidate();
@@ -1178,6 +1188,7 @@ html{scroll-behavior:smooth}
   // Any edit after a Review invalidates the plan → hide preview + Pay button.
   function bpInvalidate() {
     bpPayments = null;
+    bpGroups = null;
     document.getElementById('bp-preview').style.display = 'none';
     document.getElementById('bp-go').style.display = 'none';
     clearStatus('bp-status');
@@ -1211,32 +1222,53 @@ html{scroll-behavior:smooth}
     return { payments };
   }
 
-  function bpRenderPlan(done, hash) {
+  function bpRenderPlan() {
     const wrap = document.getElementById('bp-preview');
     const rowsEl = document.getElementById('bp-preview-rows');
     const totalEl = document.getElementById('bp-total');
     wrap.style.display = 'block';
-    const legCount = bpPayments.reduce((a, p) => a + p.sources.length, 0);
     rowsEl.innerHTML = bpPayments.map((p) => {
-      const badge = done ? '✅' : '•';
-      const srcNames = p.sources.map(s => chainName(s.chainKey)).join(' + ');
-      const link = (done && hash && ARC.CHAINS[p.dstChainKey]?.explorerTx)
-        ? ` · <a href="${ARC.CHAINS[p.dstChainKey].explorerTx(hash)}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">tx ↗</a>` : '';
-      return `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;gap:10px">
-          <span>${badge} <strong style="color:var(--text)">${bpShort(p.recipient)}</strong> <span style="color:var(--muted)">→ ${chainName(p.dstChainKey)}</span>${link}</span>
-          <strong style="font-family:var(--mono);color:var(--text);white-space:nowrap">${p.amount} USDC</strong>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">from ${srcNames}</div>
+      const badge = p._done ? '✅' : '•';
+      const link = (p._done && p._hash && ARC.CHAINS[p.dstChainKey]?.explorerTx)
+        ? ` · <a href="${ARC.CHAINS[p.dstChainKey].explorerTx(p._hash)}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">tx ↗</a>` : '';
+      return `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span>${badge} <strong style="color:var(--text)">${bpShort(p.recipient)}</strong> <span style="color:var(--muted)">→ ${chainName(p.dstChainKey)}</span>${link}</span>
+        <strong style="font-family:var(--mono);color:var(--text);white-space:nowrap">${p.amount} USDC</strong>
       </div>`;
     }).join('');
     const total = bpPayments.reduce((a, p) => a + p.amtCanonical, 0n);
     const burnFee = bpPayments.reduce((a, p) => a + p.sources.reduce((x, s) => x + ARC.gateway.defaultMaxFee(s.valueCanonical, s.chainKey), 0n), 0n);
+    const groups = bpGroups || bpGroupBy(bpPayments);
     const fwdFee = ARC.gateway.FORWARDER_FEE_EST * BigInt(bpPayments.length);
     const estFee = burnFee + fwdFee;
+    const sig = groups.length;
+    const overGroup = groups.some(g => g.payments.reduce((a, p) => a + p.sources.length, 0) > 16);
+    const sigNote = sig === 1 ? '1 signature' : `${sig} signatures — one per destination chain`;
     totalEl.innerHTML =
       `Total <strong style="font-family:var(--mono)">${ARC.formatAmt(total, 6, 4)}</strong> USDC to ${bpPayments.length} recipient${bpPayments.length > 1 ? 's' : ''}` +
-      `<div style="font-weight:400;font-size:11.5px;color:var(--muted);margin-top:4px">Est. fee ≈ ${ARC.formatAmt(estFee, 6, 4)} USDC · ${legCount === 1 ? '1 signature' : `1 signature covers all ${legCount} transfers`}${legCount > 16 ? ' <span style="color:var(--danger)">(over the 16-intent Circle limit — reduce recipients or Consolidate first)</span>' : ''}</div>`;
+      `<div style="font-weight:400;font-size:11.5px;color:var(--muted);margin-top:4px">Est. fee ≈ ${ARC.formatAmt(estFee, 6, 4)} USDC · ${sigNote}${overGroup ? ' <span style="color:var(--danger)">(a destination needs >16 transfers — Circle limit; reduce recipients on that chain or Consolidate first)</span>' : ''}</div>`;
+  }
+
+  // Group payments by destination chain — Circle allows only one destination
+  // domain per signed request, so each group is one batchSpend / one signature.
+  function bpGroupBy(payments) {
+    const map = new Map();
+    for (const p of payments) {
+      if (!map.has(p.dstChainKey)) map.set(p.dstChainKey, []);
+      map.get(p.dstChainKey).push(p);
+    }
+    return [...map.entries()].map(([dstChainKey, list]) => ({ dstChainKey, payments: list, done: false, hash: null }));
+  }
+
+  function bpUpdateGoBtn() {
+    const btn = document.getElementById('bp-go');
+    btn.style.display = 'block';
+    const next = (bpGroups || []).findIndex(g => !g.done);
+    if (next < 0) { btn.textContent = '✅ All paid'; btn.disabled = true; return; }
+    btn.disabled = false;
+    btn.textContent = bpGroups.length === 1
+      ? 'Pay all — 1 signature'
+      : `Pay ${chainName(bpGroups[next].dstChainKey)} — ${next + 1} of ${bpGroups.length}`;
   }
 
   function bpReview() {
@@ -1288,50 +1320,61 @@ html{scroll-behavior:smooth}
     }
 
     bpPayments = alloc.payments;
+    bpGroups = bpGroupBy(bpPayments);
     errEl.style.display = 'none';
-    bpRenderPlan(false, null);
-    const legCount = bpPayments.reduce((a, p) => a + p.sources.length, 0);
-    if (legCount > 16) { go.style.display = 'none'; return; }
-    go.style.display = 'block';
-    go.disabled = false;
-    go.textContent = 'Pay all — 1 signature';
+    bpRenderPlan();
+    // 16-intent cap is per destination group (per signed request).
+    const overGroup = bpGroups.some(g => g.payments.reduce((a, p) => a + p.sources.length, 0) > 16);
+    if (overGroup) { go.style.display = 'none'; return; }
+    go.onclick = bpPayGroup;
+    bpUpdateGoBtn();
   }
 
-  async function bpPayAll() {
-    if (!bpPayments || !bpPayments.length) return;
+  // Pay ONE destination group per click (one signature). Multiple groups → the
+  // user clicks again for the next chain, each within a fresh gesture so the
+  // wallet popup surfaces (see runConsolidate note on transient activation).
+  async function bpPayGroup() {
+    if (!bpGroups || !bpGroups.length) return;
+    const gi = bpGroups.findIndex(g => !g.done);
+    if (gi < 0) return;
+    const group = bpGroups[gi];
     const btn = document.getElementById('bp-go');
-    btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Working…';
+    btn.disabled = true; btn.textContent = 'Working…';
     // Fee bump: batchSpend re-signs if Circle quotes a higher per-intent fee. That
     // second signTypedData fires after an awaited fetch, so gate it behind a fresh
     // click on this button so the wallet popup surfaces in-app (see runConsolidate).
     const beforeResign = (bumped) => new Promise((resolve) => {
       setStatus('bp-status', '', `Circle requires a higher fee (~${ARC.formatAmt(bumped, 6, 4)} USDC/intent). Click to re-sign.`);
       btn.disabled = false; btn.textContent = '⚠ Approve higher fee';
-      btn.onclick = () => { btn.onclick = bpPayAll; btn.disabled = true; btn.textContent = 'Working…'; resolve(); };
+      btn.onclick = () => { btn.onclick = bpPayGroup; btn.disabled = true; btn.textContent = 'Working…'; resolve(); };
     });
     try {
       const res = await ARC.gateway.batchSpend({
-        payments: bpPayments, beforeResign,
-        onStep: (m) => setStatus('bp-status', '', m),
+        payments: group.payments, beforeResign,
+        onStep: (m) => setStatus('bp-status', '', `${chainName(group.dstChainKey)}: ${m}`),
       });
       const hash = res?.forwarded?.transactionHash || res?.mint?.tx?.hash || null;
-      const total = bpPayments.reduce((a, p) => a + p.amtCanonical, 0n);
-      setStatus('bp-status', 'ok', `✅ Paid ${bpPayments.length} recipient${bpPayments.length > 1 ? 's' : ''} in one signature`);
-      bpRenderPlan(true, hash);
-      bpPayments.forEach(p => {
+      group.done = true; group.hash = hash;
+      group.payments.forEach(p => { p._done = true; p._hash = hash; });
+      group.payments.forEach(p => {
         pushToHistory('bridge', p.dstChainKey, hash, `Batch pay ${p.amount} USDC → ${bpShort(p.recipient)} on ${chainName(p.dstChainKey)}`);
       });
       try {
-        ARC.track('spend', bpPayments[0].dstChainKey, Number(ARC.formatAmt(total, 6, 6)), hash, 'balance',
-          { address: state.addr, batch: true, recipients: bpPayments.length });
+        const t = group.payments.reduce((a, p) => a + p.amtCanonical, 0n);
+        ARC.track('spend', group.dstChainKey, Number(ARC.formatAmt(t, 6, 6)), hash, 'balance',
+          { address: state.addr, batch: true, recipients: group.payments.length });
       } catch {}
-      btn.style.display = 'none'; // batch is atomic + done
+      bpRenderPlan();
       await refreshAll();
+      const remaining = bpGroups.filter(g => !g.done).length;
+      setStatus('bp-status', 'ok', remaining
+        ? `✅ Paid ${chainName(group.dstChainKey)} · ${remaining} chain${remaining > 1 ? 's' : ''} left — click to continue`
+        : '✅ All payments complete');
     } catch (e) {
       setStatus('bp-status', 'err', ARC.explainError ? ARC.explainError(e) : String(e?.message || e));
     } finally {
-      btn.onclick = bpPayAll;
-      if (btn.style.display !== 'none') { btn.disabled = false; btn.textContent = orig; }
+      btn.onclick = bpPayGroup;
+      bpUpdateGoBtn();
     }
   }
 
@@ -1343,8 +1386,9 @@ html{scroll-behavior:smooth}
     document.getElementById('bp-preview').style.display = 'none';
     document.getElementById('bp-errors').style.display = 'none';
     const go = document.getElementById('bp-go');
-    go.style.display = 'none'; go.disabled = false; go.onclick = bpPayAll; go.textContent = 'Pay all — 1 signature';
+    go.style.display = 'none'; go.disabled = false; go.onclick = bpPayGroup; go.textContent = 'Pay all — 1 signature';
     bpPayments = null;
+    bpGroups = null;
     clearStatus('bp-status');
     openModal('modal-batchpay');
   }
@@ -1361,7 +1405,7 @@ html{scroll-behavior:smooth}
   };
   document.getElementById('bp-add').onclick = () => { bpAddRow(); bpInvalidate(); };
   document.getElementById('bp-review').onclick = bpReview;
-  document.getElementById('bp-go').onclick = bpPayAll;
+  document.getElementById('bp-go').onclick = bpPayGroup;
 
   // ───── Deposit modal ─────
   // Default chain: if user clicked from a per-chain row use that. Otherwise
