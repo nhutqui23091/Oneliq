@@ -1247,6 +1247,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
+<script src="/assets/arc-gateway.js?v=9.10.0"></script>
 <script src="/assets/arc-ui.js?v=9.10.29"></script>
 <script>
 (async () => {
@@ -4262,6 +4263,186 @@ select option:checked{background:#1a2c4a;color:#fff}
     }
   }
 
+  /* ============================================================
+     IN-CHAT GATEWAY — Deposit into / Spend from the Circle "Unified
+     Balance". Both reuse the SAME ARC.gateway helpers the Balance page
+     uses (deposit / readBalances / estimateSpend / multiSpend); the USER
+     always signs in their own wallet — the chat never holds keys.
+  ============================================================ */
+  const chainLabel = (k) => (ARC.CHAINS[k] && ARC.CHAINS[k].name) || k;
+
+  // Map a free-text chain word ("Fuji", "Base", "ethereum", "op") to a CHAINS key.
+  function resolveChainKey(word) {
+    if (!word) return null;
+    if (ARC.CHAINS[word]) return word;                       // already a key
+    const w = String(word).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const ALIAS = {
+      fuji: 'avalancheFuji', avalanche: 'avalancheFuji', avax: 'avalancheFuji',
+      sepolia: 'sepolia', ethereum: 'sepolia', eth: 'sepolia', ethereumsepolia: 'sepolia', mainnet: 'sepolia',
+      base: 'baseSepolia', basesepolia: 'baseSepolia',
+      arbitrum: 'arbitrumSepolia', arb: 'arbitrumSepolia',
+      optimism: 'optimismSepolia', op: 'optimismSepolia', opsepolia: 'optimismSepolia',
+      polygon: 'polygonAmoy', amoy: 'polygonAmoy', matic: 'polygonAmoy', pol: 'polygonAmoy',
+      unichain: 'unichainSepolia', uni: 'unichainSepolia',
+      arc: 'arc',
+    };
+    if (ALIAS[w]) return ALIAS[w];
+    for (const [k, c] of Object.entries(ARC.CHAINS)) {       // fall back to name/short match
+      const nm = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const sh = (c.short || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (nm === w || sh === w || (sh && w.includes(sh)) || (nm && nm.includes(w))) return k;
+    }
+    return null;
+  }
+  // Chains we can DEPOSIT from / SPEND across (have a GatewayWallet contract).
+  const canGateway = (k) => !!(ARC.CHAINS[k] && ARC.CHAINS[k].contracts && ARC.CHAINS[k].contracts.gatewayWallet);
+
+  // Client-side fallbacks — the 8B model sometimes omits the JSON action, so
+  // parse the user's own words for a deposit / spend intent.
+  function parseDepositFromText(text) {
+    const s = String(text || '');
+    const m = s.match(/\b(?:deposit|nạp|nap)\s+\$?([\d]+(?:\.[\d]+)?)\s*usdc?\b/i);
+    if (!m) return null;
+    const amount = Number(m[1]); if (!(amount > 0)) return null;
+    const cm = s.match(/\b(?:from|on|via|từ|tu|trên|tren)\s+([a-zA-Z][a-zA-Z]*)/i);
+    return { action: 'deposit', chain: cm ? resolveChainKey(cm[1]) : null, amount };
+  }
+  function parseSpendFromText(text) {
+    const s = String(text || '');
+    const m = s.match(/\bspend\s+\$?([\d]+(?:\.[\d]+)?)\s*usdc?\b/i);
+    if (!m) return null;
+    const amount = Number(m[1]); if (!(amount > 0)) return null;
+    const recipient = (s.match(/\b(0x[0-9a-fA-F]{40})\b/) || [])[1] || null;
+    // Destination chain: prefer an explicit "on <chain>", else "to <chain>"
+    // (but "to 0x…" is a recipient, not a chain).
+    let dst = null;
+    const on = s.match(/\bon\s+([a-zA-Z][a-zA-Z]*)/i);
+    if (on) dst = resolveChainKey(on[1]);
+    if (!dst) { const to = s.match(/\bto\s+([a-zA-Z][a-zA-Z]*)/i); if (to) dst = resolveChainKey(to[1]); }
+    return { action: 'spend', amount, to: dst, recipient };
+  }
+
+  async function handleDepositIntent(a) {
+    const chain = (a.chain && ARC.CHAINS[a.chain]) ? a.chain : resolveChainKey(a.chain);
+    const amount = Number(a.amount);
+    if (!chain || !canGateway(chain)) {
+      appendChat('ai', 'Which chain should I deposit from? e.g. "deposit 5 USDC from Fuji". Supported: Ethereum, Base, Avalanche (Fuji), Arbitrum, OP, Polygon, Unichain.');
+      return;
+    }
+    if (!(amount > 0)) { appendChat('ai', 'How much USDC would you like to deposit?'); return; }
+    const wrap = appendChatHtml('ai',
+      `<div style="font-weight:600;margin-bottom:8px">Deposit to Unified Balance</div>` +
+      `<div class="swap-quote">` +
+        `<div class="sq-row"><span>${amount} USDC</span><span class="sq-arrow">→</span><span>Unified Balance</span></div>` +
+        `<div class="sq-meta">Source: ${chainLabel(chain)} · Circle Gateway · you approve + sign the deposit</div>` +
+      `</div>` +
+      `<div class="sq-actions"><button class="sq-confirm" type="button">Confirm &amp; sign</button></div>`);
+    const btn = wrap.querySelector('.sq-confirm');
+    btn.onclick = () => confirmChatDeposit({ chain, amount }, btn);
+  }
+
+  async function confirmChatDeposit(a, btn) {
+    if (!ARC.wallet.signer) {
+      const b = document.getElementById('arc-wallet-btn'); if (b) b.click();
+      ArcUI.toast('warn', 'Connect wallet first', 'Pick a wallet to sign the deposit.');
+      return;
+    }
+    btn.disabled = true;
+    const orig = btn.textContent;
+    const status = appendChatHtml('ai', '<span class="chat-typing"><span></span><span></span><span></span></span> Preparing…');
+    const statusEl = status.querySelector('.chat-bubble');
+    const setStatus = (m) => { statusEl.textContent = m; chatScrollBottom(); };
+    try {
+      const tok = ARC.gateway.usdcOnChain(a.chain);
+      const value = ARC.parseAmt(String(a.amount), tok.decimals);
+      const result = await ARC.gateway.deposit(a.chain, value, {
+        onStep: setStatus,
+        onSubmitted: (h) => setStatus('Submitted ' + h.slice(0, 10) + '… confirming on ' + chainLabel(a.chain)),
+      });
+      const hash = result && result.tx && result.tx.hash;
+      const link = (hash && ARC.CHAINS[a.chain].explorerTx) ? ARC.CHAINS[a.chain].explorerTx(hash) : null;
+      statusEl.innerHTML = `✅ Deposited <strong>${a.amount} USDC</strong> from ${chainLabel(a.chain)} to your Unified Balance.` +
+        (link ? ` <a href="${link}" target="_blank" rel="noopener">${ARC.shortAddr(hash)} ↗</a>` : '');
+      chatMessages.push({ role: 'assistant', content: `Deposit complete: ${a.amount} USDC from ${a.chain}` });
+      persistCurrent();
+      try { ARC.track('deposit', a.chain, Number(a.amount), hash || null, 'agent', ARC.wallet.address ? { address: ARC.wallet.address } : null); } catch {}
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      statusEl.textContent = /reject|denied|cancel/i.test(msg) ? 'Deposit cancelled.' : ('Deposit failed — ' + (ARC.explainError ? ARC.explainError(e) : msg));
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+
+  async function handleSpendIntent(a) {
+    if (!ARC.wallet.address) {
+      appendChat('ai', 'Connect your wallet first so I can read your Unified Balance and route the spend.');
+      const b = document.getElementById('arc-wallet-btn'); if (b) b.click();
+      return;
+    }
+    const amount = Number(a.amount);
+    if (!(amount > 0)) { appendChat('ai', 'How much USDC would you like to spend cross-chain?'); return; }
+    let dst = (a.to && ARC.CHAINS[a.to]) ? a.to : resolveChainKey(a.to);
+    if (!dst || !ARC.CHAINS[dst]) dst = 'arc';        // Arc is the default destination
+    const recipient = (a.recipient && ethers.isAddress(a.recipient)) ? a.recipient : ARC.wallet.address;
+
+    const status = appendChatHtml('ai', '<span class="chat-typing"><span></span><span></span><span></span></span> Estimating route…');
+    const statusEl = status.querySelector('.chat-bubble');
+    let est;
+    try {
+      const balances = await ARC.gateway.readBalances(ARC.wallet.address, ARC.gateway.gatewayChains());
+      const valueCanonical = ARC.parseAmt(String(amount), 6);
+      const eligible = balances.filter(b => b.chainKey !== dst);
+      est = ARC.gateway.estimateSpend({ targetCanonical: valueCanonical, dstChainKey: dst, available: eligible, useForwarder: true });
+    } catch (e) {
+      statusEl.textContent = "Couldn't estimate the route — " + ((e && e.message) || e);
+      return;
+    }
+    if (!est.ok) { statusEl.innerHTML = '⚠️ ' + escapeHtml(est.reason || 'Not enough spendable balance for that.'); return; }
+    const srcList = est.sources.map(s => `${chainLabel(s.chainKey)} (${ARC.formatAmt(s.valueCanonical, 6, 4)})`).join(' + ');
+    const toSelf = recipient.toLowerCase() === ARC.wallet.address.toLowerCase();
+    statusEl.innerHTML =
+      `<div style="font-weight:600;margin-bottom:8px">Cross-chain spend</div>` +
+      `<div class="swap-quote">` +
+        `<div class="sq-row"><span>${amount} USDC</span><span class="sq-arrow">→</span><span>${chainLabel(dst)}</span></div>` +
+        `<div class="sq-meta">From: ${escapeHtml(srcList)}</div>` +
+        `<div class="sq-meta">Fee ~${ARC.formatAmt(est.totalFee || 0n, 6, 4)} USDC · net ${ARC.formatAmt(est.netReceived || 0n, 6, 4)} USDC · gasless mint</div>` +
+        `<div class="sq-meta">To: ${toSelf ? 'your wallet' : ARC.shortAddr(recipient)}</div>` +
+      `</div>` +
+      `<div class="sq-actions"><button class="sq-confirm" type="button">Confirm &amp; sign</button></div>`;
+    const btn = statusEl.querySelector('.sq-confirm');
+    btn.onclick = () => confirmChatSpend({ amount, dst, recipient, plan: est.sources }, btn);
+  }
+
+  async function confirmChatSpend(a, btn) {
+    if (!ARC.wallet.signer) {
+      const b = document.getElementById('arc-wallet-btn'); if (b) b.click();
+      ArcUI.toast('warn', 'Connect wallet first', 'Pick a wallet to sign the spend.');
+      return;
+    }
+    btn.disabled = true;
+    const orig = btn.textContent;
+    const status = appendChatHtml('ai', '<span class="chat-typing"><span></span><span></span><span></span></span> Preparing…');
+    const statusEl = status.querySelector('.chat-bubble');
+    const setStatus = (m) => { statusEl.textContent = m; chatScrollBottom(); };
+    try {
+      const res = await ARC.gateway.multiSpend({
+        sources: a.plan, dstChainKey: a.dst, recipient: a.recipient, useForwarder: true, onStep: setStatus,
+      });
+      const mintHash = (res && res.mint && res.mint.tx && res.mint.tx.hash) || (res && res.forwarded && res.forwarded.transactionHash) || null;
+      const exp = ARC.CHAINS[a.dst] && ARC.CHAINS[a.dst].explorer;
+      const link = (mintHash && exp) ? `${exp}/tx/${mintHash}` : null;
+      statusEl.innerHTML = `✅ Spent <strong>${a.amount} USDC</strong> to ${chainLabel(a.dst)}.` +
+        (link ? ` <a href="${link}" target="_blank" rel="noopener">mint ↗</a>` : '');
+      chatMessages.push({ role: 'assistant', content: `Cross-chain spend complete: ${a.amount} USDC → ${a.dst}` });
+      persistCurrent();
+      try { ARC.track('spend', a.dst, Number(a.amount), mintHash, 'agent', ARC.wallet.address ? { address: ARC.wallet.address } : null); } catch {}
+    } catch (e) {
+      const msg = (e && e.message) || String(e);
+      statusEl.textContent = /reject|denied|cancel/i.test(msg) ? 'Spend cancelled.' : ('Spend failed — ' + (ARC.explainError ? ARC.explainError(e) : msg));
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+
   async function chatSend() {
     const input = document.getElementById('chat-input');
     const text = (input.value || '').trim();
@@ -4307,14 +4488,17 @@ select option:checked{background:#1a2c4a;color:#fff}
       const data = await r.json();
       const reply = (data.reply && data.reply.trim()) || '…';
       chatMessages.push({ role: 'assistant', content: reply });
-      // Prefer the model's action; fall back to parsing a swap from the user text
-      // (the 8B model occasionally omits the JSON).
-      let swapAction = (data.action && data.action.action === 'swap') ? data.action : null;
-      if (!swapAction && !data.action) swapAction = parseSwapFromText(text);
-      if (swapAction) {
-        // One-off swap → render an in-chat quote card with a Confirm button.
+      // Prefer the model's action; fall back to parsing the user's own text
+      // (the 8B model occasionally omits the JSON). Swap / deposit / spend all
+      // render an in-chat card the USER signs; prefill fills the form instead.
+      let act = data.action || null;
+      if (!act) act = parseSwapFromText(text) || parseDepositFromText(text) || parseSpendFromText(text);
+      const kind = act && act.action;
+      if (kind === 'swap' || kind === 'deposit' || kind === 'spend') {
         appendChat('ai', reply);
-        await handleSwapIntent(swapAction);
+        if (kind === 'swap') await handleSwapIntent(act);
+        else if (kind === 'deposit') await handleDepositIntent(act);
+        else await handleSpendIntent(act);
       } else {
         let note = null;
         if (data.action) {
