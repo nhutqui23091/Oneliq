@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="oneliq-discord-client-id" content="1514587016157859900"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
+<link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
+<meta name="description" content="A complete overview of Unified Balance on Oneliq: one spendable USDC pool across eight chains, with Auto, Single and Manual spend, plus Batch Pay to many recipients and Consolidate to sweep every chain into one, each in a single signature."/>
+<link rel="canonical" href="https://oneliq.xyz/blog/overview-unified-balance"/>
+<meta property="og:title" content="Overview of Unified Balance on Oneliq"/>
+<meta property="og:description" content="One spendable USDC pool across eight chains. Spend with Auto, Single or Manual, pay many recipients with Batch Pay, and sweep every chain into one with Consolidate. Each settles in a single signature."/>
+<meta property="og:image" content="https://oneliq.xyz/assets/social/blog-balance-banner.svg"/>
+<meta property="og:url" content="https://oneliq.xyz/blog/overview-unified-balance"/>
+<meta property="og:type" content="article"/>
+<title>Overview of Unified Balance on Oneliq | Oneliq Blog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A1628;--bg2:#0F1E36;
+  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
+  --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
+  --gateway:#38BDF8;
+  --warn:#FFB454;--danger:#FF7A7A;
+  --display:'Space Grotesk','Inter',system-ui,sans-serif; --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'Space Mono','DM Mono',ui-monospace,monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.7}
+.aurora-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+  background:radial-gradient(ellipse 100% 40% at 50% 0%,rgba(56,189,248,0.09) 0%,transparent 60%),
+  linear-gradient(180deg,#0A1628 0%,#0E1F39 60%,#0A1628 100%)}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .nav-logo{justify-self:start}
+nav .nav-links{justify-self:center}
+nav .nav-right{justify-self:end}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-img{height:28px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
+.logo-tag{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);font-family:var(--mono);text-transform:uppercase;border-left:1px solid var(--border);padding-left:10px;margin-left:4px}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:8px 16px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;text-decoration:none}
+.nav-link:hover{color:var(--text);background:var(--surface)}
+.nav-link.active{color:var(--text);background:var(--surface)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(255,255,255,0.14)}
+
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:120px 24px 80px}
+.crumb{font-size:12px;font-family:var(--mono);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px}
+.crumb a{color:var(--muted);text-decoration:none}
+.crumb a:hover{color:var(--text)}
+.eyebrow{font-size:12px;font-family:var(--mono);color:var(--gateway);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+h1.title{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin-bottom:18px}
+h1.title .grad{background:linear-gradient(90deg,#38BDF8,#4DD6DB,#7BE495);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lead{font-size:19px;color:#C8D1E0;line-height:1.6;margin-bottom:28px;font-weight:400}
+.byline{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.byline-author{font-weight:600;color:var(--text)}
+.byline-sep{color:var(--border2)}
+.banner{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:48px;background:#0A1628}
+
+article{font-size:17px;line-height:1.78}
+article p{color:#D8DFEA;margin-bottom:22px}
+article p strong{color:var(--text);font-weight:600}
+article p em{color:var(--text);font-style:italic;background:rgba(56,189,248,0.08);padding:1px 4px;border-radius:3px}
+article a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.3);transition:border-color .2s}
+article a:hover{border-bottom-color:var(--arc1)}
+article a:visited{color:var(--arc1)}
+article h2{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:72px 0 20px;line-height:1.2;color:var(--text)}
+article h2:first-of-type{margin-top:12px}
+article h3{font-size:22px;font-weight:600;margin:44px 0 14px;letter-spacing:-.01em;color:var(--text)}
+article ul,article ol{padding-left:24px;margin-bottom:24px}
+article li{color:#D8DFEA;margin-bottom:8px}
+article li::marker{color:var(--gateway)}
+
+code{font-family:var(--mono);font-size:14px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.18);padding:1px 6px;border-radius:5px;color:var(--gateway)}
+
+.callout{border-left:3px solid var(--gateway);background:rgba(56,189,248,0.06);padding:16px 20px;border-radius:0 10px 10px 0;margin:28px 0}
+.callout.warn{border-left-color:var(--warn);background:rgba(255,180,84,0.06)}
+.callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--gateway)}
+.callout.warn .callout-title{color:var(--warn)}
+.callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
+
+table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.t th,.t td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.t th{background:rgba(255,255,255,0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.t td{color:#C8D1E0}
+.t tr:last-child td{border-bottom:none}
+
+.spend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:36px 0 44px}
+.sp-card{padding:22px 22px 24px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));position:relative;overflow:hidden;transition:border-color .2s}
+.sp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;background:linear-gradient(180deg,rgba(56,189,248,0.10) 0%,transparent 100%);pointer-events:none}
+.sp-card:hover{border-color:var(--border2)}
+.sp-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gateway);margin-bottom:10px;display:block;position:relative}
+.sp-name{font-size:18px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.015em;line-height:1.25;position:relative}
+.sp-desc{font-size:14px;color:#D8DFEA;line-height:1.55;position:relative}
+@media(max-width:720px){.spend-grid{grid-template-columns:1fr}}
+
+.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(56,189,248,0.08),rgba(255,255,255,0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
+.cta-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
+.cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.42);color:var(--gateway);transition:all .2s;margin:0 4px}
+.cta-card a:hover{background:rgba(56,189,248,0.24);border-color:var(--gateway)}
+.cta-card a.alt{background:rgba(77,214,219,0.12);border-color:rgba(77,214,219,0.36);color:var(--arc1)}
+.cta-card a.alt:hover{background:rgba(77,214,219,0.2);border-color:var(--arc1)}
+
+.foot{margin-top:60px;padding-top:28px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;color:var(--muted);flex-wrap:wrap;gap:12px}
+.foot a{color:var(--muted);text-decoration:none}
+.foot a:hover{color:var(--arc1)}
+
+@media(max-width:768px){.wrap{padding:100px 18px 60px}.nav-links{display:none}h1.title{font-size:32px}article h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<nav>
+  <a class="nav-logo" href="/">
+    <img class="logo-img" src="/assets/logos/wordmark-oneliq.png" alt="Oneliq" height="28"/>
+    <span class="logo-tag">Blog</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="/trade">Trade</a>
+    <a class="nav-link" href="/balance">Balance</a>
+    <a class="nav-link" href="/agent">Agent</a>
+    <a class="nav-link active" href="/blog">Blog</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn-ghost" href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    <a class="btn-primary" href="/balance">Try Balance ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/blog">Blog</a> &nbsp;/&nbsp; Overview of Unified Balance</div>
+  <div class="eyebrow">Product Overview · Circle Gateway</div>
+  <h1 class="title">Overview of <span class="grad">Unified Balance on Oneliq</span></h1>
+  <p class="lead">Unified Balance turns USDC scattered across eight chains into a single spendable pool. Spend with Auto, Single or Manual, pay many recipients at once with Batch Pay, and sweep every chain into one with Consolidate. Wherever possible, it all settles in a single wallet signature.</p>
+
+  <div class="byline">
+    <span class="byline-author">Oneliq Team</span>
+    <span class="byline-sep">·</span>
+    <span>August 9, 2026</span>
+    <span class="byline-sep">·</span>
+    <span>6 min read</span>
+  </div>
+
+  <img class="banner" src="/assets/social/blog-balance-banner.svg" alt="Overview of Unified Balance on Oneliq"/>
+
+  <article>
+
+    <p><a href="/balance">Balance</a> is Oneliq's interface to a chain-agnostic USDC pool backed by Circle Gateway. Instead of bridging manually before every payment, you hold USDC wherever it lands and spend it as one number. Oneliq figures out which chains to draw from and, whenever it can, packs the whole movement into one signature.</p>
+
+    <div class="callout">
+      <div class="callout-title">TL;DR</div>
+      <div class="callout-body">
+        Unified Balance is one spendable USDC pool across <strong>eight chains</strong>, built directly on the <strong>Circle Gateway</strong> protocol. <strong>Spend</strong> in three modes (Auto, Single, Manual), <strong>Batch Pay</strong> many recipients in one signature per destination, and <strong>Consolidate</strong> to sweep every chain onto one. The destination mint is <strong>gasless by default</strong>.
+      </div>
+    </div>
+
+    <h2>What it is</h2>
+
+    <p>When you deposit USDC into Unified Balance, the token is held in Gateway's escrow on the source chain and your balance increases by that amount. From that point the balance is chain-agnostic. It does not live on Arc, or Base, or Arbitrum. It lives in the pool, redeemable on any chain where Gateway is deployed.</p>
+
+    <p>This removes the fragmentation that appears when the same asset is stranded in separate wallets on separate chains. Instead of tracking eight balances, you track one. Oneliq is built <strong>directly on the Circle Gateway protocol</strong> (deposit, burn intent, attestation, mint), so it owns the full orchestration: source selection, fee handling, cross-chain settlement, and gasless delivery.</p>
+
+    <h2>Spend</h2>
+
+    <p>The core action. You enter a recipient, an amount, and a destination chain, and Oneliq handles the sourcing. Three modes cover the range from "just do it" to "I want full control."</p>
+
+    <div class="spend-grid">
+      <div class="sp-card">
+        <span class="sp-tag">// ⚡ Auto</span>
+        <div class="sp-name">Auto</div>
+        <p class="sp-desc">The default. Oneliq selects source chains for you, available-USDC first. When no single chain holds enough, it aggregates several into one <code>BurnIntentSet</code> and settles in a single signature. You never think about where the money comes from.</p>
+      </div>
+      <div class="sp-card">
+        <span class="sp-tag">// Single</span>
+        <div class="sp-name">Single</div>
+        <p class="sp-desc">Spend entirely from one chosen source chain. Simple and predictable when you already know which balance you want to draw down first.</p>
+      </div>
+      <div class="sp-card">
+        <span class="sp-tag">// Manual</span>
+        <div class="sp-name">Manual</div>
+        <p class="sp-desc">Allocate the sources yourself, chain by chain. Full control over exactly how the balance is composed for users who want to decide each leg.</p>
+      </div>
+    </div>
+
+    <p>Before you sign, Oneliq shows the route, the per-intent fee, and the recipient outcome. Cost is visible up front, not a surprise inside the wallet popup. All three modes deliver a standard USDC transfer to the recipient. The difference is upstream only.</p>
+
+    <h2>⇉ Batch Pay</h2>
+
+    <p>Pay many recipients at once from the Unified Balance. Each recipient gets its own address, amount, and destination chain. Oneliq runs a non-overlapping allocation across your balances so no chain's funds are ever double-spent, then groups recipients <strong>by destination chain</strong>: one signature per destination.</p>
+
+    <p>Recipients that all land on the same chain settle in a single signature. If your payout spans several destination chains, that becomes one signature per chain, processed one click at a time. It is built for payroll, contributor payouts, or fanning funds out to a set of wallets without a bridge in between.</p>
+
+    <div class="callout">
+      <div class="callout-title">One preview, then pay</div>
+      <div class="callout-body">Batch Pay shows a per-recipient plan with the source chains and the estimated fee before anything is signed. You confirm the whole batch from that preview.</div>
+    </div>
+
+    <h2>⤵ Consolidate</h2>
+
+    <p>The mirror of Batch Pay. Instead of paying out, you sweep everything back in. Consolidate drains the spendable balance from every chain except your chosen destination onto that one chain, in a <strong>single signature</strong>. It reuses the same multi-source engine as Auto spend, with the recipient set to your own wallet.</p>
+
+    <p>Chains whose balance is too small to clear their fee floor are skipped automatically and listed in the preview, rather than failing the whole sweep. Use Consolidate to tidy up dust across chains, or to stage liquidity on the chain you need next.</p>
+
+    <h2>Why it works this way</h2>
+
+    <ul>
+      <li><strong>One signature, not one per chain.</strong> Auto spend, Batch Pay (per destination), and Consolidate all collapse multi-chain movement into a single EIP-712 signature.</li>
+      <li><strong>Gasless delivery.</strong> Oneliq routes the destination mint through Circle's Forwarding Service, so the recipient receives USDC without holding gas first. The per-intent source burn fee is separate and always applies.</li>
+      <li><strong>Honest liquidity states.</strong> When a spend can't be fully covered, Oneliq tells you why: insufficient balance, no viable route, or needs aggregation across sources. Not a generic error.</li>
+    </ul>
+
+    <div class="callout">
+      <div class="callout-title">Gasless mint, on by default</div>
+      <div class="callout-body">Because Arc charges gas in USDC, a brand-new wallet would normally need gas before it could claim an incoming transfer. Oneliq routes the destination mint through <strong>Circle's Forwarding Service</strong>, so Circle submits and pays for the mint. The recipient receives USDC <strong>without holding any gas first</strong>. <a href="/blog/gasless-mint">Read how Gasless Mint works &rarr;</a></div>
+    </div>
+
+    <h2>Supported chains</h2>
+
+    <p>Unified Balance on Oneliq is connected to eight testnets. Deposits from any of these networks enter the same pool, and any spend can settle to any of them.</p>
+
+    <table class="t">
+      <tr><th>Network</th><th>Chain ID</th></tr>
+      <tr><td><strong>Arc Testnet</strong></td><td>5042002</td></tr>
+      <tr><td>Avalanche Fuji</td><td>43113</td></tr>
+      <tr><td>Base Sepolia</td><td>84532</td></tr>
+      <tr><td>Ethereum Sepolia</td><td>11155111</td></tr>
+      <tr><td>Optimism Sepolia</td><td>11155420</td></tr>
+      <tr><td>Arbitrum Sepolia</td><td>421614</td></tr>
+      <tr><td>Polygon Amoy</td><td>80002</td></tr>
+      <tr><td>Unichain Sepolia</td><td>1301</td></tr>
+    </table>
+
+    <div class="cta-card">
+      <h3>One pool. Eight chains. One signature.</h3>
+      <p>Spend, Batch Pay, and Consolidate are live on Oneliq. Deposit USDC from any supported testnet and move it however you need.</p>
+      <a href="/balance">Open Balance</a>
+      <a class="alt" href="/trade">Try Trade</a>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Testnet only. No real money.</div>
+      <div class="callout-body">Everything on Oneliq today runs on <strong>testnets</strong>. Unified Balance uses testnet USDC on <strong>Arc Testnet</strong> and seven other test networks. <strong>Never send mainnet USDC to a testnet address.</strong> Funds sent to a testnet address are unrecoverable.</div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:48px;border-top:1px solid var(--border);padding-top:18px"><em>Oneliq is a non-custodial frontend currently on testnet networks. Unified Balance is powered by Circle Gateway. Nothing here is real money or financial advice. We don't custody funds; you always retain control of your wallet.</em></p>
+
+  </article>
+
+  <div class="foot">
+    <span>© 2026 Oneliq · Built on Arc Testnet</span>
+    <div>
+      <a href="/blog">← Back to blog</a> &nbsp;·&nbsp;
+      <a href="https://x.com/oneliq_" target="_blank" rel="noopener noreferrer">X</a> &nbsp;·&nbsp;
+      <a href="https://discord.gg/7XUPdWWrGk" target="_blank" rel="noopener noreferrer">Discord</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
