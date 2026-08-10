@@ -8,8 +8,12 @@
 
 /swap    /trade   301
 /bridge  /trade   301
-/farm    /token   302
-/deploy  /token   301
+
+# /token (Create Token) was dropped. These used to point at it, which meant a
+# 301 straight into a 404 — send them to the nearest live surface instead.
+/farm    /trade   302
+/deploy  /trade   301
+/token   /trade   301
 
 # Dropped surfaces — redirect to nearest live page
 /vault   /balance 301

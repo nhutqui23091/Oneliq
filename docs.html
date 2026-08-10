@@ -310,6 +310,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <a class="side-link" href="#trade">Trade</a>
       <a class="side-link" href="#balance">Unified Balance</a>
       <a class="side-link" href="#agent">Oneliq AI</a>
+      <a class="side-link" href="#portal">Portal</a>
       <a class="side-link" href="#history">History</a>
       <a class="side-link" href="#dashboard">Dashboard</a>
     </div>
@@ -352,7 +353,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     <div class="docs-meta">
       <span class="pill"><span class="dot"></span> Public Beta · Arc Testnet</span>
       <span class="pill">Version 0.10.0</span>
-      <span class="pill">Updated 2026-05-20</span>
+      <span class="pill">Updated 2026-08-11</span>
     </div>
 
     <div class="card-grid">
@@ -384,11 +385,12 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </p>
     <table class="docs-table">
       <tr><th style="width:24%">Surface</th><th>What it does</th><th style="width:22%">Built on</th></tr>
-      <tr><td><strong>Trade</strong></td><td>Spend USDC anywhere - swap inside Arc (USDC ⇄ EURC) or bridge cross-chain. One panel, one source picker (wallet + Gateway pre-deposits), one destination.</td><td>OneliqRouter → Circle Curve pool + CCTP V2</td></tr>
-      <tr><td><strong>Unified Balance</strong></td><td>One USDC balance across every supported chain. Deposit from any chain, spend instantly on Arc - no bridge clicks, no wrapped tokens.</td><td>Circle Gateway V1</td></tr>
-      <tr><td><strong>Oneliq AI</strong> <em style="color:var(--peach);font-size:12px">preview</em></td><td>Sign once. Your agent keeps any wallet topped up automatically - or runs scheduled USDC transfers across chains. Daily safety cap, revocable anytime.</td><td>Circle Programmable Wallets + Paymaster</td></tr>
-      <tr><td><strong>History</strong></td><td>A receipt-style feed of every Trade, Balance, and Agent moment on your USDC activity. Filter by surface, jump to the chain explorer in one click.</td><td>Local activity log + agent API</td></tr>
-      <tr><td><strong>Dashboard</strong> <em style="color:var(--muted);font-size:12px">soon</em></td><td>Operator control center. Live portfolio across chains, agent fleet view, settlement volume, quick-actions tile grid.</td><td>Read-only aggregator</td></tr>
+      <tr><td><strong>Trade</strong></td><td>Spend USDC anywhere - swap inside Arc (USDC ⇄ EURC) or bridge cross-chain. One panel, one source picker (wallet + Gateway pre-deposits), one destination. The output can be parked straight into your Unified Balance.</td><td>OneliqRouter → Circle Curve pool + CCTP V2</td></tr>
+      <tr><td><strong>Unified Balance</strong></td><td>One USDC balance across every supported chain. Deposit from any chain, spend instantly on Arc - no bridge clicks, no wrapped tokens. Batch Pay, Consolidate, and Distribute sit on top of the same engine.</td><td>Circle Gateway V1</td></tr>
+      <tr><td><strong>Oneliq AI</strong> <em style="color:var(--peach);font-size:12px">preview</em></td><td>Describe what you want in plain language; the assistant drafts the automation rule, the swap, or the cross-chain payment and hands it to you to sign. Daily safety cap, revocable anytime.</td><td>Cloudflare Workers AI + Circle Programmable Wallets</td></tr>
+      <tr><td><strong>Portal</strong></td><td>Daily on-chain check-in with Star Points, streaks, badges, referrals, and a live leaderboard - the loyalty layer over everything else.</td><td>OneliqCheckIn on Arc L1</td></tr>
+      <tr><td><strong>History</strong></td><td>A receipt-style feed of every Trade, Balance, and Agent moment on your USDC activity. Filter by surface, jump to the chain explorer in one click.</td><td>Per-wallet history API + agent API</td></tr>
+      <tr><td><strong>Dashboard</strong></td><td>Your portfolio home. Total value with 24h change, holdings per token, allocation donut, unified balance across Gateway chains, and recent activity.</td><td>Read-only aggregator</td></tr>
     </table>
 
     <h3 class="docs-h3" id="who-is-it-for">Who is this for?</h3>
@@ -411,15 +413,16 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     <!-- ─── ARCHITECTURE ─── -->
     <h2 class="docs-h2" id="architecture">Architecture</h2>
     <p class="docs-p">
-      Oneliq is a thin frontend over Circle's stablecoin stack and the Arc Layer&nbsp;1. There is no
-      Oneliq-owned smart contract on any chain. What lives on our origin is static HTML, a few KB of
-      shared JavaScript, a handful of stateless proxy routes, and a single Cloudflare Worker that
-      executes scheduled agent runs.
+      Oneliq is a thin frontend over Circle's stablecoin stack and the Arc Layer&nbsp;1. We deploy
+      exactly two small contracts on Arc - <strong>OneliqRouter</strong> (the swap fee router) and
+      <strong>OneliqCheckIn</strong> (Portal check-ins) - and neither can hold your balance. Everything
+      that moves value is Circle's. What lives on our origin is static HTML, a few KB of shared
+      JavaScript, a handful of stateless proxy routes, and two Cloudflare Workers.
     </p>
 
     <pre class="arch"><span class="meta"># Oneliq layered architecture</span>
 <span class="layer-name">┌─ UI Layer ────────────────────────────────────────────────────────────┐</span>
-<span class="item">│  index · trade · balance · agent · history · token · dashboard        │</span>
+<span class="item">│  index · trade · balance · agent · portal · history · dashboard       │</span>
 <span class="meta">│   plain HTML + CSS + vanilla JS, no framework, no build step          │</span>
 <span class="layer-name">└────────────────────────────────────────────────────────────────────────┘</span>
                                   <span class="arrow">↓</span>
@@ -430,15 +433,20 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 <span class="item">│  arc-ui.js / .css  </span><span class="meta">→ shared UI atoms (modal, toast, skeleton, nav)  </span><span class="item">│</span>
 <span class="layer-name">└────────────────────────────────────────────────────────────────────────┘</span>
                                   <span class="arrow">↓</span>
-<span class="layer-name">┌─ Cloudflare Pages Functions (proxies + agent API) ────────────────────┐</span>
+<span class="layer-name">┌─ Cloudflare Pages Functions (proxies, agent, AI, Portal) ─────────────┐</span>
 <span class="item">│  /api/circle-proxy/*   </span><span class="meta">→ CCTP V2 IRIS attestation API                 </span><span class="item">│</span>
 <span class="item">│  /api/gateway-proxy/*  </span><span class="meta">→ Circle Gateway public REST API               </span><span class="item">│</span>
 <span class="item">│  /api/agent/*          </span><span class="meta">→ register / list / pause / revoke agents      </span><span class="item">│</span>
+<span class="item">│  /api/ai/*             </span><span class="meta">→ Oneliq AI chat on Workers AI                 </span><span class="item">│</span>
+<span class="item">│  /api/history/*        </span><span class="meta">→ per-wallet Trade / Balance receipts          </span><span class="item">│</span>
+<span class="item">│  /api/recipients/*     </span><span class="meta">→ saved payees for Batch Pay                   </span><span class="item">│</span>
 <span class="item">│  /api/metrics/*        </span><span class="meta">→ aggregated read-only telemetry rollup        </span><span class="item">│</span>
+<span class="item">│  /auth/*               </span><span class="meta">→ Portal check-in, points, streaks, leaderboard</span><span class="item">│</span>
 <span class="layer-name">└────────────────────────────────────────────────────────────────────────┘</span>
                                   <span class="arrow">↓</span>
-<span class="layer-name">┌─ Cloudflare Worker (cron, every minute) ──────────────────────────────┐</span>
+<span class="layer-name">┌─ Cloudflare Workers (scheduled) ──────────────────────────────────────┐</span>
 <span class="item">│  agent-cron       </span><span class="meta">→ scans rules, fires Programmable Wallet executions  </span><span class="item">│</span>
+<span class="item">│  kv-backup        </span><span class="meta">→ nightly KV snapshot of profiles and history        </span><span class="item">│</span>
 <span class="layer-name">└────────────────────────────────────────────────────────────────────────┘</span>
                                   <span class="arrow">↓</span>
 <span class="layer-name">┌─ External protocols (we don't operate any of these) ──────────────────┐</span>
@@ -452,8 +460,9 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 
     <h3 class="docs-h3">What "non-custodial" means in practice</h3>
     <ul class="docs-ul">
-      <li>Every state-changing user action is a transaction signed by <em>your</em> wallet against a third-party contract (Circle's Gateway, CCTP, App Kit Swap router, or an ERC-20 you just deployed).</li>
-      <li>Oneliq has no privileged role on any of these contracts: no <code>owner</code>, no <code>admin</code>, no upgrade path. Read the verified source on the Arc explorer.</li>
+      <li>Every state-changing user action is a transaction signed by <em>your</em> wallet - against Circle's Gateway, CCTP, or the Curve pool, or against one of our two published contracts.</li>
+      <li>Oneliq has no privileged role on any Circle or Arc contract: no <code>owner</code>, no <code>admin</code>, no upgrade path.</li>
+      <li>Of our own two, <strong>OneliqCheckIn</strong> is fully immutable - no owner, no admin, and it moves no funds. <strong>OneliqRouter</strong> does have an owner, deliberately limited to two things: changing the swap fee (hard-capped at <strong>1%</strong> in the bytecode, currently 0.30%) and withdrawing the fees the router has collected. It cannot touch a user balance, because it only holds the USDC in flight inside the swap transaction itself. Read the verified source on the Arc explorer.</li>
       <li>The agent runner moves funds only along the rules you signed, via a Circle Programmable Wallet you authorized via EIP-2612 permit. You can pause or revoke any agent in one click - that yanks the permit and stops every future execution.</li>
       <li>The proxy routes (<code>/api/*</code>) only reformulate read requests to Circle's public APIs. They cannot move funds, sign messages, or hold custody.</li>
     </ul>
@@ -467,7 +476,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <li><strong>Add Arc Testnet.</strong> Open <a href="/trade">oneliq.xyz/trade</a>, click <em>Connect</em>, and approve the network prompt. Manual params are in the <a href="#network-info">Network info</a> table below.</li>
       <li><strong>Get testnet USDC.</strong> Use the <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">Circle faucet</a> on your address. Arc uses USDC as native gas, so one faucet drip covers both spending and gas fees. The same USDC works for Trade, Balance, and Agent.</li>
       <li><strong>Open <a href="/balance">Balance</a>.</strong> Deposit USDC from any supported chain (Sepolia, Base, Fuji, Arbitrum, OP, Polygon, Unichain) into the Gateway. Your unified balance updates in seconds.</li>
-      <li><strong>Spend from <a href="/trade">Trade</a>.</strong> Pick a destination chain and recipient. Multi-source unified spend pulls from N chains in one transfer and mints native USDC on the destination.</li>
+      <li><strong>Spend from <a href="/balance">Balance</a>.</strong> Pick a destination chain and recipient. Multi-source unified spend pulls from N chains in one signature and mints native USDC on the destination. <a href="/trade">Trade</a> is the surface for swapping and bridging instead.</li>
     </ol>
 
     <div class="callout">
@@ -549,6 +558,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <li><strong>Slippage.</strong> Default 0.5%. Presets 0.1% / 0.5% / 1% / custom (hard cap 5%).</li>
       <li><strong>Route box.</strong> Shows rate, price impact, network fee, min received, ETA.</li>
       <li><strong>Resumability.</strong> A burn tx hash is the only thing needed to mint on the destination later. Close the tab mid-flight, return to <code>/trade</code> with the same wallet - the pending mint appears automatically.</li>
+      <li><strong>Park the output.</strong> When the swap or bridge lands plain USDC in your own wallet, the route offers an extra step that deposits it straight into your <a href="#balance">Unified Balance</a>. It costs one more transaction and Circle needs finality before the funds count as spendable, so it saves a context switch rather than gas. Offered only when you are the recipient - <code>deposit()</code> credits the sender, so parking a third-party payment would credit the wrong person.</li>
       <li><strong>Activity rail.</strong> Live tx ledger on the right - last 10 actions deep-linked to per-chain explorer.</li>
     </ul>
 
@@ -624,6 +634,12 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       a single signature; a payout spanning K destination chains becomes K signatures, one click each.
       Built for payroll, contributor payouts, or fanning funds out to a set of wallets.
     </p>
+    <p class="docs-p">
+      Rows can be typed one at a time or pasted in bulk - <code>address, amount, chain</code> per line,
+      with the chain column optional. Everyone you successfully pay is remembered in a
+      <strong>recipient book</strong> stored against your wallet address, so the list follows you to
+      another browser or device instead of living in one browser's storage.
+    </p>
     <div class="callout note">
       <div class="callout-title">Circle's per-request rules</div>
       <div class="callout-body">A single <code>BurnIntentSet</code> must share one destination domain, so cross-chain batches are grouped per destination. Each group is also capped at <strong>16 intents</strong> per request. Note the cap counts <em>intents</em>, not recipients: every source chain a recipient draws from is its own intent, so a fragmented balance uses the budget faster. Oversized groups are split into extra signatures automatically, and the preview says how many and why.</div>
@@ -637,6 +653,24 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       recipient set to you. Chains whose balance is too small to clear their per-intent fee floor are
       skipped automatically (and listed in the preview) rather than failing the whole sweep. Use it to
       tidy dust across chains or stage liquidity where you need it next.
+    </p>
+
+    <h4 class="docs-h4">⇱ Distribute</h4>
+    <p class="docs-p">
+      <strong>Distribute</strong> is Batch Pay with yourself as every recipient: it pushes spendable
+      balance back out from the unified pool to your own wallets on the chains you choose. It is
+      deliberately <em>not</em> the mirror of Consolidate. Consolidate is one signature because every
+      intent shares a single destination; each chain you distribute to is its own destination, so it
+      is its own signature and its own fee. The modal says so up front rather than implying symmetry.
+    </p>
+
+    <h4 class="docs-h4">If you close the tab mid-transfer</h4>
+    <p class="docs-p">
+      A forwarded spend is recorded locally the moment it is submitted, together with the attestation
+      needed to finish it. Reconnect the same wallet and Oneliq re-checks the transfer with Gateway:
+      already minted, it just clears the record; still pending, it waits for the forwarder and falls
+      back to a self-mint if that fails. Terminal outcomes (failed or expired) are cleared rather than
+      retried forever.
     </p>
 
     <div class="callout note">
@@ -674,11 +708,12 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       you review and sign every action.
     </p>
     <p class="docs-p">
-      Under the chat is the same autopilot engine, in two modes: <strong>Auto Top-Up</strong> (keep a
-      target wallet above a floor) and <strong>Scheduled Send</strong> (recurring USDC transfers across
-      chains and wallets, once/daily/weekly/monthly). Both run on Circle Programmable Wallets with Circle
-      Paymaster-sponsored gas - you sign once, the agent runs on its own, and you can pause or revoke at
-      any moment.
+      Under the chat is the same autopilot engine, in three modes: <strong>Auto Top-Up</strong> (keep a
+      target wallet above a floor), <strong>Scheduled Send</strong> (recurring USDC transfers across
+      chains and wallets, once/daily/weekly/monthly), and <strong>Recurring Buy</strong> (a USDC ⇄ EURC
+      swap on a cadence, delivered to your own wallet). All three run on Circle Programmable Wallets with
+      Circle Paymaster-sponsored gas - you sign once, the agent runs on its own, and you can pause or
+      revoke at any moment.
     </p>
 
     <h3 class="docs-h3">Chat interface</h3>
@@ -687,6 +722,15 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       "top up my ops wallet whenever it drops below 50 USDC" or "send 100 USDC to this address every
       Monday" and it populates the config panel with the matching rule. Nothing is authorized until you
       confirm and sign - the chat is an input method, not an executor.
+    </p>
+    <p class="docs-p">
+      It also handles one-off actions without leaving the conversation. "Swap 5 EURC to USDC" renders a
+      live quote card with a Confirm button; "send 20 USDC to 0x… on Base" renders a route and fee card
+      for a cross-chain spend out of your <a href="#balance">Unified Balance</a>. Both are still signed
+      by your wallet. The agent itself only <em>reads</em> your unified balance - it cannot spend it,
+      because a burn intent is signed for one fixed amount and there is nothing an unattended cron could
+      reuse. When a rule's wallet-side funding looks thin, the pre-flight says how much is parked in
+      Gateway and that you need to move it first.
     </p>
 
     <h3 class="docs-h3">How it works</h3>
@@ -710,12 +754,34 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <tr><th>Mode</th><th>When it fires</th><th>Use case</th></tr>
       <tr><td><strong>Auto Top-Up</strong></td><td>Target wallet's USDC drops below your floor</td><td>Keep an ops wallet, a hot wallet, or a treasury sub-account always funded</td></tr>
       <tr><td><strong>Scheduled Send</strong></td><td>Calendar: once / daily / weekly / monthly</td><td>Recurring payouts, payroll, subscription disbursements</td></tr>
+      <tr><td><strong>Recurring Buy</strong></td><td>Calendar: once / daily / weekly / monthly</td><td>Dollar-cost averaging between USDC and EURC on Arc, delivered to your own wallet</td></tr>
     </table>
 
     <div class="callout note">
       <div class="callout-title">Preview status</div>
       <div class="callout-body">The agent is in <strong>preview</strong>. Mainnet flows wait on Arc mainnet + the Circle Programmable Wallets production GA. Dry-run executions, telemetry, and feedback are all welcome - Discord is the fastest channel.</div>
     </div>
+
+    <!-- ─── PORTAL ─── -->
+    <h2 class="docs-h2" id="portal">Portal</h2>
+    <p class="docs-p">
+      The <a href="/portal"><code>/portal</code></a> page is the loyalty layer over every other surface.
+      Checking in is a real transaction against <strong>OneliqCheckIn</strong>
+      (<code>0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10</code>) on Arc, not a database write - the
+      contract is immutable and counts days in UTC, so your record is verifiable on the explorer
+      independently of us.
+    </p>
+    <ul class="docs-ul">
+      <li><strong>Star Points.</strong> A deterministic score computed from what you have actually done - check-ins, streak length, badges, and referrals. The same inputs always produce the same total, so the number can be recomputed from scratch and audited.</li>
+      <li><strong>Streaks.</strong> Recalculated from your full check-in history rather than incremented blindly, with a small freeze budget so one missed day does not wipe a long run. Days follow UTC to match the contract.</li>
+      <li><strong>Badges.</strong> Awarded for milestones across the app - first check-in, streak thresholds, social verification.</li>
+      <li><strong>Referrals.</strong> Invite links credited once the invited wallet actually checks in.</li>
+      <li><strong>Leaderboard.</strong> A live ranking built from every stored profile, refreshed as people check in.</li>
+    </ul>
+    <p class="docs-p">
+      Profiles, badges, and streak history live in Cloudflare KV keyed by wallet address. Nothing here
+      touches your funds - check-in moves no USDC beyond the gas the transaction costs.
+    </p>
 
     <!-- ─── HISTORY ─── -->
     <h2 class="docs-h2" id="history">History</h2>
@@ -885,7 +951,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </p>
     <table class="docs-table">
       <tr><th>Chain</th><th>Chain ID</th><th>CCTP domain</th><th>RPC</th><th>Role</th></tr>
-      <tr><td><strong>Arc Testnet</strong></td><td class="num"><code>5042002</code></td><td class="num"><code>26</code></td><td><code>rpc.testnet.arc.network</code></td><td>Home - Trade, Mint destination, Token Deployer</td></tr>
+      <tr><td><strong>Arc Testnet</strong></td><td class="num"><code>5042002</code></td><td class="num"><code>26</code></td><td><code>rpc.testnet.arc.network</code></td><td>Home - Trade, Mint destination, Portal check-in</td></tr>
       <tr><td>Ethereum Sepolia</td><td class="num"><code>11155111</code></td><td class="num"><code>0</code></td><td><code>ethereum-sepolia-rpc.publicnode.com</code></td><td>Gateway · CCTP · Agent</td></tr>
       <tr><td>Base Sepolia</td><td class="num"><code>84532</code></td><td class="num"><code>6</code></td><td><code>sepolia.base.org</code></td><td>Gateway · CCTP · Agent</td></tr>
       <tr><td>Avalanche Fuji</td><td class="num"><code>43113</code></td><td class="num"><code>1</code></td><td><code>api.avax-test.network</code></td><td>Gateway · CCTP · Agent · <em>fastest</em></td></tr>
@@ -930,6 +996,13 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <tr><td>Curve StableSwap pool</td><td><code>0x2d84d79c852f6842abe0304b70bbaa1506add457</code></td></tr>
     </table>
 
+    <h3 class="docs-h3">OneliqCheckIn (Portal daily check-in)</h3>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Immutable, no owner and no upgrade path. Counts days in UTC. Sourcify-verified.</p>
+    <table class="docs-table">
+      <tr><th>Contract</th><th>Address</th></tr>
+      <tr><td>OneliqCheckIn</td><td><code>0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10</code></td></tr>
+    </table>
+
     <h3 class="docs-h3">Arc-native</h3>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
@@ -938,8 +1011,10 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </table>
 
     <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:8px">
-      <em>Oneliq does not own or operate any smart contracts. All contracts above are operated by
-      Circle or the Arc Foundation, and verified on the Arc explorer.</em>
+      <em>Oneliq deploys exactly two contracts - OneliqRouter and OneliqCheckIn - and both are
+      published and verified. Neither can hold your balance: the router forwards a swap within a single
+      transaction, and the check-in contract moves no funds at all. Every other contract above is
+      operated by Circle or the Arc Foundation.</em>
     </p>
 
     <!-- ─── API ─── -->
@@ -992,10 +1067,34 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
 POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span><span class="code-key">/resume</span>
 POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span><span class="code-key">/revoke</span></code></pre>
 
+    <h3 class="docs-h3">/api/ai/*</h3>
+    <p class="docs-p">
+      The Oneliq AI chat. Runs on the Cloudflare <strong>Workers AI</strong> binding, so there is no
+      third-party model provider and no model API key anywhere in the stack. It returns a draft action
+      for the UI to prefill - it cannot sign, submit, or authorize anything.
+    </p>
+
+    <h3 class="docs-h3">/api/history/* and /api/recipients/*</h3>
+    <p class="docs-p">
+      Per-wallet storage, keyed by address and capped in size: the receipt feed behind
+      <a href="#history">History</a>, and the recipient book behind Batch Pay. Both exist so the data
+      follows your wallet across browsers instead of being trapped in one browser's local storage.
+      Neither can move funds.
+    </p>
+
+    <h3 class="docs-h3">/auth/*</h3>
+    <p class="docs-p">
+      The <a href="#portal">Portal</a> backend: check-in recording, Star Points, streaks, badges,
+      referrals, and the leaderboard. A check-in is only credited after the on-chain transaction is
+      verified against the OneliqCheckIn contract, so points cannot be minted by calling the API.
+    </p>
+
     <h3 class="docs-h3">/api/metrics/*</h3>
     <p class="docs-p">
       Read-only telemetry rollup used by <code>status.oneliq.xyz</code>. Compute-on-write so a
-      single <code>/summary</code> call doesn't trigger 273× KV reads.
+      single <code>/summary</code> call doesn't trigger 273× KV reads. Headline counters are
+      re-derived from Arc itself - router swaps and check-in totals read straight off-chain - rather
+      than trusted from our own store.
     </p>
 
     <div class="callout note">
@@ -1031,9 +1130,11 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
       <div class="kv-item"><div class="kv-key">Frontend</div><div class="kv-val">Plain HTML + CSS + vanilla JavaScript. No framework, no JSX, no transpiler, no build step.</div></div>
       <div class="kv-item"><div class="kv-key">On-chain library</div><div class="kv-val"><code>ethers.js v6</code> via SRI-pinned UMD CDN - the only runtime dependency.</div></div>
       <div class="kv-item"><div class="kv-key">Hosting</div><div class="kv-val">Cloudflare Pages - edge CDN, DDoS protection, automatic HTTPS.</div></div>
-      <div class="kv-item"><div class="kv-key">Functions</div><div class="kv-val">Cloudflare Pages Functions for the proxy + agent API routes.</div></div>
-      <div class="kv-item"><div class="kv-key">Cron</div><div class="kv-val">Cloudflare Worker (<code>agent-cron</code>) runs every minute to scan and fire active agent rules.</div></div>
-      <div class="kv-item"><div class="kv-key">Source</div><div class="kv-val">~12 HTML files + four shared JS modules. First paint &lt; 1s on 4G.</div></div>
+      <div class="kv-item"><div class="kv-key">Functions</div><div class="kv-val">Cloudflare Pages Functions for the proxies, the agent API, the AI chat, and the Portal backend.</div></div>
+      <div class="kv-item"><div class="kv-key">Cron</div><div class="kv-val"><code>agent-cron</code> runs every minute to scan and fire active agent rules; <code>kv-backup</code> snapshots KV nightly.</div></div>
+      <div class="kv-item"><div class="kv-key">AI</div><div class="kv-val">Cloudflare Workers AI via the platform binding - no third-party model provider, no model key.</div></div>
+      <div class="kv-item"><div class="kv-key">Theming</div><div class="kv-val">One shared token set drives a light and a dark theme across every page; the choice is remembered.</div></div>
+      <div class="kv-item"><div class="kv-key">Source</div><div class="kv-val">~20 HTML pages + a handful of shared JS modules. First paint &lt; 1s on 4G.</div></div>
     </div>
 
     <h3 class="docs-h3">Why no framework?</h3>
@@ -1056,8 +1157,10 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
       <li><strong>SRI on every CDN script.</strong> ethers.js (and any other CDN asset) carries a SHA-384 integrity hash; CDN tampering fails closed.</li>
       <li><strong>Host security headers.</strong> HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy - all set via Cloudflare Pages <code>_headers</code>.</li>
       <li><strong>No third-party tracking.</strong> No analytics, no fingerprinting scripts, no marketing pixels. The only third-party origins reachable are the chain RPCs and Circle's APIs explicitly allowlisted in the CSP.</li>
-      <li><strong>Pre-flight checks.</strong> Every deploy runs <code>scripts/preflight-check.sh</code> - six gates covering CSP, SRI, secrets hygiene, redirects, and host headers.</li>
+      <li><strong>Pre-flight checks.</strong> Every deploy runs <code>scripts/preflight-check.sh</code> - six gates covering CSP, SRI, link hygiene (<code>rel=noopener</code>), hardcoded secrets, <code>.env</code> leakage, and host headers.</li>
       <li><strong>Agent safety rails.</strong> Daily cap (signed on-chain), revocable permit, auto-pause after 5 consecutive failures, two-layer cap enforcement (server + smart-account).</li>
+      <li><strong>The AI cannot act.</strong> Oneliq AI produces a draft the UI prefills; the signature always comes from your wallet. It has no key, no session, and no path to submit a transaction on its own.</li>
+      <li><strong>Internal surfaces are gated.</strong> The operator console sits behind credentials that fail closed - if the secret is unset the page returns an error rather than opening. Source, config, and internal files are 404'd at the edge even if a deploy uploads them by accident.</li>
     </ul>
     <p class="docs-p">
       Found a vulnerability? Report it via <a href="/SECURITY.md">SECURITY.md</a> - bug-bounty rewards
@@ -1092,6 +1195,15 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
       authorize via signature.
     </p>
 
+    <h3 class="docs-h3">Can the AI spend my money?</h3>
+    <p class="docs-p">
+      No. Oneliq AI reads and drafts; it never signs. When you ask for a swap, a payment, or an
+      automation rule, it fills in a form and hands it back to you - your wallet raises the signature
+      prompt and you can change or cancel anything before approving. It also cannot spend your Unified
+      Balance even indirectly: a Gateway burn intent is signed for one fixed amount, so there is nothing
+      an unattended process could re-use.
+    </p>
+
     <h3 class="docs-h3">Where do agent rules live?</h3>
     <p class="docs-p">
       Rules and execution logs are stored in Cloudflare KV, keyed by your wallet address with the
@@ -1120,6 +1232,8 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
     <h2 class="docs-h2" id="changelog">Changelog</h2>
     <p class="docs-p" style="font-family:var(--mono);font-size:13px;color:var(--muted)">v0.10.x - Public Beta on Arc Testnet</p>
     <ul class="docs-ul">
+      <li><strong>2026-08-10</strong> - Surfaces that talk to each other. <strong>Trade</strong> can park a swap output straight into the Unified Balance; <strong>Batch Pay</strong> gains bulk paste and a per-wallet recipient book, and splits past Circle's 16-intent cap instead of refusing; <strong>Distribute</strong> pushes balance back out to your own wallets; the agent now reads your unified balance in its pre-flight.</li>
+      <li><strong>2026-08-10</strong> - <strong>Light theme</strong> across every page with a sun/moon switch, plus a new Oneliq wordmark for both themes.</li>
       <li><strong>2026-08-09</strong> - Balance power-ups. <strong>⇉ Batch Pay</strong> (pay N recipients, grouped by destination, one signature per chain) and <strong>⤵ Consolidate</strong> (sweep every chain onto one in a single signature). Spend gains a <strong>Manual</strong> mode alongside Auto and Single, plus estimate-before-sign and three explicit partial-liquidity states.</li>
       <li><strong>2026-08-09</strong> - <strong>Oneliq AI</strong>. The agent grows a chat layer: describe a rule in plain language, the assistant prefills the config, you sign. Powered by Cloudflare Workers AI.</li>
       <li><strong>2026-08-04</strong> - <strong>Dashboard</strong> live - read-only portfolio view of everything your wallet holds on Arc, priced from CoinGecko.</li>
@@ -1167,7 +1281,8 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
     <a class="toc-link" href="#get-testnet-usdc">Testnet USDC</a>
     <a class="toc-link" href="#trade">Trade</a>
     <a class="toc-link" href="#balance">Unified Balance</a>
-    <a class="toc-link" href="#agent">Agent</a>
+    <a class="toc-link" href="#agent">Oneliq AI</a>
+    <a class="toc-link" href="#portal">Portal</a>
     <a class="toc-link" href="#history">History</a>
     <a class="toc-link" href="#dashboard">Dashboard</a>
     <a class="toc-link" href="#arc-network">Arc L1</a>
