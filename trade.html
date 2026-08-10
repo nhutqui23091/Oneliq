@@ -1483,10 +1483,15 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     const c = CHAINS[dst];
     if (!c?.contracts?.gatewayWallet || c.gatewayDepositDisabled) return false;
     // Any recipient other than the connected wallet makes parking wrong, not
-    // just unhelpful — see the note above.
-    if (state.recipient && isAddress(state.recipient)
-        && wallet.address
-        && getAddress(state.recipient).toLowerCase() !== wallet.address.toLowerCase()) return false;
+    // just unhelpful — see the note above. This check FAILS CLOSED: an earlier
+    // version ANDed in `wallet.address`, so with no wallet connected the whole
+    // clause went false and parking stayed enabled for a third-party address —
+    // exactly the case the rule exists to stop. If a recipient is set and we
+    // cannot prove it is the user's own address, refuse.
+    if (state.recipient && isAddress(state.recipient)) {
+      if (!wallet.address) return false;
+      if (getAddress(state.recipient).toLowerCase() !== wallet.address.toLowerCase()) return false;
+    }
     return true;
   }
 
