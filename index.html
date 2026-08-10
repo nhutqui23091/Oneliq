@@ -451,7 +451,11 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
    step up from .10 to .16 to sit visibly above the #F7F8FA page. */
 :root[data-theme="light"] .feat-card{background:var(--bg2)}
 :root[data-theme="light"] .feat-card:hover{background:rgba(15,23,42,.02)}
-:root[data-theme="light"] .features-grid{background:rgba(15,23,42,.16);border-color:rgba(15,23,42,.16)}
+/* .features-grid also carries .glass, and arc-theme.css loads after this block
+   with `:root[data-theme="light"] .glass{background:#FFFFFF}` at the same
+   specificity, which would repaint the 1px gaps white and erase the dividers.
+   Matching both classes here outranks it. */
+:root[data-theme="light"] .features-grid.glass{background:rgba(15,23,42,.16);border-color:rgba(15,23,42,.16)}
 :root[data-theme="light"] .feat-stat,
 :root[data-theme="light"] .feat-wide .feat-stat,
 :root[data-theme="light"] .feat-full .feat-stat{border-color:rgba(15,23,42,.16)}
