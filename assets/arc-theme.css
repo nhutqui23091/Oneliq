@@ -21,7 +21,9 @@
   --bg:#F7F8FA; --bg2:#FFFFFF;
   --surface:#FFFFFF; --surface2:#EFF1F5;
   --border:rgba(15,23,42,0.10); --border2:rgba(15,23,42,0.19);
-  --text:#0B1220; --muted:#5A6478; --muted-soft:#8892A4;
+  /* --muted-soft carries the 9.5px sidebar section labels; on the tinted
+     rail #8892A4 fell to 2.8:1, so it is a notch darker here. */
+  --text:#0B1220; --muted:#5A6478; --muted-soft:#6E7889;
 
   /* Accents darkened to hold contrast on white. Same hues, more ink. */
   --arc1:#0E9AA7;
@@ -140,6 +142,9 @@
   background:var(--bg2);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.22);
 }
 :root[data-theme="light"] .theme-toggle .tt-sun{color:var(--arc2);box-shadow:0 1px 2px rgba(15,23,42,.14)}
+/* An ink wash instead of --surface2, so the track still reads as a track
+   on the tinted sidebar rail, not only on a white page. */
+:root[data-theme="light"] .theme-toggle{background:rgba(15,23,42,.07)}
 
 /* Sidebar variant sits above the chain pill and stretches full width. */
 .arc-side-foot .theme-toggle{align-self:flex-start}

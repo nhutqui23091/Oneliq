@@ -330,8 +330,17 @@ body.arc-side-open .arc-side-backdrop{opacity:1;pointer-events:auto}
 :root[data-theme="light"] .arc-modal{box-shadow:0 30px 80px rgba(15,23,42,.20)}
 :root[data-theme="light"] .token-ico{background:linear-gradient(135deg,#D7DCE5,#BFC7D4);color:#0B1220}
 
-/* Sidebar shell */
-:root[data-theme="light"] aside.arc-side{background:rgba(255,255,255,.90);box-shadow:1px 0 0 rgba(15,23,42,.04)}
+/* Sidebar shell. The rail reads as chrome, so it sits a shade *under* the
+   content instead of brighter than it - pure white against a #F7F8FA page
+   made the whole left edge look like an empty sheet. Rows then flip the
+   other way: white is the raised state on a tinted rail. */
+:root[data-theme="light"] aside.arc-side{background:rgba(238,241,246,.94);border-right-color:rgba(15,23,42,.09);box-shadow:none}
+:root[data-theme="light"] .arc-side-head,
+:root[data-theme="light"] .arc-side-foot,
+:root[data-theme="light"] .arc-side-section + .arc-side-section{border-color:rgba(15,23,42,.08)}
+:root[data-theme="light"] .arc-side-item:hover{background:rgba(255,255,255,.62)}
+:root[data-theme="light"] .arc-side-item.active{background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(15,23,42,.07),0 1px 2px rgba(15,23,42,.05)}
+:root[data-theme="light"] .arc-side-foot .wallet-btn:not(.disconnected){background:#FFFFFF}
 :root[data-theme="light"] .arc-side-pill{background:rgba(14,154,167,.10);border-color:rgba(14,154,167,.30)}
 :root[data-theme="light"] .arc-side-chain{background:rgba(18,150,90,.09);border-color:rgba(18,150,90,.24)}
 :root[data-theme="light"] .arc-side-chain .dot{box-shadow:0 0 6px rgba(18,150,90,.5)}
