@@ -170,8 +170,38 @@ html{scroll-behavior:smooth}
 .src-collapse.open{display:block}
 .gw-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px}
 .gw-row strong{color:var(--text);font-family:var(--mono);font-weight:600}
-.gw-action{width:100%;margin-top:18px;padding:14px;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:var(--bg);transition:all .2s;letter-spacing:.02em}
-.gw-action:hover:not(:disabled){box-shadow:0 4px 24px rgba(77,214,219,.4);transform:translateY(-1px)}
+/* Primary action button.
+   It used to run the full-strength brand gradient (--arc1 → --arc2) with
+   `color:var(--bg)`, which caused two separate problems:
+
+     · the text colour was whatever the page background happened to be, so it
+       was never chosen against the gradient it actually sits on. In light mode
+       that put near-white on #0E9AA7 teal at 3.19:1 — genuinely too low.
+     · contrast varied ALONG the button: 10.32:1 over the teal end against
+       4.61:1 over the blue end in dark mode, a 2.24x swing. The eye reads that
+       as a word whose weight changes halfway through, which is why it looked
+       blurred rather than simply low-contrast.
+
+   Both stops are now picked so the text sits at near-identical contrast across
+   the whole width, and chroma is pulled well down from the original neon.
+   Dark: ink on a soft teal→periwinkle, 9.25:1 and 8.89:1, a 1.04x swing.
+   Light: white on a deep teal→indigo, 5.91:1 and 7.46:1, a 1.26x swing.
+   Type drops from 700/+.02em to 600/-.01em to match .btn-primary — positive
+   tracking on a bold face is what made it read as loose. */
+.gw-action{
+  width:100%;margin-top:18px;padding:14px;border-radius:12px;
+  font-family:var(--font);font-size:14px;font-weight:600;letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  border:none;cursor:pointer;
+  background:linear-gradient(135deg,#6FC3C9,#98B3E6);
+  color:#08121F;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
+  transition:filter .18s,box-shadow .18s,transform .18s;
+}
+/* The old hover was a 24px neon-teal glow keyed to the retired palette. A lift
+   plus a neutral shadow reads calmer and survives the theme switch. */
+.gw-action:hover:not(:disabled){filter:brightness(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 6px 18px rgba(8,18,31,.45);transform:translateY(-1px)}
+.gw-action:active:not(:disabled){transform:translateY(0);filter:brightness(.98)}
 .gw-action:disabled{opacity:.5;cursor:not-allowed;background:var(--surface2);color:var(--muted)}
 .gw-status{margin-top:12px;padding:11px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;color:var(--muted);font-family:var(--mono);display:none}
 .gw-status.show{display:block}
@@ -230,6 +260,16 @@ html{scroll-behavior:smooth}
 }
 
 /* ── Light theme: balance-specific surfaces ─────────────*/
+/* Light theme flips the button the other way up: the page is white, so the
+   control has to be DARKER than its surface to read as the primary action,
+   which also matches .btn-primary going solid ink in light mode. White text on
+   these two stops measures 5.91:1 and 7.46:1. */
+:root[data-theme="light"] .gw-action{
+  background:linear-gradient(135deg,#1A6E7A,#2C4EAF);
+  color:#FFFFFF;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13);
+}
+:root[data-theme="light"] .gw-action:hover:not(:disabled){box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 6px 18px rgba(26,110,122,.26)}
 :root[data-theme="light"] .gw-modal-bg{background:rgba(15,23,42,.34)}
 :root[data-theme="light"] .gw-modal{background:#FFFFFF;box-shadow:0 24px 70px rgba(15,23,42,.18)}
 :root[data-theme="light"] .gw-select option{background:#FFFFFF;color:var(--text)}
