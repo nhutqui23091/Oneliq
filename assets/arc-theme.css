@@ -114,8 +114,11 @@
    page, so each logo is two <img>s and the theme picks one. Both are the
    same pixel height, so the box never reflows on toggle. */
 .logo-on-light{display:none}
-:root[data-theme="light"] .logo-on-dark{display:none}
-:root[data-theme="light"] .logo-on-light{display:block}
+/* !important is deliberate: the light <img> also carries an inline
+   display:none, so that a page which somehow renders without this
+   stylesheet shows one logo (the dark-theme one) instead of two. */
+:root[data-theme="light"] .logo-on-dark{display:none !important}
+:root[data-theme="light"] .logo-on-light{display:block !important}
 
 /* Two-icon pill. The active half is decided purely by the
    data-theme attribute, so no JS class bookkeeping. */

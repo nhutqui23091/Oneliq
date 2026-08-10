@@ -207,9 +207,10 @@ body.arc-side-collapsed aside.arc-side{width:var(--side-w-c)}
 .arc-side-brand{display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-decoration:none;color:var(--text);overflow:hidden;min-width:0;flex:1;transition:opacity .12s}
 .arc-side-name{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.035em;line-height:.95;color:var(--text)}
 .arc-side-logo{height:38px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
-/* Scoped through .arc-side-brand so it still outranks the light-theme
-   logo swap in arc-theme.css, which has to be class-heavy to work. */
-body.arc-side-collapsed .arc-side-brand .arc-side-logo{display:none}
+/* !important because the light-theme logo swap in arc-theme.css is itself
+   !important (it has to beat an inline display:none). Collapsing the rail
+   must win over the swap in both themes. */
+body.arc-side-collapsed .arc-side-brand .arc-side-logo{display:none !important}
 .arc-side-pill{font-size:8.5px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;color:var(--arc2);padding:2px 7px;border:1px solid rgba(77,214,219,.32);border-radius:20px;background:rgba(77,214,219,.10);line-height:1.2}
 body.arc-side-collapsed .arc-side-brand{opacity:0;pointer-events:none;width:0;height:0;overflow:hidden}
 body.arc-side-collapsed .arc-side-head{justify-content:center;padding:20px 0 18px;min-height:64px}
