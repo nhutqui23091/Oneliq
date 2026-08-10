@@ -11,7 +11,9 @@ Unified balance across 8 chains · cross-chain settlement in ~30s · bounded aut
 
 ## What is this?
 
-Oneliq is a **non-custodial stablecoin terminal** built on the [Arc Layer 1](https://arc.network) - Circle's institutional EVM chain where USDC is the native gas token. We treat USDC as **one programmable balance** rather than dozens of siloed per-chain wallets.
+**Oneliq** is a unified stablecoin platform that simplifies how people use USDC across chains. Built on Circle's infrastructure and designed for the [Arc Layer 1](https://arc.network), Oneliq brings trading, cross-chain balance management, automation, and onboarding into one seamless experience. Six surfaces, one balance, zero custody:
+
+Arc is Circle's institutional EVM chain, where USDC is the native gas token - so we treat USDC as **one programmable balance** rather than dozens of siloed per-chain wallets.
 
 ### What ships today on Arc Testnet
 
