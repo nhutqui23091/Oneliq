@@ -17,10 +17,10 @@
 :root{
   --bg:#0A1628;
   --bg2:#0F1E36;
-  --surface:rgba(255,255,255,0.035);
-  --surface2:rgba(255,255,255,0.065);
-  --border:rgba(255,255,255,0.09);
-  --border2:rgba(255,255,255,0.16);
+  --surface:rgba(var(--tint),0.035);
+  --surface2:rgba(var(--tint),0.065);
+  --border:rgba(var(--tint),0.09);
+  --border2:rgba(var(--tint),0.16);
   --text:#F5F7FB;
   --muted:#A4B8D0;--muted-soft:#7E92AE;
   --arc1:#4DD6DB;
@@ -61,13 +61,13 @@ nav .nav-right{justify-self:end}
 .nav-right{display:flex;align-items:center;gap:10px}
 .btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
 .btn-ghost:hover{color:var(--text);border-color:var(--border2)}
-.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
-.btn-primary:hover{background:rgba(255,255,255,0.14)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(var(--tint),0.08);border:1px solid rgba(var(--tint),0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(var(--tint),0.14)}
 
 /* HERO */
 .blog-wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:120px 24px 80px}
 .blog-eyebrow{font-size:12px;font-family:var(--mono);color:var(--arc1);letter-spacing:.18em;text-transform:uppercase;margin-bottom:16px}
-.blog-eyebrow::before{content:'// ';color:rgba(140,160,189,.55);font-weight:400}
+.blog-eyebrow::before{content:'// ';color:var(--c-prefix);font-weight:400}
 .blog-title{font-size:clamp(40px,6vw,64px);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-bottom:18px}
 .blog-title .grad{background:linear-gradient(90deg,var(--arc1),var(--arc2),var(--peach));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .blog-lead{font-size:18px;color:var(--muted);line-height:1.7;max-width:640px;margin-bottom:64px}
@@ -75,7 +75,7 @@ nav .nav-right{justify-self:end}
 /* COMING SOON */
 .coming{
   border:1px solid var(--border);border-radius:18px;padding:48px 40px;
-  background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));
+  background:linear-gradient(180deg,rgba(var(--tint),0.04),rgba(var(--tint),0.01));
   text-align:center;margin-bottom:64px;position:relative;overflow:hidden;
 }
 .coming::before{
@@ -97,7 +97,7 @@ nav .nav-right{justify-self:end}
 
 /* PLANNED POSTS */
 .section-title{font-size:13px;font-family:var(--mono);color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:24px}
-.section-title::before{content:'// ';color:rgba(140,160,189,.55);font-weight:400}
+.section-title::before{content:'// ';color:var(--c-prefix);font-weight:400}
 
 .post-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:64px}
 .post-card{
@@ -147,7 +147,12 @@ nav .nav-right{justify-self:end}
   .coming{padding:32px 22px}
   .subscribe{padding:24px;flex-direction:column;align-items:flex-start}
 }
+
+/* ── Light theme ──────────────────────────────────────── */
+:root[data-theme="light"] nav{background:rgba(255,255,255,.88)}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 

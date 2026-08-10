@@ -1,0 +1,143 @@
+/* Oneliq theme switch component.
+   Kept out of arc-ui.css because the home page, docs and blog posts are
+   self-contained and never load the shared stylesheet, yet still need the
+   switch. Colour tokens come from whichever stylesheet is in play. */
+
+/* Dark defaults, so the self-contained pages that never load arc-ui.css
+   still resolve the tint tokens. */
+:root{--tint:255,255,255;--ink:0,0,0}
+
+/* ═════════════════════════════════════════════════════════
+   LIGHT THEME
+   Opt-in via <html data-theme="light">; dark stays the default
+   so anyone who has never touched the switch sees no change.
+   assets/arc-theme.js sets the attribute before first paint.
+
+   Tokens come first, then the handful of shared components
+   that hard-code a dark value instead of reading a token.
+   ═══════════════════════════════════════════════════════ */
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F7F8FA; --bg2:#FFFFFF;
+  --surface:#FFFFFF; --surface2:#EFF1F5;
+  --border:rgba(15,23,42,0.10); --border2:rgba(15,23,42,0.19);
+  --text:#0B1220; --muted:#5A6478; --muted-soft:#8892A4;
+
+  /* Accents darkened to hold contrast on white. Same hues, more ink. */
+  --arc1:#0E9AA7;
+  --arc2:#2C5BE0;
+  --arc3:#B0762E;
+  --arc4:#12965A;
+
+  --peach:#B0762E; --sand:#8A7550; --deep:#0B1220;
+  --green:#12965A; --red:#D62B4E; --yellow:#9A6B10; --gold:#B4700A;
+
+  --tint:15,23,42;
+  --ink:15,23,42;
+}
+
+
+/* Literal text colours that predate the token system. Same value in dark,
+   an ink-side equivalent in light. */
+:root{
+  --c-body:#C8D1E0;
+  --c-body-strong:#D8DFEA;
+  --c-body-strongest:#E2E8F0;
+  --c-body-max:#EAF0FA;
+  --c-body-soft:#B7C4D6;
+  --c-body-dim:#6B7C99;
+  --c-amber:#FFB454;
+  --c-gold-soft:#FFD580;
+  --c-orange:#FF9F4A;
+  --c-peach-txt:#F4C89A;
+  --c-pink:#FF8BA3;
+  --c-coral:#FF6F61;
+  --c-blue-soft:#7AA4F7;
+  --c-teal:#4DD6DB;
+  --c-violet:#9D7BFF;
+  --c-violet-soft:#B8A1FF;
+  --c-violet-mid:#A78BFA;
+  --c-lilac:#D4C5FF;
+}
+:root[data-theme="light"]{
+  --c-body:#3F4A5C;
+  --c-body-strong:#2A3444;
+  --c-body-strongest:#1C2533;
+  --c-body-max:#161F2C;
+  --c-body-soft:#556072;
+  --c-body-dim:#5F6A7E;
+  --c-amber:#A85F06;
+  --c-gold-soft:#8A6410;
+  --c-orange:#B4530A;
+  --c-peach-txt:#9A6B3C;
+  --c-pink:#C42F4E;
+  --c-coral:#C43A26;
+  --c-blue-soft:#2A5BD7;
+  --c-teal:#0E8F9C;
+  --c-violet:#6438D6;
+  --c-violet-soft:#6E4CE0;
+  --c-violet-mid:#6D4AE0;
+  --c-lilac:#7A5BE8;
+}
+
+:root{
+  --c-prefix:rgba(140,160,189,.55);
+  --c-dim:rgba(160,180,210,.75);
+  --c-quote:rgba(244,240,255,.8);
+  --c-prefix2:rgba(140,160,189,.5);
+}
+:root[data-theme="light"]{
+  --c-prefix:rgba(90,100,120,.85);
+  --c-dim:rgba(90,100,120,.9);
+  --c-quote:rgba(43,52,68,.92);
+  --c-prefix2:rgba(90,100,120,.8);
+}
+
+/* Primitives duplicated across the self-contained pages, so they are
+   overridden here rather than in arc-ui.css. */
+/* Background: Relay-style near-flat wash instead of the navy horizon. */
+:root[data-theme="light"] .aurora-bg{
+  background:
+    radial-gradient(ellipse 140% 60% at 50% 110%, rgba(44,91,224,0.07) 0%, rgba(44,91,224,0.02) 40%, transparent 65%),
+    linear-gradient(180deg, #FFFFFF 0%, #F7F8FB 45%, #F1F3F8 100%);
+}
+:root[data-theme="light"] .orb{display:none}
+:root[data-theme="light"] body::before{opacity:.16}
+
+/* Glass: the sheen is a white highlight, which vanishes on white.
+   Swap it for a plain white card with a hairline. */
+:root[data-theme="light"] .glass{background:#FFFFFF;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+:root[data-theme="light"] .glass::before{display:none}
+
+/* Two-icon pill. The active half is decided purely by the
+   data-theme attribute, so no JS class bookkeeping. */
+.theme-toggle{
+  display:inline-flex;align-items:center;gap:2px;flex-shrink:0;
+  padding:3px;border-radius:100px;line-height:0;
+  background:var(--surface2);border:1px solid var(--border);
+  cursor:pointer;transition:border-color .18s;
+}
+.theme-toggle:hover{border-color:var(--border2)}
+.theme-toggle .tt-ico{
+  display:flex;align-items:center;justify-content:center;
+  width:26px;height:22px;border-radius:100px;flex-shrink:0;
+  color:var(--muted-soft);transition:background .18s,color .18s,box-shadow .18s;
+}
+.theme-toggle svg{width:13px;height:13px;display:block}
+:root:not([data-theme="light"]) .theme-toggle .tt-moon,
+:root[data-theme="light"] .theme-toggle .tt-sun{
+  background:var(--bg2);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.22);
+}
+:root[data-theme="light"] .theme-toggle .tt-sun{color:var(--arc2);box-shadow:0 1px 2px rgba(15,23,42,.14)}
+
+/* Sidebar variant sits above the chain pill and stretches full width. */
+.arc-side-foot .theme-toggle{align-self:flex-start}
+body.arc-side-collapsed .arc-side-foot .theme-toggle{align-self:center}
+body.arc-side-collapsed .arc-side-foot .theme-toggle .tt-ico{width:22px}
+@media(max-width:900px){
+  body.arc-side-collapsed .arc-side-foot .theme-toggle{align-self:flex-start}
+  body.arc-side-collapsed .arc-side-foot .theme-toggle .tt-ico{width:26px}
+}
+@media(max-width:520px){
+  nav.arc-nav .theme-toggle{display:none}
+}

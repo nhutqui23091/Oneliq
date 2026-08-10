@@ -11,7 +11,7 @@
 <title>Oneliq | AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.11.0"/>
 <style>
 :root{
   /* /agent used to ship a violet primary that clashed with the rest of the
@@ -60,9 +60,9 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .card-sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.55}
 
 /* MODE TABS */
-.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:14px;padding:6px;margin-bottom:22px}
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(var(--tint),.025);border:1px solid var(--border);border-radius:14px;padding:6px;margin-bottom:22px}
 .mode-tab{padding:16px 14px;border-radius:10px;background:none;border:1px solid transparent;cursor:pointer;font-family:var(--font);text-align:center;transition:all .15s;color:var(--muted)}
-.mode-tab:hover{background:rgba(255,255,255,.03)}
+.mode-tab:hover{background:rgba(var(--tint),.03)}
 .mode-tab.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.3);color:var(--text)}
 .mode-tab-h{font-size:16.5px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:9px}
 .mode-tab.active .mode-tab-h{color:var(--text)}
@@ -77,10 +77,10 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .step-desc{font-size:12px;color:var(--muted);margin:0 0 10px 32px;line-height:1.5}
 
 /* INPUT */
-.field{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;transition:border-color .15s}
+.field{background:rgba(var(--tint),.035);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;transition:border-color .15s}
 .field:focus-within{border-color:rgba(77,214,219,.4)}
 .field-input{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:700;color:var(--text);font-family:var(--font);min-width:0;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1}
-.field-input::placeholder{color:rgba(255,255,255,.18)}
+.field-input::placeholder{color:rgba(var(--tint),.18)}
 .field-suffix{font-size:13px;color:var(--muted);font-family:var(--mono);font-weight:600}
 .field-prefix{font-size:13px;color:var(--muted);font-family:var(--mono);font-weight:600}
 .field-help{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;padding-left:2px}
@@ -113,14 +113,14 @@ select option:checked{background:#1a2c4a;color:#fff}
 .time-picker{display:flex;align-items:center}
 .time-sel{
   appearance:none;-webkit-appearance:none;-moz-appearance:none;
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  background:rgba(var(--tint),.04);border:1px solid var(--border);
   color:var(--text);font-family:var(--font);font-weight:700;
   font-size:14px;font-variant-numeric:tabular-nums;
   padding:6px 8px;border-radius:8px;cursor:pointer;outline:none;
   text-align:center;text-align-last:center;
   transition:border-color .15s,background .15s;
 }
-.time-sel:hover{border-color:var(--border2);background:rgba(255,255,255,.06)}
+.time-sel:hover{border-color:var(--border2);background:rgba(var(--tint),.06)}
 .time-sel:focus{border-color:rgba(77,214,219,.5);background:rgba(77,214,219,.06)}
 .time-sel-ampm{margin-left:6px;letter-spacing:.04em;min-width:54px}
 .time-colon{color:var(--muted);font-weight:700;font-size:14px;padding:0 2px;user-select:none}
@@ -129,7 +129,7 @@ select option:checked{background:#1a2c4a;color:#fff}
    .select-styled but kept compact so the row stays one line. */
 .target-chain-sel{
   appearance:none;-webkit-appearance:none;-moz-appearance:none;
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  background:rgba(var(--tint),.04);border:1px solid var(--border);
   color:var(--text);font-size:12px;font-weight:600;font-family:var(--font);
   padding:8px 26px 8px 10px;border-radius:9px;cursor:pointer;outline:none;
   flex-shrink:0;min-width:96px;
@@ -148,7 +148,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 /* SOURCE CHAIN PICKER - collapsed by default to one row showing the current
    selection; clicking expands the chip grid so the user only sees all 8 chains
    when they actually want to change them. */
-.src-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;font-family:var(--font);color:var(--text);transition:border-color .15s;margin-top:4px}
+.src-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;background:rgba(var(--tint),.035);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;font-family:var(--font);color:var(--text);transition:border-color .15s;margin-top:4px}
 .src-toggle:hover{border-color:var(--border2)}
 .src-toggle-label{font-size:14px;font-weight:700;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .src-toggle-label .src-count{color:var(--muted);font-weight:600;font-size:12px;font-family:var(--mono)}
@@ -159,10 +159,10 @@ select option:checked{background:#1a2c4a;color:#fff}
 /* CHAIN GRID (multi-select chips) */
 .chain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
 @media(max-width:560px){.chain-grid{grid-template-columns:repeat(2,1fr)}}
-.chain-chip{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:10px;padding:10px 12px 10px 34px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;position:relative;user-select:none}
-.chain-chip:hover{background:rgba(255,255,255,.06);border-color:var(--border2)}
+.chain-chip{background:rgba(var(--tint),.035);border:1px solid var(--border);border-radius:10px;padding:10px 12px 10px 34px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;position:relative;user-select:none}
+.chain-chip:hover{background:rgba(var(--tint),.06);border-color:var(--border2)}
 .chain-chip.selected{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.38)}
-.chain-chip::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;border:1.5px solid var(--border2);border-radius:4px;background:rgba(255,255,255,.02);transition:all .15s}
+.chain-chip::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;border:1.5px solid var(--border2);border-radius:4px;background:rgba(var(--tint),.02);transition:all .15s}
 .chain-chip.selected::before{background:var(--violet);border-color:var(--violet)}
 .chain-chip.selected::after{content:'';position:absolute;left:14.5px;top:50%;transform:translateY(-60%) rotate(45deg);width:4px;height:8px;border:solid #0b0820;border-width:0 2px 2px 0}
 .chain-chip-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.1}
@@ -178,8 +178,8 @@ select option:checked{background:#1a2c4a;color:#fff}
 .target-row .target-chain-sel{flex:0 0 auto}
 .target-mini{padding:6px 10px;border-radius:8px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.25);color:var(--violet);font-size:10.5px;font-weight:700;font-family:var(--mono);cursor:pointer;letter-spacing:.06em}
 .target-mini:hover{background:rgba(77,214,219,.18)}
-.target-remove{width:34px;height:34px;flex-shrink:0;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.target-remove:hover{color:#FF8BA3;border-color:rgba(255,85,119,.3);background:rgba(255,85,119,.08)}
+.target-remove{width:34px;height:34px;flex-shrink:0;border-radius:9px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.target-remove:hover{color:var(--c-pink);border-color:rgba(255,85,119,.3);background:rgba(255,85,119,.08)}
 .add-target{margin-top:4px;padding:9px 14px;border-radius:10px;border:1px dashed var(--border2);background:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;width:100%}
 .add-target:hover{color:var(--violet);border-color:var(--violet);background:rgba(77,214,219,.04)}
 
@@ -188,9 +188,9 @@ select option:checked{background:#1a2c4a;color:#fff}
 @media(max-width:480px){.dual-fields{grid-template-columns:1fr}}
 
 /* SEGMENT (split/each toggle, cadence select) */
-.seg{display:inline-flex;background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg{display:inline-flex;background:rgba(var(--tint),.035);border:1px solid var(--border);border-radius:10px;padding:3px}
 .seg-btn{padding:7px 12px;font-size:12px;font-weight:600;color:var(--muted);background:none;border:none;border-radius:7px;cursor:pointer;font-family:var(--font);transition:all .15s}
-.seg-btn.active{background:rgba(255,255,255,.07);color:var(--text)}
+.seg-btn.active{background:rgba(var(--tint),.07);color:var(--text)}
 .seg-btn:hover:not(.active){color:var(--text)}
 
 /* SUMMARY */
@@ -205,7 +205,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 #summary-rows{margin-top:10px}
 
 /* PRE-FLIGHT CHECK - live reality check rendered above Deploy. */
-.preflight{margin-top:14px;padding:12px 14px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:12px}
+.preflight{margin-top:14px;padding:12px 14px;background:rgba(var(--tint),.025);border:1px solid var(--border);border-radius:12px}
 .pf-h{font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
 .pf-line{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;padding:3px 0}
 .pf-line strong{font-weight:700}
@@ -221,13 +221,13 @@ select option:checked{background:#1a2c4a;color:#fff}
 
 /* RIGHT PANEL */
 .agents-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
-.agent-empty{padding:32px 18px;text-align:center;background:rgba(255,255,255,.02);border:1px dashed var(--border2);border-radius:14px}
+.agent-empty{padding:32px 18px;text-align:center;background:rgba(var(--tint),.02);border:1px dashed var(--border2);border-radius:14px}
 .agent-empty .ae-ico{font-size:34px;margin-bottom:10px;opacity:.6}
 .agent-empty .ae-h{font-size:14px;font-weight:700;margin-bottom:4px}
 .agent-empty .ae-s{font-size:12.5px;color:var(--muted);line-height:1.5}
 
-.agent-row{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:all .15s}
-.agent-row:hover{background:rgba(255,255,255,.04);border-color:var(--border2)}
+.agent-row{background:rgba(var(--tint),.025);border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:all .15s}
+.agent-row:hover{background:rgba(var(--tint),.04);border-color:var(--border2)}
 .agent-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px}
 .agent-row-name{font-size:13.5px;font-weight:800;letter-spacing:-.005em;flex:1;min-width:0}
 .agent-row-state{font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;flex-shrink:0}
@@ -235,20 +235,20 @@ select option:checked{background:#1a2c4a;color:#fff}
 .state-paused{background:rgba(140,160,189,.08);color:var(--muted);border:1px solid rgba(140,160,189,.2)}
 .agent-row-flow{display:flex;align-items:center;gap:6px;font-size:11.5px;font-family:var(--mono);color:var(--muted);margin-bottom:10px;flex-wrap:wrap}
 .agent-row-flow .arr{opacity:.5}
-.agent-row-flow .chain-tag{padding:3px 7px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-weight:600}
-.agent-row-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.06)}
+.agent-row-flow .chain-tag{padding:3px 7px;background:rgba(var(--tint),.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-weight:600}
+.agent-row-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px dashed rgba(var(--tint),.06)}
 .agent-meta-k{font-size:9.5px;font-family:var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
 .agent-meta-v{font-size:12.5px;font-weight:700;font-family:var(--mono)}
 .agent-row-actions{display:flex;gap:6px;margin-top:12px}
-.agent-row-actions button{flex:1;padding:7px;font-size:11.5px;font-weight:600;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--font)}
-.agent-row-actions button:hover{background:rgba(255,255,255,.08);color:var(--text);border-color:var(--border2)}
-.agent-row-actions button.danger:hover{color:#FF8BA3;border-color:rgba(255,85,119,.3)}
+.agent-row-actions button{flex:1;padding:7px;font-size:11.5px;font-weight:600;border-radius:8px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--font)}
+.agent-row-actions button:hover{background:rgba(var(--tint),.08);color:var(--text);border-color:var(--border2)}
+.agent-row-actions button.danger:hover{color:var(--c-pink);border-color:rgba(255,85,119,.3)}
 .agent-row-targets{font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono)}
 
 /* EXECUTION LOG */
 .exec-log{margin-top:16px}
 .exec-log-h{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.exec-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.02);border-left:2px solid var(--arc4);border-radius:6px;margin-bottom:6px;font-size:11.5px;font-family:var(--mono)}
+.exec-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(var(--tint),.02);border-left:2px solid var(--arc4);border-radius:6px;margin-bottom:6px;font-size:11.5px;font-family:var(--mono)}
 .exec-row .er-time{color:var(--muted);min-width:54px}
 .exec-row .er-action{flex:1;color:var(--text);min-width:0;word-break:break-word}
 .exec-row .er-amt{font-weight:700;color:var(--arc1);flex-shrink:0}
@@ -260,7 +260,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 .how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:880px){.how-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.how-grid{grid-template-columns:1fr}}
-.how-step{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;padding:18px 18px 20px;position:relative;display:flex;flex-direction:column;gap:8px}
+.how-step{background:rgba(var(--tint),.02);border:1px solid var(--border);border-radius:14px;padding:18px 18px 20px;position:relative;display:flex;flex-direction:column;gap:8px}
 .how-step-num{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--violet);text-transform:uppercase}
 .how-step-h{font-size:14.5px;font-weight:700;margin-top:4px;letter-spacing:-.005em}
 .how-step-d{font-size:12.5px;color:var(--muted);line-height:1.6}
@@ -274,10 +274,10 @@ select option:checked{background:#1a2c4a;color:#fff}
 .modal-h{font-size:20px;font-weight:800;text-align:center;margin-bottom:8px;letter-spacing:-.01em}
 .modal-s{font-size:13px;color:var(--muted);text-align:center;line-height:1.55;margin-bottom:22px}
 .modal-steps{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
-.modal-step{display:flex;align-items:center;gap:12px;padding:11px 14px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;font-size:13px;transition:all .25s}
+.modal-step{display:flex;align-items:center;gap:12px;padding:11px 14px;background:rgba(var(--tint),.025);border:1px solid var(--border);border-radius:10px;font-size:13px;transition:all .25s}
 .modal-step.active{background:rgba(77,214,219,.08);border-color:rgba(77,214,219,.3)}
 .modal-step.done{background:rgba(123,228,149,.06);border-color:rgba(123,228,149,.25)}
-.modal-step-ico{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-family:var(--mono);font-weight:700;color:var(--muted);position:relative}
+.modal-step-ico{width:22px;height:22px;border-radius:50%;background:rgba(var(--tint),.05);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-family:var(--mono);font-weight:700;color:var(--muted);position:relative}
 .modal-step.active .modal-step-ico{background:rgba(77,214,219,.18);border-color:var(--violet);color:transparent}
 .modal-step.active .modal-step-ico::after{content:'';width:8px;height:8px;border:1.5px solid var(--violet);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;position:absolute}
 .modal-step.done .modal-step-ico{background:rgba(123,228,149,.18);border-color:var(--arc4);color:transparent}
@@ -286,8 +286,8 @@ select option:checked{background:#1a2c4a;color:#fff}
 .modal-step-label{flex:1;color:var(--text);font-weight:600}
 .modal-actions{display:flex;gap:10px}
 .modal-actions button{flex:1;padding:13px;font-size:13.5px;font-weight:700;border-radius:11px;cursor:pointer;font-family:var(--font);border:1px solid var(--border)}
-.modal-actions .btn-cancel{background:rgba(255,255,255,.04);color:var(--muted)}
-.modal-actions .btn-cancel:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.modal-actions .btn-cancel{background:rgba(var(--tint),.04);color:var(--muted)}
+.modal-actions .btn-cancel:hover{background:rgba(var(--tint),.08);color:var(--text)}
 
 @media(max-width:700px){
   .stats-row{grid-template-columns:1fr}
@@ -301,7 +301,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 .help-host{position:relative;display:inline-flex;align-items:center}
 .help-btn{
   width:18px;height:18px;border-radius:50%;
-  border:1px solid var(--border2);background:rgba(255,255,255,.04);
+  border:1px solid var(--border2);background:rgba(var(--tint),.04);
   color:var(--muted);font-size:11px;font-weight:700;font-family:var(--mono);
   cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
   line-height:1;padding:0;margin-left:6px;transition:all .15s;flex-shrink:0
@@ -324,23 +324,23 @@ select option:checked{background:#1a2c4a;color:#fff}
    per agent so 10+ agents stay scannable. Click anywhere on the row opens
    the detail drawer (.drawer-overlay) with the full info + actions. */
 .agent-row-compact{
-  background:rgba(255,255,255,.025);border:1px solid var(--border);
+  background:rgba(var(--tint),.025);border:1px solid var(--border);
   border-radius:12px;padding:12px 14px;display:flex;align-items:center;
   gap:12px;cursor:pointer;transition:all .15s;text-align:left;width:100%;
   font-family:var(--font);color:var(--text)
 }
-.agent-row-compact:hover{background:rgba(255,255,255,.05);border-color:var(--border2);transform:translateY(-1px)}
+.agent-row-compact:hover{background:rgba(var(--tint),.05);border-color:var(--border2);transform:translateY(-1px)}
 .arc-row-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
 .arc-row-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .arc-row-name{font-size:13px;font-weight:700;letter-spacing:-.005em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arc-row-flow{font-size:10.5px;color:var(--muted);font-family:var(--mono);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.arc-row-flow .chain-tag{padding:1px 6px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;color:var(--text);font-weight:600;font-size:10px}
+.arc-row-flow .chain-tag{padding:1px 6px;background:rgba(var(--tint),.04);border:1px solid var(--border);border-radius:5px;color:var(--text);font-weight:600;font-size:10px}
 .arc-row-flow .arr{opacity:.4}
 .arc-row-meta-line{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
 .arc-row-meta-line strong{color:var(--arc1);font-weight:700}
 .arc-row-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .arc-manage{font-size:10.5px;color:var(--violet);font-family:var(--mono);font-weight:700;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:2px}
-.cctp-pulse{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;color:#FFD580;font-family:var(--mono);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.cctp-pulse{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;color:var(--c-gold-soft);font-family:var(--mono);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .cctp-pulse::before{content:'';width:6px;height:6px;border-radius:50%;background:#FFD580;animation:cctpPulse 1.5s ease-in-out infinite}
 @keyframes cctpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
 
@@ -353,16 +353,16 @@ select option:checked{background:#1a2c4a;color:#fff}
 .drawer-h-l{flex:1;min-width:0}
 .drawer-h-title{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .drawer-h-sub{font-size:11.5px;color:var(--muted);font-family:var(--mono);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.drawer-close{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;flex-shrink:0;font-family:var(--font)}
-.drawer-close:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.drawer-close{width:32px;height:32px;border-radius:9px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;flex-shrink:0;font-family:var(--font)}
+.drawer-close:hover{color:var(--text);background:rgba(var(--tint),.08)}
 .drawer-body{padding:18px 26px 22px;overflow-y:auto;flex:1}
 .drawer-section{margin-bottom:18px}
 .drawer-section:last-child{margin-bottom:0}
 .drawer-section-h{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .drawer-foot{padding:14px 26px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
-.drawer-foot button{flex:1;min-width:80px;padding:11px;font-size:12.5px;font-weight:700;border-radius:11px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);transition:all .15s}
-.drawer-foot button:hover{background:rgba(255,255,255,.08);border-color:var(--border2)}
-.drawer-foot button.danger{color:#FF8BA3;border-color:rgba(255,85,119,.25);background:rgba(255,85,119,.06)}
+.drawer-foot button{flex:1;min-width:80px;padding:11px;font-size:12.5px;font-weight:700;border-radius:11px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:rgba(var(--tint),.04);color:var(--text);transition:all .15s}
+.drawer-foot button:hover{background:rgba(var(--tint),.08);border-color:var(--border2)}
+.drawer-foot button.danger{color:var(--c-pink);border-color:rgba(255,85,119,.25);background:rgba(255,85,119,.06)}
 .drawer-foot button.danger:hover{background:rgba(255,85,119,.12);border-color:rgba(255,85,119,.45)}
 .drawer-foot button.primary{color:var(--violet);border-color:rgba(77,214,219,.32);background:rgba(77,214,219,.08)}
 .drawer-foot button.primary:hover{background:rgba(77,214,219,.16);border-color:rgba(77,214,219,.5)}
@@ -388,16 +388,16 @@ select option:checked{background:#1a2c4a;color:#fff}
 .chat-msg.user{align-self:flex-end}
 .chat-msg.ai{align-self:flex-start}
 .chat-bubble{padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
-.chat-msg.ai .chat-bubble{background:rgba(255,255,255,.04);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text)}
+.chat-msg.ai .chat-bubble{background:rgba(var(--tint),.04);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text)}
 .chat-msg.user .chat-bubble{background:linear-gradient(135deg,rgba(77,214,219,.16),rgba(74,123,236,.16));border:1px solid rgba(77,214,219,.28);border-top-right-radius:4px;color:var(--text)}
-.chat-applied{margin-top:9px;padding-top:9px;border-top:1px dashed rgba(255,255,255,.1);font-size:11px;font-family:var(--mono);color:var(--arc4);line-height:1.5}
+.chat-applied{margin-top:9px;padding-top:9px;border-top:1px dashed rgba(var(--tint),.1);font-size:11px;font-family:var(--mono);color:var(--arc4);line-height:1.5}
 .chat-suggest{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 14px;flex-shrink:0}
-.chat-chip{padding:8px 12px;border-radius:100px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-size:11.5px;cursor:pointer;font-family:var(--font);transition:all .15s;text-align:left}
-.chat-chip:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.06)}
+.chat-chip{padding:8px 12px;border-radius:100px;background:rgba(var(--tint),.03);border:1px solid var(--border);color:var(--muted);font-size:11.5px;cursor:pointer;font-family:var(--font);transition:all .15s;text-align:left}
+.chat-chip:hover{color:var(--text);border-color:var(--border2);background:rgba(var(--tint),.06)}
 .chat-input-row{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
-.chat-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:13.5px;line-height:1.5;resize:none;outline:none;max-height:120px;min-height:44px}
+.chat-input{flex:1;background:rgba(var(--tint),.04);border:1px solid var(--border);border-radius:14px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:13.5px;line-height:1.5;resize:none;outline:none;max-height:120px;min-height:44px}
 .chat-input:focus{border-color:rgba(77,214,219,.4)}
-.chat-input::placeholder{color:rgba(255,255,255,.25)}
+.chat-input::placeholder{color:rgba(var(--tint),.25)}
 .chat-send{width:44px;height:44px;flex-shrink:0;border-radius:12px;border:1px solid rgba(77,214,219,.35);background:linear-gradient(135deg,rgba(77,214,219,.2),rgba(74,123,236,.2));color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:all .15s}
 .chat-send:hover:not(:disabled){background:linear-gradient(135deg,rgba(77,214,219,.32),rgba(74,123,236,.32));border-color:rgba(77,214,219,.55)}
 .chat-send:disabled{opacity:.4;cursor:not-allowed}
@@ -409,7 +409,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 
 /* CONFIG COLUMN (right) — tab bar over the existing automation form + agents */
 .config-col{display:flex;flex-direction:column;gap:14px;min-width:0}
-.cfg-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:12px;padding:5px}
+.cfg-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(var(--tint),.025);border:1px solid var(--border);border-radius:12px;padding:5px}
 .cfg-tab{padding:11px;border-radius:8px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
 .cfg-tab:hover{color:var(--text)}
 .cfg-tab.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.3);color:var(--text)}
@@ -422,7 +422,7 @@ select option:checked{background:#1a2c4a;color:#fff}
    the same hidden inputs.
 ============================================================ */
 /* Mode bar — replaces the old chunky .mode-tabs with a slim segmented row */
-.mode-bar{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;padding:4px;margin-bottom:20px}
+.mode-bar{display:flex;gap:4px;background:rgba(var(--tint),.03);border:1px solid var(--border);border-radius:13px;padding:4px;margin-bottom:20px}
 .mode-pill{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 8px;border-radius:9px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:-.01em;cursor:pointer;transition:all .15s;position:relative;white-space:nowrap}
 .mode-pill:hover:not(:disabled){color:var(--text)}
 .mode-pill.active{background:rgba(77,214,219,.12);border-color:rgba(77,214,219,.32);color:var(--text)}
@@ -431,7 +431,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 .mode-pill .soon-tag{position:absolute;top:-7px;right:6px;font-size:8px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;color:var(--yellow,#FFC97A);background:rgba(255,201,122,.12);border:1px solid rgba(255,201,122,.3);border-radius:5px;padding:1px 4px;text-transform:uppercase}
 
 /* Hero amount — the big editable $ figure at the top of the form */
-.amt-hero{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:18px;padding:22px 20px 20px;text-align:center;margin-bottom:18px;position:relative;transition:border-color .15s}
+.amt-hero{background:rgba(var(--tint),.02);border:1px solid var(--border);border-radius:18px;padding:22px 20px 20px;text-align:center;margin-bottom:18px;position:relative;transition:border-color .15s}
 .amt-hero:focus-within{border-color:rgba(77,214,219,.4)}
 .amt-hero-label{font-size:11px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .amt-hero-input-row{display:flex;align-items:center;justify-content:center;gap:2px}
@@ -441,14 +441,14 @@ select option:checked{background:#1a2c4a;color:#fff}
 .amt-hero-input{-moz-appearance:textfield}
 .amt-hero-suffix{font-size:13px;color:var(--muted);font-family:var(--mono);margin-top:8px}
 .amt-quick{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
-.amt-quick button{padding:6px 14px;border-radius:100px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text);font-size:12.5px;font-weight:700;font-family:var(--mono);cursor:pointer;transition:all .15s;letter-spacing:.01em}
+.amt-quick button{padding:6px 14px;border-radius:100px;background:rgba(var(--tint),.06);border:1px solid var(--border2);color:var(--text);font-size:12.5px;font-weight:700;font-family:var(--mono);cursor:pointer;transition:all .15s;letter-spacing:.01em}
 .amt-quick button:hover{color:#fff;border-color:rgba(77,214,219,.55);background:rgba(77,214,219,.12)}
 
 /* Selector rows (Tower "Pay With" / Frequency / time triggers) */
-.sel-row{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;width:100%;font-family:var(--font);color:var(--text);text-align:left}
+.sel-row{background:rgba(var(--tint),.035);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;width:100%;font-family:var(--font);color:var(--text);text-align:left}
 .sel-row:hover{border-color:var(--border2)}
 .sel-row.static{cursor:default}
-.sel-row-ico{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(255,255,255,.06)}
+.sel-row-ico{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(var(--tint),.06)}
 .sel-row-ico img{width:100%;height:100%;object-fit:cover}
 .sel-row-main{flex:1;min-width:0}
 .sel-row-k{font-size:10.5px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
@@ -475,20 +475,20 @@ select option:checked{background:#1a2c4a;color:#fff}
 .olq-modal-head{padding:20px 24px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}
 .olq-modal-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
 .olq-modal-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
-.olq-modal-x{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:17px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.olq-modal-x:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.olq-modal-x{width:30px;height:30px;border-radius:9px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:17px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.olq-modal-x:hover{color:var(--text);background:rgba(var(--tint),.08)}
 .olq-modal-body{padding:16px 24px 20px;overflow-y:auto}
 .olq-modal-foot{padding:14px 24px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
-.olq-btn{padding:11px 18px;font-size:13px;font-weight:700;border-radius:11px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);transition:all .15s}
-.olq-btn:hover{background:rgba(255,255,255,.08);border-color:var(--border2)}
+.olq-btn{padding:11px 18px;font-size:13px;font-weight:700;border-radius:11px;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:rgba(var(--tint),.04);color:var(--text);transition:all .15s}
+.olq-btn:hover{background:rgba(var(--tint),.08);border-color:var(--border2)}
 .olq-btn.primary{background:linear-gradient(135deg,rgba(77,214,219,.22),rgba(74,123,236,.22));border-color:rgba(77,214,219,.4);color:var(--text)}
 .olq-btn.primary:hover{background:linear-gradient(135deg,rgba(77,214,219,.34),rgba(74,123,236,.34))}
 .olq-btn.ghost{background:none;border-color:transparent;color:var(--muted);margin-right:auto}
-.olq-btn.ghost:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.olq-btn.ghost:hover{color:var(--text);background:rgba(var(--tint),.04)}
 
 /* Frequency options */
-.freq-opt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:14px 16px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid var(--border);cursor:pointer;transition:all .15s;font-family:var(--font);margin-bottom:8px}
-.freq-opt:hover{border-color:var(--border2);background:rgba(255,255,255,.05)}
+.freq-opt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:14px 16px;border-radius:13px;background:rgba(var(--tint),.025);border:1px solid var(--border);cursor:pointer;transition:all .15s;font-family:var(--font);margin-bottom:8px}
+.freq-opt:hover{border-color:var(--border2);background:rgba(var(--tint),.05)}
 .freq-opt.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.38)}
 .freq-opt-h{font-size:14.5px;font-weight:700;color:var(--text)}
 .freq-opt-d{font-size:12px;color:var(--muted)}
@@ -497,24 +497,24 @@ select option:checked{background:#1a2c4a;color:#fff}
 .cal-split{display:grid;grid-template-columns:1fr 150px;gap:16px}
 @media(max-width:460px){.cal-split{grid-template-columns:1fr}}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.cal-nav button{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
-.cal-nav button:hover{background:rgba(255,255,255,.08)}
+.cal-nav button{width:28px;height:28px;border-radius:8px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.cal-nav button:hover{background:rgba(var(--tint),.08)}
 .cal-month{font-size:14px;font-weight:700}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .cal-dow{font-size:10px;font-family:var(--mono);color:var(--muted);text-align:center;padding:4px 0}
 .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12.5px;border-radius:8px;background:none;border:1px solid transparent;color:var(--text);cursor:pointer;font-family:var(--font);transition:all .12s}
-.cal-day:hover:not(:disabled){background:rgba(255,255,255,.07)}
-.cal-day.muted{color:rgba(255,255,255,.2);cursor:not-allowed}
+.cal-day:hover:not(:disabled){background:rgba(var(--tint),.07)}
+.cal-day.muted{color:rgba(var(--tint),.2);cursor:not-allowed}
 .cal-day.today{border-color:var(--border2)}
 .cal-day.sel{background:#fff;color:#0b1220;font-weight:700}
-.cal-day:disabled{color:rgba(255,255,255,.15);cursor:not-allowed}
+.cal-day:disabled{color:rgba(var(--tint),.15);cursor:not-allowed}
 .cal-times{display:flex;flex-direction:column}
 .cal-times-h{font-size:11px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .cal-times-list{overflow-y:auto;max-height:230px;display:flex;flex-direction:column;gap:3px;padding-right:4px}
-.cal-time{padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid transparent;color:var(--text);font-size:12.5px;font-family:var(--mono);cursor:pointer;text-align:left;transition:all .12s}
-.cal-time:hover{background:rgba(255,255,255,.07)}
+.cal-time{padding:8px 10px;border-radius:8px;background:rgba(var(--tint),.03);border:1px solid transparent;color:var(--text);font-size:12.5px;font-family:var(--mono);cursor:pointer;text-align:left;transition:all .12s}
+.cal-time:hover{background:rgba(var(--tint),.07)}
 .cal-time.sel{background:rgba(77,214,219,.14);border-color:rgba(77,214,219,.4);color:var(--text)}
-.cal-selected{margin-top:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:11px 14px}
+.cal-selected{margin-top:14px;background:rgba(var(--tint),.03);border:1px solid var(--border);border-radius:11px;padding:11px 14px}
 .cal-selected-k{font-size:10px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
 .cal-selected-v{font-size:14px;font-weight:700;font-family:var(--mono)}
 
@@ -540,7 +540,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 .summary{display:none !important}
 
 /* Sub-toggle segment under the 2 group pills (Buy/Sell or Scheduled/Top-up) */
-.sub-seg{display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:4px;margin-bottom:16px}
+.sub-seg{display:flex;gap:4px;background:rgba(var(--tint),.03);border:1px solid var(--border);border-radius:11px;padding:4px;margin-bottom:16px}
 .sub-seg button{flex:1;padding:9px 8px;border-radius:8px;background:none;border:1px solid transparent;color:var(--muted);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s}
 .sub-seg button:hover{color:var(--text)}
 .sub-seg button.active{background:rgba(77,214,219,.12);border-color:rgba(77,214,219,.32);color:var(--text)}
@@ -548,10 +548,10 @@ select option:checked{background:#1a2c4a;color:#fff}
 /* Chain rows in the source modal — logo + name + balance, like the Swap page's
    source picker (no checkbox; selected = highlighted border). */
 .chain-list{display:flex;flex-direction:column;gap:7px}
-.chain-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font-family:var(--font);color:var(--text);transition:background .12s,border-color .12s}
-.chain-row:hover{background:rgba(255,255,255,.05);border-color:var(--border2)}
+.chain-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(var(--tint),.02);border:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font-family:var(--font);color:var(--text);transition:background .12s,border-color .12s}
+.chain-row:hover{background:rgba(var(--tint),.05);border-color:var(--border2)}
 .chain-row.selected{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.45);box-shadow:0 0 0 2px rgba(77,214,219,.18)}
-.chain-row-ico{width:30px;height:30px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.06)}
+.chain-row-ico{width:30px;height:30px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(var(--tint),.06)}
 .chain-row-ico img{width:100%;height:100%;object-fit:cover;display:block}
 .chain-row-name{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chain-row-bal{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -589,7 +589,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 .track-line{font-size:13.5px;padding:4px 0}
 
 /* Per-recipient chain button with logo (replaces the native <select>). */
-.tgt-chain-btn{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:118px;max-width:150px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:border-color .15s}
+.tgt-chain-btn{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:118px;max-width:150px;padding:9px 10px;border-radius:10px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--text);cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:border-color .15s}
 .tgt-chain-btn:hover{border-color:var(--border2)}
 .tgt-chain-btn img{width:20px;height:20px;border-radius:50%;flex-shrink:0;object-fit:cover}
 .tgt-chain-btn .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -597,26 +597,26 @@ select option:checked{background:#1a2c4a;color:#fff}
 
 /* Chat header buttons + conversations panel (New chat + saved sessions) */
 .chat-head{gap:8px}
-.chat-head-btn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
-.chat-head-btn:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.08)}
+.chat-head-btn{width:34px;height:34px;border-radius:10px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.chat-head-btn:hover{color:var(--text);border-color:var(--border2);background:rgba(var(--tint),.08)}
 .chat-head-btn svg{width:17px;height:17px}
 .chat-convos{position:absolute;top:72px;left:14px;right:14px;bottom:14px;z-index:30;background:linear-gradient(180deg,#16273F 0%,#0F1E36 100%);border:1px solid var(--border2);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.55)}
 .chat-convos-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .chat-convos-head button{padding:7px 12px;border-radius:100px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:11px;font-weight:700;font-family:var(--font);cursor:pointer;letter-spacing:0;text-transform:none}
 .chat-convos-head button:hover{background:rgba(77,214,219,.2)}
 .chat-convos-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
-.convo-item{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--border);cursor:pointer;transition:all .15s;text-align:left;font-family:var(--font);color:var(--text)}
-.convo-item:hover{background:rgba(255,255,255,.06);border-color:var(--border2)}
+.convo-item{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:11px;background:rgba(var(--tint),.03);border:1px solid var(--border);cursor:pointer;transition:all .15s;text-align:left;font-family:var(--font);color:var(--text)}
+.convo-item:hover{background:rgba(var(--tint),.06);border-color:var(--border2)}
 .convo-item.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.35)}
 .convo-item-main{flex:1;min-width:0}
 .convo-item-title{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .convo-item-date{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 .convo-del{width:26px;height:26px;border-radius:7px;background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
-.convo-del:hover{color:#FF8BA3;border-color:rgba(255,85,119,.3)}
+.convo-del:hover{color:var(--c-pink);border-color:rgba(255,85,119,.3)}
 .convo-empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.5}
 
 /* In-chat swap quote card + confirm */
-.swap-quote{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin:4px 0 10px}
+.swap-quote{background:rgba(var(--tint),.04);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin:4px 0 10px}
 .sq-row{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:15px;font-weight:700;flex-wrap:wrap}
 .sq-arrow{color:var(--arc1)}
 .sq-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:7px}
@@ -626,7 +626,29 @@ select option:checked{background:#1a2c4a;color:#fff}
 .sq-confirm:disabled{opacity:.55;cursor:default}
 .chat-bubble a{color:var(--arc1);text-decoration:none;font-weight:600}
 .chat-bubble a:hover{text-decoration:underline}
+
+/* Page-local accents, light side. Kept here rather than in
+   arc-theme.css because these token names carry different hues
+   on different pages. */
+:root[data-theme="light"]{
+  --violet:#0E8F9C;
+}
+
+/* ── Light theme: agent-specific surfaces ───────────────
+   Modals, drawers and popovers paint their own navy card. */
+:root[data-theme="light"] select option{background:#FFFFFF;color:var(--text)}
+:root[data-theme="light"] select option:checked{background:#E3E8F0;color:var(--text)}
+:root[data-theme="light"] .modal-overlay,
+:root[data-theme="light"] .drawer-overlay,
+:root[data-theme="light"] .olq-modal{background:rgba(15,23,42,.34)}
+:root[data-theme="light"] .modal-card,
+:root[data-theme="light"] .drawer-card,
+:root[data-theme="light"] .olq-modal-card,
+:root[data-theme="light"] .help-pop,
+:root[data-theme="light"] .chat-convos{background:#FFFFFF;box-shadow:0 24px 70px rgba(15,23,42,.18)}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 
@@ -1248,7 +1270,7 @@ select option:checked{background:#1a2c4a;color:#fff}
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
 <script src="/assets/arc-gateway.js?v=9.10.0"></script>
-<script src="/assets/arc-ui.js?v=9.10.29"></script>
+<script src="/assets/arc-ui.js?v=9.11.0"></script>
 <script>
 (async () => {
   await ArcUI.bootApp('agent');
@@ -2420,9 +2442,9 @@ select option:checked{background:#1a2c4a;color:#fff}
       const dests = Array.from(new Set(crossTargets.map(x => CHAIN_LABELS[x.chain] || x.chain))).join(', ');
       html += `
         <div class="summary-row" style="background:rgba(108,63,255,.05);border:1px solid rgba(108,63,255,.18);border-radius:8px;padding:8px 10px;margin-top:6px">
-          <span class="k" style="color:#9D7BFF">Cross-chain</span>
-          <span class="v" style="color:#B8A1FF;font-size:11px;line-height:1.5">
-            ${crossTargets.length} target${crossTargets.length > 1 ? 's' : ''} on ${dests} delivered via <strong style="color:#D4C5FF">Circle CCTP V2</strong> burn-and-mint (~30s after each fire). Backend handles burn + attestation + mint automatically.
+          <span class="k" style="color:var(--c-violet)">Cross-chain</span>
+          <span class="v" style="color:var(--c-violet-soft);font-size:11px;line-height:1.5">
+            ${crossTargets.length} target${crossTargets.length > 1 ? 's' : ''} on ${dests} delivered via <strong style="color:var(--c-lilac)">Circle CCTP V2</strong> burn-and-mint (~30s after each fire). Backend handles burn + attestation + mint automatically.
           </span>
         </div>`;
     }
@@ -3243,13 +3265,13 @@ select option:checked{background:#1a2c4a;color:#fff}
       // Provisioning failure hint - shown so user notices it even before
       // opening the drawer.
       const hasFailed = (a.failedChains || []).length > 0;
-      const failedBadge = hasFailed ? `<span style="font-size:9px;font-family:var(--mono);font-weight:700;color:#FF8BA3;background:rgba(255,85,119,.10);border:1px solid rgba(255,85,119,.28);padding:2px 5px;border-radius:5px;letter-spacing:.06em">⚠ ${a.failedChains.length} FAILED</span>` : '';
+      const failedBadge = hasFailed ? `<span style="font-size:9px;font-family:var(--mono);font-weight:700;color:var(--c-pink);background:rgba(255,85,119,.10);border:1px solid rgba(255,85,119,.28);padding:2px 5px;border-radius:5px;letter-spacing:.06em">⚠ ${a.failedChains.length} FAILED</span>` : '';
 
       // Consecutive-failure warning - shows even before auto-pause threshold
       // hits, so user has a chance to fix proactively.
       const failStreak = a.consecutiveFailures || 0;
       const failBadge = (failStreak > 0 && !isAutoPaused)
-        ? `<span title="Last ${failStreak} cron run${failStreak === 1 ? '' : 's'} failed. Open to see details." style="font-size:9px;font-family:var(--mono);font-weight:700;color:#FFD580;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);padding:2px 5px;border-radius:5px;letter-spacing:.06em">⚠ ${failStreak} FAIL</span>`
+        ? `<span title="Last ${failStreak} cron run${failStreak === 1 ? '' : 's'} failed. Open to see details." style="font-size:9px;font-family:var(--mono);font-weight:700;color:var(--c-gold-soft);background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);padding:2px 5px;border-radius:5px;letter-spacing:.06em">⚠ ${failStreak} FAIL</span>`
         : '';
 
       return `
@@ -3449,7 +3471,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         let headerLabel;
         if (permitRequiredWallets.length === 0) {
           headerLabel = hasNativeUsdcSource
-            ? '<span style="color:#FFD580;letter-spacing:.04em;text-transform:none;font-size:10.5px">prefund agent wallet</span>'
+            ? '<span style="color:var(--c-gold-soft);letter-spacing:.04em;text-transform:none;font-size:10.5px">prefund agent wallet</span>'
             : '<span style="color:var(--arc4);letter-spacing:.04em;text-transform:none;font-size:10.5px">✓ ready</span>';
         } else if (hasAllRequiredPermits) {
           const tail = hasNativeUsdcSource
@@ -3457,7 +3479,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             : (hasCctpDest ? ' · CCTP cross-chain delivery' : '');
           headerLabel = `<span style="color:var(--arc4);letter-spacing:.04em;text-transform:none;font-size:10.5px">✓ pulls from your wallet${tail}</span>`;
         } else {
-          headerLabel = '<span style="color:#FFD580;letter-spacing:.04em;text-transform:none;font-size:10.5px">setup needed</span>';
+          headerLabel = '<span style="color:var(--c-gold-soft);letter-spacing:.04em;text-transform:none;font-size:10.5px">setup needed</span>';
         }
 
         // Collapse the verbose PREFUND / CCTP-cross-chain explainer banners
@@ -3486,11 +3508,11 @@ select option:checked{background:#1a2c4a;color:#fff}
         const helpBadge = helpBits.length
           ? `<span title="${escapeHtml(helpAttr)}"
                    onclick="ArcUI.toast('info', 'How this permission works', ${JSON.stringify(helpToastBody)})"
-                   style="cursor:help;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(108,63,255,.12);border:1px solid rgba(108,63,255,.32);color:#B8A1FF;font-size:9.5px;font-weight:700;line-height:1;user-select:none">?</span>`
+                   style="cursor:help;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(108,63,255,.12);border:1px solid rgba(108,63,255,.32);color:var(--c-violet-soft);font-size:9.5px;font-weight:700;line-height:1;user-select:none">?</span>`
           : '';
 
         walletsHtml = `
-          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.06)">
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(var(--tint),.06)">
             <div style="font-size:9.5px;font-family:var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px">
               <span>Permission</span>
               ${headerLabel}
@@ -3509,14 +3531,14 @@ select option:checked{background:#1a2c4a;color:#fff}
               let stateLabel;
               if (isCctpDestOnly) {
                 // Cross-chain mint receiver - no permit needed, no prefund needed.
-                stateLabel = '<span title="CCTP V2 dest wallet - receives mint calls when cross-chain transfers complete. No permit needed (agent pulls from a source chain, then burns + mints here)." style="padding:2px 6px;border-radius:5px;background:rgba(108,63,255,.10);border:1px solid rgba(108,63,255,.32);color:#9D7BFF;font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">MINT</span>';
+                stateLabel = '<span title="CCTP V2 dest wallet - receives mint calls when cross-chain transfers complete. No permit needed (agent pulls from a source chain, then burns + mints here)." style="padding:2px 6px;border-radius:5px;background:rgba(108,63,255,.10);border:1px solid rgba(108,63,255,.32);color:var(--c-violet);font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">MINT</span>';
               } else if (!needsPermit) {
                 // Native USDC chain used as a SOURCE - show PREFUND pill with explainer tooltip
-                stateLabel = '<span title="Send USDC from your wallet to this address on Arc. Agent runs will draw from this balance." style="padding:2px 6px;border-radius:5px;background:rgba(108,63,255,.10);border:1px solid rgba(108,63,255,.32);color:#9D7BFF;font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">PREFUND</span>';
+                stateLabel = '<span title="Send USDC from your wallet to this address on Arc. Agent runs will draw from this balance." style="padding:2px 6px;border-radius:5px;background:rgba(108,63,255,.10);border:1px solid rgba(108,63,255,.32);color:var(--c-violet);font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">PREFUND</span>';
               } else {
                 stateLabel = permit
                   ? '<span style="padding:2px 6px;border-radius:5px;background:rgba(123,228,149,.10);border:1px solid rgba(123,228,149,.28);color:var(--arc4);font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em">AUTH</span>'
-                  : '<span style="padding:2px 6px;border-radius:5px;background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.25);color:#FFD580;font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em">SETUP</span>';
+                  : '<span style="padding:2px 6px;border-radius:5px;background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.25);color:var(--c-gold-soft);font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em">SETUP</span>';
               }
               const shortAddr = `${w.address.slice(0,6)}…${w.address.slice(-4)}`;
               // Explorer link respects the chain - Arc has its own explorer.
@@ -3528,8 +3550,8 @@ select option:checked{background:#1a2c4a;color:#fff}
                 <span style="color:var(--muted);min-width:84px;flex-shrink:0">${CHAIN_LABELS[w.source] || w.source}</span>
                 ${stateLabel}
                 <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" title="${w.address} (click to copy)" onclick="window.copyAddr('${w.address}')">${shortAddr}</span>
-                <button onclick="window.copyAddr('${w.address}')" title="Copy address" style="width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">⎘</button>
-                <a href="${explorerBase}${w.address}" target="_blank" rel="noopener" title="View on explorer" style="width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);text-decoration:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">↗</a>
+                <button onclick="window.copyAddr('${w.address}')" title="Copy address" style="width:24px;height:24px;border-radius:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">⎘</button>
+                <a href="${explorerBase}${w.address}" target="_blank" rel="noopener" title="View on explorer" style="width:24px;height:24px;border-radius:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);text-decoration:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">↗</a>
               </div>`;
             }).join('')}
             ${(a.failedChains || []).map(f => {
@@ -3542,13 +3564,13 @@ select option:checked{background:#1a2c4a;color:#fff}
               return `
               <div style="display:flex;align-items:center;padding:4px 0;font-size:11px;font-family:var(--mono);gap:6px">
                 <span style="color:var(--muted);min-width:84px;flex-shrink:0">${label}</span>
-                <span title="${escapeHtml(f.error || 'provisioning failed')}" style="padding:2px 6px;border-radius:5px;background:rgba(255,85,119,.10);border:1px solid rgba(255,85,119,.30);color:#FF8BA3;font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">FAILED</span>
-                <span style="color:#FF8BA3;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px" title="${escapeHtml(f.error || '')}">${escapeHtml((f.error || 'provisioning failed').slice(0, 40))}</span>
+                <span title="${escapeHtml(f.error || 'provisioning failed')}" style="padding:2px 6px;border-radius:5px;background:rgba(255,85,119,.10);border:1px solid rgba(255,85,119,.30);color:var(--c-pink);font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;cursor:help">FAILED</span>
+                <span style="color:var(--c-pink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px" title="${escapeHtml(f.error || '')}">${escapeHtml((f.error || 'provisioning failed').slice(0, 40))}</span>
               </div>`;
             }).join('')}
             ${(a.failedChains || []).length ? `
               <div style="margin-top:8px;display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,85,119,.05);border:1px solid rgba(255,85,119,.18);border-radius:6px">
-                <span style="font-size:10.5px;color:#FF8BA3;line-height:1.4;flex:1">
+                <span style="font-size:10.5px;color:var(--c-pink);line-height:1.4;flex:1">
                   ⚠ <strong>Provisioning failed</strong> on ${a.failedChains.length} chain${a.failedChains.length > 1 ? 's' : ''}. Sends to ${a.failedChains.length > 1 ? 'these chains' : 'this chain'} will fail loudly (no silent rerouting). Retry, or revoke and recreate without ${a.failedChains.length > 1 ? 'them' : 'it'}.
                 </span>
                 <button onclick="window.retryProvision('${a.id}')" style="padding:5px 10px;border-radius:6px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:10.5px;font-family:var(--mono);font-weight:600;letter-spacing:.04em;cursor:pointer;flex-shrink:0">Retry</button>
@@ -3556,13 +3578,13 @@ select option:checked{background:#1a2c4a;color:#fff}
           </div>`;
       } else if (a.provisioning === 'failed') {
         walletsHtml = `
-          <div style="margin-top:10px;padding:8px 10px;background:rgba(255,85,119,.06);border:1px solid rgba(255,85,119,.22);border-radius:8px;font-size:11px;color:#FF8BA3;line-height:1.5">
+          <div style="margin-top:10px;padding:8px 10px;background:rgba(255,85,119,.06);border:1px solid rgba(255,85,119,.22);border-radius:8px;font-size:11px;color:var(--c-pink);line-height:1.5">
             ⚠ Circle wallet provisioning failed. Runs will fall back to simulation.
             ${a.provisioningError ? `<div style="margin-top:4px;font-family:var(--mono);font-size:10px;opacity:.85">${escapeHtml(a.provisioningError)}</div>` : ''}
           </div>`;
       } else if (a.provisioning === 'circle_not_configured') {
         walletsHtml = `
-          <div style="margin-top:10px;padding:8px 10px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.22);border-radius:8px;font-size:11px;color:#FFD580;line-height:1.5">
+          <div style="margin-top:10px;padding:8px 10px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.22);border-radius:8px;font-size:11px;color:var(--c-gold-soft);line-height:1.5">
             ℹ Circle not configured yet - runs are simulated. See SETUP-AGENT.md.
           </div>`;
       }
@@ -3597,10 +3619,10 @@ select option:checked{background:#1a2c4a;color:#fff}
           ctas.push(`<button onclick="window.retryProvision('${a.id}')" style="padding:6px 12px;border-radius:6px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.36);color:var(--arc1);font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.04em;cursor:pointer">↻ Retry Circle wallet provisioning</button>`);
         }
         if (reasonLower.includes('insufficient token balance') || reasonLower.includes('asset amount owned by the wallet is insufficient')) {
-          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:#FFD580;font-size:10.5px;font-family:var(--mono);font-weight:600">→ Fund the agent's source wallet with USDC (see Permission section below)</div>`);
+          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:var(--c-gold-soft);font-size:10.5px;font-family:var(--mono);font-weight:600">→ Fund the agent's source wallet with USDC (see Permission section below)</div>`);
         }
         if (reasonLower.includes('no source wallet with permit')) {
-          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:#FFD580;font-size:10.5px;font-family:var(--mono);font-weight:600">→ Submit a permit on a source chain (see Permission section below)</div>`);
+          ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:var(--c-gold-soft);font-size:10.5px;font-family:var(--mono);font-weight:600">→ Submit a permit on a source chain (see Permission section below)</div>`);
         }
         if (isAutoPausedDrawer) {
           ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.28);color:var(--arc1);font-size:10.5px;font-family:var(--mono);font-weight:600">→ Click <strong>Resume</strong> below after fixing the issue. The cron will retry; if it still fails after 5 ticks, it'll auto-pause again.</div>`);
@@ -3663,7 +3685,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             };
             const visible = a.pendingCctp.slice(-3).reverse(); // last 3 most recent
             return `
-              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.06)">
+              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(var(--tint),.06)">
                 <div style="font-size:9.5px;font-family:var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">
                   <span>CCTP Transfers</span>
                 </div>
@@ -3682,7 +3704,7 @@ select option:checked{background:#1a2c4a;color:#fff}
                   // etc.) but IRIS hasn't reported complete to us.
                   const isStuck = p.state !== 'done' && p.state !== 'failed' && ageSinceCreate > 5 * 60 * 1000;
                   const forceBtn = isStuck
-                    ? `<button onclick="window.forceCompleteCctp('${a.id}', ${realIdx})" title="Mark this transfer as done - use only after verifying USDC actually landed on dest chain" style="padding:3px 8px;border-radius:5px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);color:#FFD580;font-size:9.5px;font-family:var(--mono);font-weight:600;cursor:pointer;margin-left:6px">Force done</button>`
+                    ? `<button onclick="window.forceCompleteCctp('${a.id}', ${realIdx})" title="Mark this transfer as done - use only after verifying USDC actually landed on dest chain" style="padding:3px 8px;border-radius:5px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);color:var(--c-gold-soft);font-size:9.5px;font-family:var(--mono);font-weight:600;cursor:pointer;margin-left:6px">Force done</button>`
                     : '';
                   // Burn explorer link - once we have the on-chain txHash,
                   // surface it so the user can verify the burn really
@@ -3702,7 +3724,7 @@ select option:checked{background:#1a2c4a;color:#fff}
                     ? `<a href="${burnExplorerBase}${p.burnTxHash}" target="_blank" rel="noopener" title="View burn tx on ${p.srcChainKey}" style="color:var(--arc1);font-size:9.5px;text-decoration:none;margin-left:6px">burn ↗</a>`
                     : '';
                   return `
-                  <div style="display:flex;align-items:center;padding:6px 8px;margin-bottom:4px;border-radius:6px;background:rgba(255,255,255,.02);border:1px solid var(--border);font-size:11px;font-family:var(--mono);gap:8px">
+                  <div style="display:flex;align-items:center;padding:6px 8px;margin-bottom:4px;border-radius:6px;background:rgba(var(--tint),.02);border:1px solid var(--border);font-size:11px;font-family:var(--mono);gap:8px">
                     <span style="padding:2px 6px;border-radius:5px;background:rgba(${m.color === '#7BE495' ? '123,228,149' : (m.color === '#FF8BA3' ? '255,85,119' : '255,184,0')},.10);border:1px solid rgba(${m.color === '#7BE495' ? '123,228,149' : (m.color === '#FF8BA3' ? '255,85,119' : '255,184,0')},.30);color:${m.color};font-size:9px;font-weight:700;letter-spacing:.06em;min-width:42px;text-align:center">${m.step}</span>
                     <div style="flex:1;min-width:0">
                       <div style="color:${m.color};font-size:10.5px;font-weight:600">${m.label} <span style="color:var(--muted);font-weight:400;font-size:9.5px">· $${p.amountHuman} ${p.srcChainKey || ''} → ${p.destChainKey || ''}</span>${burnLink}${forceBtn}</div>
@@ -3736,7 +3758,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         stateBadge = `<span style="margin-left:6px;padding:1px 5px;border-radius:4px;background:rgba(77,214,219,.12);color:var(--violet);font-size:10px;letter-spacing:.04em">${e.state}</span>`;
       }
       if (e.simulated) {
-        stateBadge += `<span style="margin-left:6px;padding:1px 5px;border-radius:4px;background:rgba(255,184,0,.1);color:#FFD580;font-size:10px;letter-spacing:.04em">SIM</span>`;
+        stateBadge += `<span style="margin-left:6px;padding:1px 5px;border-radius:4px;background:rgba(255,184,0,.1);color:var(--c-gold-soft);font-size:10px;letter-spacing:.04em">SIM</span>`;
       }
       return `<div class="exec-row" style="border-left-color:${borderColor}">
         <div class="er-time">${clock}</div>

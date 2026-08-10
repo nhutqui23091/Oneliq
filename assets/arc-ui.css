@@ -25,6 +25,13 @@
   --display:'Space Grotesk','Inter',system-ui,sans-serif;
   --font:'DM Sans','Inter',system-ui,sans-serif;
   --mono:'Space Mono','DM Mono',ui-monospace,monospace;
+
+  /* Overlay tints. On the dark theme every raised surface is a white wash;
+     on the light theme it has to invert to an ink wash, so pages express
+     one-off tints as rgba(var(--tint),a) instead of a literal white. */
+  --tint:255,255,255;
+  --ink:0,0,0;
+  color-scheme:dark;
 }
 html{scroll-behavior:smooth}
 body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;min-height:100vh;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
@@ -42,7 +49,6 @@ h1,h2,h3,h4,h5,h6{font-family:var(--display);font-weight:700;letter-spacing:-.02
 a{color:inherit;text-decoration:none}
 button{font-family:var(--font);cursor:pointer}
 input,select,textarea{font-family:var(--font)}
-
 
 /* Arc.network-style horizon background - deep navy at top, teal mid, peach/cream
    glow at the bottom edge. Orbs are subtle secondary decoration. */
@@ -292,3 +298,49 @@ body.arc-side-open .arc-side-backdrop{opacity:1;pointer-events:auto}
   .arc-side-close{display:flex}
   body.arc-side-open .arc-side-hamb{display:none}
 }
+
+/* ── Light theme: shared-shell overrides ─────────────────
+   Tokens live in arc-theme.css (every page loads it, including the
+   self-contained ones that never pull this file in). What is left
+   here is the components that hard-code a dark value. */
+
+/* Navbar */
+:root[data-theme="light"] nav.arc-nav.scrolled{background:rgba(255,255,255,.88);border-bottom-color:var(--border)}
+:root[data-theme="light"] .logo-mark{box-shadow:0 0 18px rgba(14,154,167,.22)}
+:root[data-theme="light"] .logo-badge{background:rgba(14,154,167,.10);border-color:rgba(14,154,167,.30)}
+:root[data-theme="light"] .nav-pill{background:rgba(18,150,90,.09);border-color:rgba(18,150,90,.24)}
+:root[data-theme="light"] .nav-tab.new-pill::after{background:linear-gradient(135deg,#7C5CF0,#2C5BE0)}
+
+/* Buttons */
+:root[data-theme="light"] .btn-primary{background:#0B1220;border-color:#0B1220;color:#FFFFFF}
+:root[data-theme="light"] .btn-primary:hover{background:#1B2537;border-color:#1B2537}
+:root[data-theme="light"] .wallet-btn{background:#FFFFFF;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+:root[data-theme="light"] .wallet-btn:hover{background:#F4F6FA}
+:root[data-theme="light"] .wallet-btn .dot{box-shadow:0 0 8px rgba(18,150,90,.5)}
+:root[data-theme="light"] .wallet-btn.disconnected{background:#0B1220;border-color:#0B1220;color:#FFFFFF}
+:root[data-theme="light"] .wallet-btn.disconnected:hover{background:#1B2537;border-color:#1B2537}
+
+/* Feedback surfaces */
+:root[data-theme="light"] .toast{background:rgba(255,255,255,.97);box-shadow:0 12px 40px rgba(15,23,42,.14)}
+:root[data-theme="light"] .spin{border-color:rgba(15,23,42,.15);border-top-color:var(--text)}
+:root[data-theme="light"] .arc-modal-bg{background:rgba(15,23,42,.38)}
+:root[data-theme="light"] .arc-modal{box-shadow:0 30px 80px rgba(15,23,42,.20)}
+:root[data-theme="light"] .token-ico{background:linear-gradient(135deg,#D7DCE5,#BFC7D4);color:#0B1220}
+
+/* Sidebar shell */
+:root[data-theme="light"] aside.arc-side{background:rgba(255,255,255,.90);box-shadow:1px 0 0 rgba(15,23,42,.04)}
+:root[data-theme="light"] .arc-side-pill{background:rgba(14,154,167,.10);border-color:rgba(14,154,167,.30)}
+:root[data-theme="light"] .arc-side-chain{background:rgba(18,150,90,.09);border-color:rgba(18,150,90,.24)}
+:root[data-theme="light"] .arc-side-chain .dot{box-shadow:0 0 6px rgba(18,150,90,.5)}
+:root[data-theme="light"] .arc-side-badge.new{background:linear-gradient(135deg,#7C5CF0,#2C5BE0)}
+:root[data-theme="light"] .arc-side-badge.soon{background:rgba(180,112,10,.11);border-color:rgba(180,112,10,.30)}
+:root[data-theme="light"] .arc-side-hamb{background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(15,23,42,.10)}
+:root[data-theme="light"] .arc-side-hamb:hover{background:#FFFFFF}
+:root[data-theme="light"] .arc-side-backdrop{background:rgba(15,23,42,.32)}
+@media(max-width:900px){
+  :root[data-theme="light"] aside.arc-side{box-shadow:18px 0 60px rgba(15,23,42,.16)}
+}
+
+/* Divider + label accents read as orange on navy; too hot on white. */
+:root[data-theme="light"] .arc-label{color:#C2410C}
+:root[data-theme="light"] .arc-divider{background:linear-gradient(90deg,transparent 0%,rgba(14,154,167,.35) 20%,rgba(14,154,167,.35) 80%,transparent 100%)}

@@ -12,13 +12,13 @@
 <title>Unified Balance | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.11.0"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0A1628;--bg2:#0F1E36;
-  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
-  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --surface:rgba(var(--tint),0.035);--surface2:rgba(var(--tint),0.065);
+  --border:rgba(var(--tint),0.09);--border2:rgba(var(--tint),0.16);
   --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
   --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
   --warn:#FFB454;--danger:#FF7A7A;
@@ -44,7 +44,7 @@ html{scroll-behavior:smooth}
 .hero-strip h1{font-family:var(--display);font-size:clamp(40px,5.5vw,72px);letter-spacing:-.03em;font-weight:400;line-height:1;text-transform:uppercase}
 .hero-strip p{color:var(--muted);font-size:14px;margin-top:6px;max-width:680px;line-height:1.55}
 .eyebrow{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--arc3);margin-bottom:14px}
-.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+.eyebrow::before{content:'// ';color:var(--c-prefix)}
 
 /* TOTAL CARD */
 .balance-card{margin-top:18px;padding:32px;border-radius:20px;background:linear-gradient(135deg,rgba(244,200,154,0.10),rgba(77,214,219,0.06),rgba(74,123,236,0.08));border:1px solid var(--border);position:relative;overflow:hidden}
@@ -55,24 +55,24 @@ html{scroll-behavior:smooth}
 .balance-amount-row{display:flex;align-items:center;flex-wrap:wrap;position:relative}
 /* Refresh is now a compact glyph next to the total (no full-width text button). */
 .ub-refresh-icon{width:34px;height:34px;margin-left:14px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:17px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .25s,color .2s,border-color .2s;flex-shrink:0}
-.ub-refresh-icon:hover{color:var(--text);border-color:rgba(255,255,255,.3);transform:rotate(90deg)}
+.ub-refresh-icon:hover{color:var(--text);border-color:rgba(var(--tint),.3);transform:rotate(90deg)}
 .ub-refresh-icon:disabled{cursor:not-allowed;transform:none}
 .ub-refresh-icon:disabled .ub-refresh-glyph{display:none}
 .ub-refresh-icon .btn-spinner{margin:0}
 .balance-sub{font-size:13px;color:var(--muted);margin-top:8px;font-family:var(--mono);position:relative}
 .balance-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;position:relative}
 .act-btn{padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .2s;display:inline-flex;align-items:center;gap:8px}
-.act-btn:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.3);transform:translateY(-1px)}
+.act-btn:hover{background:rgba(var(--tint),0.12);border-color:rgba(var(--tint),0.3);transform:translateY(-1px)}
 .act-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .act-btn.primary{background:linear-gradient(135deg,var(--arc1),var(--arc2));border-color:transparent;color:var(--bg);font-weight:700}
 .act-btn.primary:hover{box-shadow:0 4px 20px rgba(77,214,219,0.3)}
 
 /* PER-CHAIN TABLE */
-.chain-table{margin-top:32px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(255,255,255,0.02)}
+.chain-table{margin-top:32px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(var(--tint),0.02)}
 .chain-row{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--border);transition:background .15s}
 .chain-row:first-child{border-top:none}
-.chain-row.header{background:rgba(255,255,255,0.04);font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:11px 18px}
-.chain-row:hover:not(.header){background:rgba(255,255,255,0.025)}
+.chain-row.header{background:rgba(var(--tint),0.04);font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:11px 18px}
+.chain-row:hover:not(.header){background:rgba(var(--tint),0.025)}
 .chain-info{display:flex;align-items:center;gap:12px;min-width:0}
 /* Chain logos: circular frame for consistency with how blockchain brands
    present their marks in wallets / explorers. 32px disc on a neutral bg -
@@ -82,7 +82,7 @@ html{scroll-behavior:smooth}
    The earlier blur came from border-radius + overflow:hidden + box-shadow
    together (Chrome rasterizes the clipped layer at 1x and upscales on HiDPI);
    dropping the box-shadow removes that trigger, so the clip stays crisp. */
-.chain-dot{width:32px;height:32px;border-radius:8px;flex-shrink:0;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:800;font-size:12px;color:#fff;text-shadow:none}
+.chain-dot{width:32px;height:32px;border-radius:8px;flex-shrink:0;background:rgba(var(--tint),.06);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:800;font-size:12px;color:#fff;text-shadow:none}
 .chain-dot img{width:100%;height:100%;object-fit:cover;display:block}
 .chain-dot.fallback{background:linear-gradient(135deg,#4DD6DB,#4A7BEC);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .chain-name{font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -103,7 +103,7 @@ html{scroll-behavior:smooth}
 .pending-card button:disabled{opacity:.5;cursor:not-allowed}
 
 .section-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:32px 0 14px}
-.section-title::before{content:'// ';color:rgba(140,160,189,.55);font-weight:400}
+.section-title::before{content:'// ';color:var(--c-prefix);font-weight:400}
 
 /* MODAL */
 .gw-modal-bg{position:fixed;inset:0;background:rgba(5,12,24,.7);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;animation:fade .2s ease-out}
@@ -213,14 +213,33 @@ html{scroll-behavior:smooth}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--arc4);flex-shrink:0;animation:sdot 2.2s ease-in-out infinite}
 @keyframes sdot{0%,100%{opacity:1}50%{opacity:.25}}
 /* Refresh button spinner */
-.btn-spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.32);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;margin-right:5px;flex-shrink:0}
+.btn-spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(var(--tint),.32);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;margin-right:5px;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Balance delta badge */
 .delta-badge{font-family:var(--mono);font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;animation:dfade 3.8s ease-out forwards;display:inline-block;vertical-align:middle}
 @keyframes dfade{0%{opacity:1;transform:translateY(0)}85%{opacity:.7;transform:translateY(-2px)}100%{opacity:0;transform:translateY(-4px)}}
 .delta-badge.pos{color:var(--arc4);background:rgba(123,228,149,.13)}
 .delta-badge.neg{color:var(--danger);background:rgba(255,122,122,.13)}
+
+/* Page-local accents, light side. Kept here rather than in
+   arc-theme.css because these token names carry different hues
+   on different pages. */
+:root[data-theme="light"]{
+  --warn:#A85F06;
+  --danger:#C8384A;
+}
+
+/* ── Light theme: balance-specific surfaces ─────────────*/
+:root[data-theme="light"] .gw-modal-bg{background:rgba(15,23,42,.34)}
+:root[data-theme="light"] .gw-modal{background:#FFFFFF;box-shadow:0 24px 70px rgba(15,23,42,.18)}
+:root[data-theme="light"] .gw-select option{background:#FFFFFF;color:var(--text)}
+:root[data-theme="light"] .gw-select option:checked,
+:root[data-theme="light"] .gw-select option:hover{background:#E3E8F0;color:var(--text)}
+:root[data-theme="light"] .cs-menu{background:#FFFFFF;box-shadow:0 16px 44px rgba(15,23,42,.16)}
+:root[data-theme="light"] .gw-tip .gw-tip-box{background:#FFFFFF;box-shadow:0 12px 32px rgba(15,23,42,.16)}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 
@@ -393,7 +412,7 @@ html{scroll-behavior:smooth}
 
     <!-- Source breakdown (Unified mode) - shows which chains will be drawn from -->
     <div id="spend-breakdown" style="display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(244,200,154,.06);border:1px solid rgba(244,200,154,.22);font-size:12.5px;color:var(--muted);line-height:1.6">
-      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#FFB454;margin-bottom:6px">⚡ Unified spend plan</div>
+      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c-amber);margin-bottom:6px">⚡ Unified spend plan</div>
       <div id="spend-breakdown-rows"></div>
     </div>
 
@@ -452,7 +471,7 @@ html{scroll-behavior:smooth}
     </div>
 
     <div id="consol-breakdown" style="display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(244,200,154,.06);border:1px solid rgba(244,200,154,.22);font-size:12.5px;color:var(--muted);line-height:1.6">
-      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#FFB454;margin-bottom:6px">⤵ Consolidation plan</div>
+      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c-amber);margin-bottom:6px">⤵ Consolidation plan</div>
       <div id="consol-breakdown-rows"></div>
     </div>
 
@@ -478,7 +497,7 @@ html{scroll-behavior:smooth}
     <button id="bp-review" class="gw-action" type="button" style="margin-top:12px">Preview payment</button>
 
     <div id="bp-preview" style="display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(244,200,154,.06);border:1px solid rgba(244,200,154,.22);font-size:12.5px;color:var(--muted);line-height:1.5">
-      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#FFB454;margin-bottom:6px">⇉ Payment plan</div>
+      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c-amber);margin-bottom:6px">⇉ Payment plan</div>
       <div id="bp-preview-rows"></div>
       <div id="bp-total" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(244,200,154,.2);color:var(--text);font-weight:600"></div>
       <div id="bp-errors" style="display:none;margin-top:8px;color:var(--danger);font-size:11.5px;line-height:1.6"></div>
@@ -497,7 +516,7 @@ html{scroll-behavior:smooth}
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
 <script src="/assets/arc-gateway.js?v=9.12.0"></script>
-<script src="/assets/arc-ui.js?v=9.10.29"></script>
+<script src="/assets/arc-ui.js?v=9.11.0"></script>
 <script>
 (async () => {
   const ARC = window.ARC;
@@ -782,7 +801,7 @@ html{scroll-behavior:smooth}
       // they stuck around when the user cancelled signing or reloaded, and
       // accumulated across attempts ("+40 USDC deposit pending" after one real
       // 20 deposit). The Gateway pending field is reliable and self-clearing.
-      if (connected && pendDisp) pendingLines.push(`<div style="font-size:11px;color:#FFB454;font-weight:500;margin-top:2px">+ ${pendDisp} pending</div>`);
+      if (connected && pendDisp) pendingLines.push(`<div style="font-size:11px;color:var(--c-amber);font-weight:500;margin-top:2px">+ ${pendDisp} pending</div>`);
       const d = state.chainDeltas?.[k];
       const deltaBadge = (d && d !== 0n)
         ? `<span class="delta-badge ${d > 0n ? 'pos' : 'neg'}">${d > 0n ? '+' : '-'}${fmtBig(d > 0n ? d : -d)}</span>`
@@ -848,7 +867,7 @@ html{scroll-behavior:smooth}
     }
     if (totalPending > 0n) {
       const pendDisp = ARC.formatAmt(totalPending, 6, 4);
-      s += ` <span style="color:#FFB454;font-weight:600">· +${pendDisp} USDC pending finality (~12-15 min)</span>`;
+      s += ` <span style="color:var(--c-amber);font-weight:600">· +${pendDisp} USDC pending finality (~12-15 min)</span>`;
     }
     subEl.innerHTML = s;
   }
@@ -1075,7 +1094,7 @@ html{scroll-behavior:smooth}
       </div>`).join('') +
       `<div style="display:flex;justify-content:space-between;padding:6px 0 0;border-top:1px solid rgba(244,200,154,.2);margin-top:4px">
         <span style="color:var(--text)">→ Mint on <strong>${ARC.CHAINS[dst].name}</strong></span>
-        <strong style="color:#FFB454;font-family:var(--mono)">${ARC.formatAmt(est.netReceived,6,4)} USDC</strong>
+        <strong style="color:var(--c-amber);font-family:var(--mono)">${ARC.formatAmt(est.netReceived,6,4)} USDC</strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding:5px 0 0;font-size:11.5px;color:var(--muted)">
         <span>Est. fee${useForwarder ? ' (incl. gasless)' : ''}</span>
@@ -1656,7 +1675,7 @@ html{scroll-behavior:smooth}
     // 'fallback_required' = a route exists but only by aggregating ≥2 sources
     // (partial-liquidity fallback, not a clean single-chain spend).
     const fallbackNote = est.state === 'fallback_required'
-      ? `<div style="font-size:11px;color:#FFB454;margin-bottom:5px">⚡ Partial-liquidity route: no single chain covers this, so your balance is aggregated from ${est.sourceCount} sources in one signature.</div>`
+      ? `<div style="font-size:11px;color:var(--c-amber);margin-bottom:5px">⚡ Partial-liquidity route: no single chain covers this, so your balance is aggregated from ${est.sourceCount} sources in one signature.</div>`
       : '';
     rows.innerHTML = fallbackNote + est.sources.map(p => `
       <div style="display:flex;justify-content:space-between;padding:3px 0">
@@ -1665,7 +1684,7 @@ html{scroll-behavior:smooth}
       </div>`).join('') +
       `<div style="display:flex;justify-content:space-between;padding:6px 0 0;border-top:1px solid rgba(255,180,84,.2);margin-top:4px">
         <span style="color:var(--text)">→ Mint on <strong>${ARC.CHAINS[dst].name}</strong></span>
-        <strong style="color:#FFB454;font-family:var(--mono)">${ARC.formatAmt(est.netReceived,6,4)} USDC</strong>
+        <strong style="color:var(--c-amber);font-family:var(--mono)">${ARC.formatAmt(est.netReceived,6,4)} USDC</strong>
       </div>
       <details style="margin-top:6px">
         <summary style="cursor:pointer;font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px"><span class="spend-more-caret" style="display:inline-block;transition:transform .15s;font-size:9px">▶</span>Fee &amp; steps</summary>

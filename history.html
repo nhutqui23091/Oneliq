@@ -12,7 +12,7 @@
 <title>History | Oneliq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.11.0"/>
 <style>
 /* ============================================================
    HISTORY - minimal receipt feed.
@@ -35,7 +35,7 @@
 .hist-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:5px;border-radius:16px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);margin-bottom:18px}
 .hist-tab{padding:13px 18px;border-radius:12px;font-size:13.5px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;letter-spacing:-.005em;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font);position:relative}
 .hist-tab:hover{color:var(--text)}
-.hist-tab.active{background:rgba(255,255,255,.06);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 6px 18px rgba(0,0,0,.18)}
+.hist-tab.active{background:rgba(var(--tint),.06);color:var(--text);box-shadow:0 1px 0 rgba(var(--tint),.04) inset,0 6px 18px rgba(0,0,0,.18)}
 .hist-tab .count{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--muted);letter-spacing:.04em;border:1px solid var(--border)}
 .hist-tab.active .count{background:rgba(77,214,219,.14);border-color:rgba(77,214,219,.32);color:var(--arc1)}
 
@@ -45,14 +45,14 @@
 /* RECEIPT ROW */
 .hist-row{display:grid;grid-template-columns:42px 1fr auto auto;gap:18px;align-items:center;padding:18px 20px;border-radius:14px;transition:all .15s;cursor:pointer;border:1px solid transparent}
 .hist-row + .hist-row{border-top:1px solid var(--border)}
-.hist-row:hover{background:rgba(255,255,255,.025);border-color:var(--border);border-top-color:var(--border)}
+.hist-row:hover{background:rgba(var(--tint),.025);border-color:var(--border);border-top-color:var(--border)}
 .hist-row:hover + .hist-row{border-top-color:transparent}
 
 .hist-row-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
 .hist-row-ico.k-trade  {background:rgba(77,214,219,.10);color:var(--arc1)}
 .hist-row-ico.k-balance{background:linear-gradient(135deg,rgba(74,123,236,.16),rgba(77,214,219,.08));color:var(--arc2)}
-.hist-row-ico.k-agent  {background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(74,123,236,.10));color:#A78BFA}
-.hist-row-ico.k-fail   {background:rgba(255,107,138,.10);color:#FF8BA3}
+.hist-row-ico.k-agent  {background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(74,123,236,.10));color:var(--c-violet-mid)}
+.hist-row-ico.k-fail   {background:rgba(255,107,138,.10);color:var(--c-pink)}
 
 .hist-row-main{min-width:0}
 .hist-row-title{font-size:14.5px;font-weight:600;color:var(--text);letter-spacing:-.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
@@ -60,19 +60,19 @@
 .hist-row-sub .dot-sep{opacity:.35}
 .hist-row-sub a{color:var(--muted);text-decoration:none;border-bottom:1px dashed transparent;transition:all .12s}
 .hist-row-sub a:hover{color:var(--arc1);border-bottom-color:var(--arc1)}
-.hist-chain-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-size:11px;font-weight:600;letter-spacing:0}
+.hist-chain-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--text);font-size:11px;font-weight:600;letter-spacing:0}
 .hist-chain-tag .cd{width:5px;height:5px;border-radius:50%}
 .hist-row-arr{color:var(--arc1);font-weight:700;font-family:var(--mono)}
 
 .hist-row-amt{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .hist-row-amt small{display:block;font-size:10.5px;color:var(--muted);font-weight:500;margin-top:3px;letter-spacing:.04em}
 .hist-row-amt.up{color:var(--arc4)}
-.hist-row-amt.down{color:#F4C89A}
+.hist-row-amt.down{color:var(--c-peach-txt)}
 
 .hist-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:10.5px;font-family:var(--mono);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .hist-status.completed{background:rgba(123,228,149,.10);border:1px solid rgba(123,228,149,.30);color:var(--arc4)}
 .hist-status.pending,.hist-status.processing{background:rgba(255,204,119,.10);border:1px solid rgba(255,204,119,.32);color:var(--yellow)}
-.hist-status.failed{background:rgba(255,107,138,.10);border:1px solid rgba(255,107,138,.30);color:#FF8BA3}
+.hist-status.failed{background:rgba(255,107,138,.10);border:1px solid rgba(255,107,138,.30);color:var(--c-pink)}
 .hist-status .sd{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
 .hist-status.processing .sd,.hist-status.pending .sd{animation:hist-blink 1.4s infinite}
 @keyframes hist-blink{0%,100%{opacity:1}50%{opacity:.35}}
@@ -111,6 +111,8 @@
   .hist-tab .count{display:none}
 }
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 
@@ -146,7 +148,7 @@
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
 <script src="/assets/arc-gateway.js?v=9.7.3"></script>
-<script src="/assets/arc-ui.js?v=9.10.29"></script>
+<script src="/assets/arc-ui.js?v=9.11.0"></script>
 <script>
 (async () => {
   /* ============================================================

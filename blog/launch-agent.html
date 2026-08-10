@@ -22,8 +22,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0A1628;--bg2:#0F1E36;
-  --surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.065);
-  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --surface:rgba(var(--tint),0.035);--surface2:rgba(var(--tint),0.065);
+  --border:rgba(var(--tint),0.09);--border2:rgba(var(--tint),0.16);
   --text:#F5F7FB;--muted:#A4B8D0;--muted-soft:#7E92AE;
   --arc1:#4DD6DB;--arc2:#4A7BEC;--arc3:#F4C89A;--arc4:#7BE495;
   --agent:#A78BFA;
@@ -51,18 +51,18 @@ nav .nav-right{justify-self:end}
 .nav-right{display:flex;align-items:center;gap:10px}
 .btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);transition:all .2s;text-decoration:none}
 .btn-ghost:hover{color:var(--text);border-color:var(--border2)}
-.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);transition:all .2s;text-decoration:none}
-.btn-primary:hover{background:rgba(255,255,255,0.14)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;background:rgba(var(--tint),0.08);border:1px solid rgba(var(--tint),0.18);transition:all .2s;text-decoration:none}
+.btn-primary:hover{background:rgba(var(--tint),0.14)}
 
 .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:120px 24px 80px}
 .crumb{font-size:12px;font-family:var(--mono);color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px}
 .crumb a{color:var(--muted);text-decoration:none}
 .crumb a:hover{color:var(--text)}
 .eyebrow{font-size:12px;font-family:var(--mono);color:var(--agent);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
-.eyebrow::before{content:'// ';color:rgba(140,160,189,.55)}
+.eyebrow::before{content:'// ';color:var(--c-prefix)}
 h1.title{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin-bottom:18px}
 h1.title .grad{background:linear-gradient(90deg,var(--agent),var(--arc2),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.lead{font-size:19px;color:#C8D1E0;line-height:1.6;margin-bottom:28px;font-weight:400}
+.lead{font-size:19px;color:var(--c-body);line-height:1.6;margin-bottom:28px;font-weight:400}
 .byline{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--border)}
 .byline-author{font-weight:600;color:var(--text)}
 .byline-sep{color:var(--border2)}
@@ -70,7 +70,7 @@ h1.title .grad{background:linear-gradient(90deg,var(--agent),var(--arc2),var(--a
 .banner{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:48px;background:#0A1628}
 
 article{font-size:17px;line-height:1.78}
-article p{color:#D8DFEA;margin-bottom:22px}
+article p{color:var(--c-body-strong);margin-bottom:22px}
 article p strong{color:var(--text);font-weight:600}
 article p em{color:var(--text);font-style:italic;background:rgba(167,139,250,0.10);padding:1px 4px;border-radius:3px}
 article a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.3);transition:border-color .2s}
@@ -80,7 +80,7 @@ article h2{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:72px 0 20
 article h2:first-of-type{margin-top:12px}
 article h3{font-size:22px;font-weight:600;margin:44px 0 14px;letter-spacing:-.01em;color:var(--text)}
 article ul,article ol{padding-left:24px;margin-bottom:24px}
-article li{color:#D8DFEA;margin-bottom:8px}
+article li{color:var(--c-body-strong);margin-bottom:8px}
 article li::marker{color:var(--agent)}
 
 code{font-family:var(--mono);font-size:14px;background:rgba(167,139,250,0.10);border:1px solid rgba(167,139,250,0.22);padding:1px 6px;border-radius:5px;color:var(--agent)}
@@ -91,12 +91,12 @@ code{font-family:var(--mono);font-size:14px;background:rgba(167,139,250,0.10);bo
 .callout-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--mono);color:var(--agent)}
 .callout.info .callout-title{color:var(--arc1)}
 .callout.warn .callout-title{color:var(--warn)}
-.callout-body{font-size:15px;color:#C8D1E0;line-height:1.65}
+.callout-body{font-size:15px;color:var(--c-body);line-height:1.65}
 
 .inline-img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border);margin:32px 0;background:#0A1628}
 
 .modes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:36px 0 44px}
-.mode-card{padding:24px 24px 26px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));position:relative;overflow:hidden;transition:border-color .2s}
+.mode-card{padding:24px 24px 26px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,rgba(var(--tint),0.04),rgba(var(--tint),0.015));position:relative;overflow:hidden;transition:border-color .2s}
 .mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:140px;background:linear-gradient(180deg,var(--accent-glow,rgba(167,139,250,0.16)) 0%,transparent 100%);pointer-events:none}
 .mode-card:hover{border-color:var(--border2)}
 .mode-card.c-topup{--accent-glow:rgba(167,139,250,0.18);--accent:var(--agent)}
@@ -104,29 +104,29 @@ code{font-family:var(--mono);font-size:14px;background:rgba(167,139,250,0.10);bo
 .mode-card .mcard-icon{font-size:24px;margin-bottom:14px;display:block;position:relative}
 .mode-card .mcard-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:block;position:relative}
 .mode-card .mcard-name{font-size:20px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-.015em;line-height:1.25;position:relative}
-.mode-card .mcard-desc{font-size:14.5px;color:#D8DFEA;line-height:1.55;margin-bottom:16px;position:relative}
+.mode-card .mcard-desc{font-size:14.5px;color:var(--c-body-strong);line-height:1.55;margin-bottom:16px;position:relative}
 .mode-card .mcard-meta{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;color:var(--accent);opacity:.9;text-transform:uppercase;position:relative;border-top:1px solid var(--border);padding-top:12px;margin-top:auto}
 @media(max-width:720px){.modes-grid{grid-template-columns:1fr}}
 
 table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .t th,.t td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
-.t th{background:rgba(255,255,255,0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
-.t td{color:#C8D1E0}
+.t th{background:rgba(var(--tint),0.04);font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.t td{color:var(--c-body)}
 .t tr:last-child td{border-bottom:none}
 
 .steps{counter-reset:step;list-style:none;padding:0;margin:28px 0}
 .steps li{padding:20px 22px 20px 68px;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;position:relative;background:var(--surface)}
 .steps li::before{counter-increment:step;content:counter(step);position:absolute;left:18px;top:20px;width:34px;height:34px;border-radius:9px;background:rgba(167,139,250,0.14);border:1px solid rgba(167,139,250,0.36);color:var(--agent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px}
 .steps li > strong:first-child{color:var(--text);font-weight:700;display:block;margin-bottom:6px;font-size:16.5px;letter-spacing:-.005em}
-.steps li > strong:first-child a{color:var(--text);border-bottom-color:rgba(255,255,255,0.25)}
-.steps li span{display:block;font-size:15px;color:#E2E8F0;line-height:1.65}
+.steps li > strong:first-child a{color:var(--text);border-bottom-color:rgba(var(--tint),0.25)}
+.steps li span{display:block;font-size:15px;color:var(--c-body-strongest);line-height:1.65}
 .steps li span strong{color:var(--text);font-weight:600}
 .steps li span em{color:var(--text);font-style:italic}
 .steps li a{color:var(--arc1);text-decoration:none;border-bottom:1px solid rgba(77,214,219,0.35);transition:border-color .2s}
 .steps li a:hover{border-bottom-color:var(--arc1)}
 .steps li a:visited{color:var(--arc1)}
 
-.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(167,139,250,0.10),rgba(255,255,255,0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
+.cta-card{border:1px solid var(--border);background:linear-gradient(180deg,rgba(167,139,250,0.10),rgba(var(--tint),0.02));border-radius:14px;padding:28px;margin:48px 0;text-align:center}
 .cta-card h3{font-size:22px;font-weight:700;margin-bottom:8px}
 .cta-card p{color:var(--muted);font-size:14.5px;margin-bottom:18px}
 .cta-card a{display:inline-block;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;background:rgba(167,139,250,0.16);border:1px solid rgba(167,139,250,0.42);color:var(--agent);transition:all .2s;margin:0 4px}
@@ -139,7 +139,23 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 .foot a:hover{color:var(--arc1)}
 
 @media(max-width:768px){.wrap{padding:100px 18px 60px}.nav-links{display:none}h1.title{font-size:32px}article h2{font-size:24px}}
+
+/* ── Light theme ──────────────────────────────────────── */
+:root[data-theme="light"] nav{background:rgba(255,255,255,.88)}
+:root[data-theme="light"] .banner,
+:root[data-theme="light"] .inline-img{background:var(--surface2)}
+
+/* Page-local accents, light side. Kept here rather than in
+   arc-theme.css because these token names carry different hues
+   on different pages. */
+:root[data-theme="light"]{
+  --agent:#6D4AE0;
+  --warn:#A85F06;
+  --danger:#C8384A;
+}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 

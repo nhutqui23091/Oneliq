@@ -42,6 +42,7 @@
           <a class="nav-tab ${active==='blog'?'active':''}" href="/blog">Blog</a>
         </div>
         <div class="nav-right">
+          ${window.ArcTheme ? ArcTheme.buttonHtml() : ''}
           <span class="nav-pill"><span class="dot"></span>Arc Testnet</span>
           <button id="arc-wallet-btn" class="wallet-btn disconnected">Connect Wallet</button>
         </div>`;
@@ -483,6 +484,7 @@
         </div>
         <nav class="arc-side-nav">${sectionsHtml}</nav>
         <div class="arc-side-foot">
+          ${window.ArcTheme ? ArcTheme.buttonHtml() : ''}
           <div class="arc-side-chain" title="Arc Testnet"><span class="dot"></span><span class="arc-side-chain-label">Arc Testnet</span></div>
           <button id="arc-wallet-btn" class="wallet-btn disconnected" title="Connect Wallet">Connect Wallet</button>
         </div>`;

@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.10.26"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=9.11.0"/>
 <style>
 main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:80px 20px}
 .trade-col{width:100%;max-width:560px}
@@ -27,11 +27,11 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .card h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px}
 
 /* leg (from/to) block */
-.leg{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+.leg{background:rgba(var(--tint),.02);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
 .leg + .leg{margin-top:8px}
 .leg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;flex-wrap:wrap}
 .leg-lbl{font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;font-weight:600}
-.leg-bal{font-size:12.5px;color:#B7C4D6;font-family:var(--font);font-variant-numeric:tabular-nums}
+.leg-bal{font-size:12.5px;color:var(--c-body-soft);font-family:var(--font);font-variant-numeric:tabular-nums}
 .leg-bal b{color:var(--text);cursor:pointer;font-weight:700}
 .leg-bal b:hover{color:var(--arc2)}
 
@@ -46,7 +46,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .amt-usd{font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--font)}
 
 .pick-btn{display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:all .2s;color:var(--text);font-weight:600;font-size:14px;min-width:fit-content}
-.pick-btn:hover{border-color:var(--border2);background:rgba(255,255,255,.08)}
+.pick-btn:hover{border-color:var(--border2);background:rgba(var(--tint),.08)}
 .pick-btn .token-ico{width:26px;height:26px;font-size:11px}
 .pick-btn .caret{color:var(--muted);font-size:11px;margin-left:2px}
 
@@ -68,14 +68,14 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 }
 .dst-trigger:hover{border-color:var(--border2)}
 .dst-trigger-cur{display:flex;align-items:center;gap:8px;min-width:0}
-.dst-trigger-ico{width:20px;height:20px;border-radius:6px;flex-shrink:0;object-fit:cover;background:rgba(255,255,255,.06)}
+.dst-trigger-ico{width:20px;height:20px;border-radius:6px;flex-shrink:0;object-fit:cover;background:rgba(var(--tint),.06)}
 .dst-trigger-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dst-trigger-caret{color:var(--muted);font-size:11px;flex-shrink:0}
 .dst-list{display:flex;flex-direction:column;gap:7px}
-.dst-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font-family:var(--font);color:var(--text);transition:background .12s,border-color .12s}
-.dst-row:hover{background:rgba(255,255,255,.05);border-color:var(--border2)}
+.dst-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(var(--tint),.02);border:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font-family:var(--font);color:var(--text);transition:background .12s,border-color .12s}
+.dst-row:hover{background:rgba(var(--tint),.05);border-color:var(--border2)}
 .dst-row.active{background:rgba(77,214,219,.10);border-color:rgba(77,214,219,.45);box-shadow:0 0 0 2px rgba(77,214,219,.18)}
-.dst-row-ico{width:30px;height:30px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.06)}
+.dst-row-ico{width:30px;height:30px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(var(--tint),.06)}
 .dst-row-ico img{width:100%;height:100%;object-fit:cover;display:block}
 .dst-row-name{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -119,21 +119,21 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
      tabular figures instead of switching to the mono. */
   --m-font: 'Inter','DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --m-bg: #0F1E36;
-  --m-bg-soft: rgba(255,255,255,0.045);
-  --m-border: rgba(255,255,255,0.09);
-  --m-border-strong: rgba(255,255,255,0.18);
+  --m-bg-soft: rgba(var(--tint),0.045);
+  --m-border: rgba(var(--tint),0.09);
+  --m-border-strong: rgba(var(--tint),0.18);
   --m-text: #F5F7FB;
   --m-text-soft: #B7C4D6;
   --m-muted: #A4B8D0;
   --m-wallet: #5BD3D9;
   --m-gateway: #FFB454;
-  --m-row-hover: rgba(255,255,255,0.06);
+  --m-row-hover: rgba(var(--tint),0.06);
   --m-row-active-wallet: rgba(91,211,217,0.10);
   --m-row-active-gateway: rgba(255,180,84,0.10);
   width:100%;max-width:760px;max-height:calc(100vh - 80px);
   background:linear-gradient(180deg, #16273F 0%, #0F1E36 100%);
   border:1px solid var(--m-border);border-radius:22px;
-  box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04);
+  box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 0 1px rgba(var(--tint),.04);
   display:flex;flex-direction:column;overflow:hidden;
   animation:srcModalRise .18s cubic-bezier(.2,.9,.3,1);
   font-family:var(--m-font);
@@ -146,16 +146,16 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .src-modal-head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:16px 20px;border-bottom:1px solid var(--m-border);
-  background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+  background:linear-gradient(180deg, rgba(var(--tint),0.03) 0%, rgba(var(--tint),0) 100%);
 }
 .src-modal-title{font-size:16px;font-weight:600;letter-spacing:-.018em;color:var(--m-text)}
 .src-modal-close{
   width:34px;height:34px;border-radius:10px;
-  background:rgba(255,255,255,0.04);border:1px solid var(--m-border);
+  background:rgba(var(--tint),0.04);border:1px solid var(--m-border);
   color:var(--m-text-soft);font-size:18px;line-height:1;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .15s;
 }
-.src-modal-close:hover{color:var(--m-text);border-color:var(--m-border-strong);background:rgba(255,255,255,0.08)}
+.src-modal-close:hover{color:var(--m-text);border-color:var(--m-border-strong);background:rgba(var(--tint),0.08)}
 
 .src-modal-body{padding:18px 20px 20px;overflow-y:auto;flex:1;background:transparent}
 
@@ -170,16 +170,16 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .src-tab{
   display:flex;align-items:center;gap:11px;width:100%;text-align:left;min-width:0;
   padding:12px 13px;border-radius:13px;cursor:pointer;font-family:var(--m-font);
-  background:rgba(255,255,255,.02);border:1px solid var(--m-border);color:var(--m-text);
+  background:rgba(var(--tint),.02);border:1px solid var(--m-border);color:var(--m-text);
   transition:background .12s,border-color .12s;
 }
-.src-tab:hover{background:rgba(255,255,255,.05);border-color:var(--m-border-strong)}
+.src-tab:hover{background:rgba(var(--tint),.05);border-color:var(--m-border-strong)}
 .src-tab.active{background:var(--m-row-active-wallet);border-color:var(--m-wallet)}
 .src-tab.gateway.active{background:var(--m-row-active-gateway);border-color:var(--m-gateway)}
 .src-tab-ico{
   width:30px;height:30px;border-radius:9px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.05);color:var(--m-wallet);
+  background:rgba(var(--tint),.05);color:var(--m-wallet);
 }
 .src-tab.gateway .src-tab-ico{background:transparent}
 .src-tab-ico img{width:28px;height:28px;display:block;object-fit:contain}
@@ -205,11 +205,11 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .src-row{
   display:flex;align-items:center;gap:12px;
   padding:12px 14px;border-radius:12px;flex-shrink:0;
-  background:rgba(255,255,255,.02);border:1px solid var(--m-border);
+  background:rgba(var(--tint),.02);border:1px solid var(--m-border);
   cursor:pointer;transition:background .12s,border-color .12s;
   font-family:var(--m-font);width:100%;text-align:left;color:var(--m-text);
 }
-.src-row:hover{background:rgba(255,255,255,.05);border-color:var(--m-border-strong)}
+.src-row:hover{background:rgba(var(--tint),.05);border-color:var(--m-border-strong)}
 .src-row.active{background:var(--m-row-active-wallet);border-color:var(--m-wallet);box-shadow:0 0 0 2px rgba(91,211,217,.22)}
 .src-list.gateway .src-row.active{background:var(--m-row-active-gateway);border-color:var(--m-gateway);box-shadow:0 0 0 2px rgba(255,180,84,.22)}
 .src-row-icon{
@@ -227,19 +227,19 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .src-row-bal-unit{font-size:11px;color:var(--m-muted);font-weight:500;letter-spacing:0}
 .src-row-pending{font-size:11px;color:var(--m-gateway);font-family:var(--m-font);font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-.src-empty{padding:28px 14px;font-size:12.5px;color:var(--m-text-soft);text-align:center;border:1px dashed var(--m-border-strong);border-radius:12px;background:rgba(255,255,255,0.02)}
+.src-empty{padding:28px 14px;font-size:12.5px;color:var(--m-text-soft);text-align:center;border:1px dashed var(--m-border-strong);border-radius:12px;background:rgba(var(--tint),0.02)}
 
 /* "?" help icon next to each column header - toggles a small popover with
    the explanation. Replaces the old bottom-of-panel help block. */
 .src-help-btn{
   display:inline-flex;align-items:center;justify-content:center;
   width:20px;height:20px;border-radius:50%;
-  background:rgba(255,255,255,0.06);border:1px solid var(--m-border-strong);
+  background:rgba(var(--tint),0.06);border:1px solid var(--m-border-strong);
   color:var(--m-text-soft);font-size:11px;font-weight:700;
   cursor:pointer;margin-left:8px;
   transition:all .15s;font-family:var(--m-font);vertical-align:middle;
 }
-.src-help-btn:hover{color:var(--m-text);border-color:var(--m-text-soft);background:rgba(255,255,255,0.10)}
+.src-help-btn:hover{color:var(--m-text);border-color:var(--m-text-soft);background:rgba(var(--tint),0.10)}
 .src-help-pop{
   position:absolute;top:30px;left:0;z-index:200;
   min-width:260px;max-width:320px;padding:13px 15px;
@@ -260,21 +260,21 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .swap-flip-btn{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:50%;background:var(--bg2);border:1px solid var(--border2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;z-index:2}
 .swap-flip-btn:hover{border-color:var(--arc2);color:var(--arc2);transform:translateX(-50%) rotate(180deg)}
 
-.recipient-row{margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,.015)}
+.recipient-row{margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px dashed var(--border);border-radius:12px;background:rgba(var(--tint),.015)}
 .recipient-row input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12.5px;min-width:0}
 .recipient-toggle{font-size:11px;color:var(--arc2);cursor:pointer;font-weight:600;padding:3px 8px;border-radius:6px}
 .recipient-toggle:hover{background:var(--surface)}
 
 /* Route preview */
 .route-box{margin-top:8px;padding:10px 14px;border-radius:12px;background:rgba(77,214,219,.04);border:1px solid rgba(77,214,219,.15)}
-.route-title{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#FF9F4A;font-weight:500;margin-bottom:8px;display:inline-block}
+.route-title{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--c-orange);font-weight:500;margin-bottom:8px;display:inline-block}
 .route-title::before{content:'{\00a0';opacity:.7}
 .route-title::after{content:'\00a0}';opacity:.7}
 .route-steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--text)}
 .route-step{padding:4px 10px;border-radius:100px;background:var(--surface2);border:1px solid var(--border)}
 .route-arrow{color:var(--muted);font-weight:700}
 
-.metric-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.04);font-size:12.5px}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(var(--tint),.04);font-size:12.5px}
 .metric-row:last-child{border-bottom:none}
 .metric-row .lbl{color:var(--muted)}
 .metric-row .val{font-family:var(--mono);color:var(--text);font-weight:600;text-align:right}
@@ -314,13 +314,13 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 
 /* Send to another wallet toggle */
 .send-other-wrap{padding:8px 0 0;text-align:right}
-.send-other-btn{background:none;border:none;color:rgba(160,180,210,.75);font-size:12px;font-weight:500;cursor:pointer;padding:3px 0;transition:color .15s;font-family:var(--font)}
+.send-other-btn{background:none;border:none;color:var(--c-dim);font-size:12px;font-weight:500;cursor:pointer;padding:3px 0;transition:color .15s;font-family:var(--font)}
 .send-other-btn:hover{color:var(--arc1);text-decoration:underline}
 
 /* Execute */
-.exec-btn{width:100%;padding:14px;border-radius:14px;font-size:15px;font-weight:700;border:1px solid rgba(255,255,255,0.22);cursor:pointer;transition:all .2s;margin-top:10px;background:rgba(255,255,255,0.1);color:var(--text);letter-spacing:.02em}
-.exec-btn:hover:not(:disabled){background:rgba(255,255,255,0.16);border-color:rgba(255,255,255,0.35);transform:translateY(-1px)}
-.exec-btn:disabled{opacity:.4;cursor:not-allowed;background:rgba(255,255,255,0.04);color:var(--muted);border-color:rgba(255,255,255,0.08)}
+.exec-btn{width:100%;padding:14px;border-radius:14px;font-size:15px;font-weight:700;border:1px solid rgba(var(--tint),0.22);cursor:pointer;transition:all .2s;margin-top:10px;background:rgba(var(--tint),0.1);color:var(--text);letter-spacing:.02em}
+.exec-btn:hover:not(:disabled){background:rgba(var(--tint),0.16);border-color:rgba(var(--tint),0.35);transform:translateY(-1px)}
+.exec-btn:disabled{opacity:.4;cursor:not-allowed;background:rgba(var(--tint),0.04);color:var(--muted);border-color:rgba(var(--tint),0.08)}
 
 .fast-toggle{display:flex;gap:10px;margin-top:10px}
 .fast-opt{flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface);cursor:pointer;text-align:left;transition:all .2s}
@@ -331,12 +331,12 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 /* Right rail */
 .rail{display:flex;flex-direction:column;gap:16px}
 .rail-card{padding:16px 18px;border-radius:18px;background:var(--surface);border:1px solid var(--border)}
-.rail-title{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#FF9F4A;font-weight:500;margin-bottom:10px;display:inline-block}
+.rail-title{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--c-orange);font-weight:500;margin-bottom:10px;display:inline-block}
 .rail-title::before{content:'{\00a0';opacity:.7}
 .rail-title::after{content:'\00a0}';opacity:.7}
 .rail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px}
 .rail-row .l{color:var(--muted)} .rail-row .v{font-family:var(--mono);font-weight:600}
-.tx-item{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.015);margin-bottom:8px;font-size:12px}
+.tx-item{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(var(--tint),.015);margin-bottom:8px;font-size:12px}
 .tx-item + .tx-item{margin-top:6px}
 .tx-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .tx-status{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -351,14 +351,14 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .picker-search:focus{border-color:var(--arc2)}
 .picker-list{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow:auto}
 .token-badge{font-size:9.5px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:5px;text-transform:uppercase;vertical-align:middle;margin-left:5px}
-.token-badge.unverified{background:rgba(255,180,84,.12);color:#FFB454;border:1px solid rgba(255,180,84,.3)}
+.token-badge.unverified{background:rgba(255,180,84,.12);color:var(--c-amber);border:1px solid rgba(255,180,84,.3)}
 .import-card{padding:14px 16px;background:rgba(255,180,84,.06);border:1px solid rgba(255,180,84,.25);border-radius:12px;margin-top:4px}
-.import-warn{font-size:12px;font-weight:700;color:#FFB454;margin-bottom:10px}
+.import-warn{font-size:12px;font-weight:700;color:var(--c-amber);margin-bottom:10px}
 .import-meta{font-size:14px;font-weight:600;margin-bottom:4px}
 .import-addr{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:12px}
 .import-btns{display:flex;gap:8px}
 .import-btn{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:var(--surface2);color:var(--muted)}
-.import-btn.confirm{background:rgba(255,180,84,.15);color:#FFB454;border-color:rgba(255,180,84,.35)}
+.import-btn.confirm{background:rgba(255,180,84,.15);color:var(--c-amber);border-color:rgba(255,180,84,.35)}
 
 /* Progress modal */
 .progress-steps{display:flex;flex-direction:column;gap:12px;margin:12px 0}
@@ -373,7 +373,33 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .pstep-body{flex:1;min-width:0}
 .pstep-title{font-weight:600;font-size:13px}
 .pstep-sub{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono);word-break:break-all}
+
+/* ── Light theme: funding-source picker ─────────────────
+   The picker carries its own colour tokens so it can stay a
+   self-contained dark card on the dark theme; on light it has
+   to become an ordinary white dialog. */
+:root[data-theme="light"] .src-panel{background:rgba(15,23,42,.34)}
+:root[data-theme="light"] .src-modal{
+  --m-bg:#FFFFFF;
+  --m-text:#0B1220;
+  --m-text-soft:#5A6478;
+  --m-muted:#5A6478;
+  --m-wallet:#0E8F9C;
+  --m-gateway:#A85F06;
+  --m-row-active-wallet:rgba(14,143,156,0.09);
+  --m-row-active-gateway:rgba(168,95,6,0.09);
+  background:#FFFFFF;
+  box-shadow:0 30px 90px rgba(15,23,42,.20),0 0 0 1px rgba(15,23,42,.06);
+}
+:root[data-theme="light"] .src-modal-head{background:linear-gradient(180deg,rgba(15,23,42,.02) 0%,rgba(15,23,42,0) 100%)}
+:root[data-theme="light"] .src-help-pop{background:#FFFFFF;box-shadow:0 12px 32px rgba(15,23,42,.16)}
+:root[data-theme="light"] .src-row.active{box-shadow:0 0 0 2px rgba(14,143,156,.24)}
+:root[data-theme="light"] .src-list.gateway .src-row.active{box-shadow:0 0 0 2px rgba(168,95,6,.24)}
+:root[data-theme="light"] .src-help-pop .pill.wl{background:rgba(14,143,156,.14);color:#0E8F9C}
+:root[data-theme="light"] .src-help-pop .pill.gw{background:rgba(168,95,6,.14);color:#A85F06}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 <main class="trade-wrap">
@@ -525,7 +551,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-ui.js?v=9.10.29"></script>
+<script src="/assets/arc-ui.js?v=9.11.0"></script>
 <script src="/assets/arc-gateway.js?v=9.7.3"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
@@ -547,7 +573,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   function showAppkitFallbackPill() {
     if (!appkitPill) return;
     appkitPill.style.cssText = 'grid-column:1/-1;margin:0 0 8px;padding:8px 14px;border-radius:10px;font-size:12.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;line-height:1.4;background:rgba(255,180,84,0.06);border:1px solid rgba(255,180,84,0.22);color:var(--text)';
-    appkitPill.innerHTML = '<span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.12em;color:#FFB454;white-space:nowrap">// LIMITED</span>'
+    appkitPill.innerHTML = '<span style="font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--c-amber);white-space:nowrap">// LIMITED</span>'
       + '<span>App Kit unavailable - using Uniswap V2 fallback (testnet pools may be thin).</span>';
   }
   try {
@@ -777,11 +803,11 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       <button class="src-row src-row-unified ${isUnifiedActive ? 'active' : ''}" type="button" data-src="unified:unified" style="background:linear-gradient(135deg,rgba(255,180,84,0.14) 0%,rgba(255,180,84,0.05) 100%);border-color:rgba(255,180,84,0.45);margin-bottom:8px">
         <span class="src-row-dot"><img src="assets/logos/oneliq-mark-gradient.png" alt=""/></span>
         <span class="src-row-info">
-          <span class="src-row-name" style="color:#FFB454;font-weight:700">Unified Balance</span>
+          <span class="src-row-name" style="color:var(--c-amber);font-weight:700">Unified Balance</span>
         </span>
         <span class="src-row-meta">
-          <span class="src-row-bal" style="color:#FFB454">${ARC.formatAmt(unifiedTotal, 6, 4)} <span class="src-row-bal-unit" style="color:rgba(255,180,84,.65)">USDC</span></span>
-          <span class="src-row-pending" style="color:#FFB454">across ${gwFunded.length} chains</span>
+          <span class="src-row-bal" style="color:var(--c-amber)">${ARC.formatAmt(unifiedTotal, 6, 4)} <span class="src-row-bal-unit" style="color:rgba(255,180,84,.65)">USDC</span></span>
+          <span class="src-row-pending" style="color:var(--c-amber)">across ${gwFunded.length} chains</span>
         </span>
       </button>` : '';
 
@@ -802,7 +828,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       <div class="src-pane-head">Pre-deposited · spend instantly anywhere<button class="src-help-btn" type="button" data-help="gateway" aria-label="What is Unified Balance?">?</button>
         <div class="src-help-pop" id="src-help-gateway">
           <span class="pill gw">Gateway</span> = USDC you've pre-deposited into Circle's instant pool. Spend across any chain in <strong>~30s</strong>, no bridge tx, no wrapped tokens.
-          <br><br><strong style="color:#FFB454">⚡ Unified Balance</strong> spends from MULTIPLE Gateway chains at once - N intents signed with <strong>one signature</strong> (BurnIntentSet) → 1 attestation → 1 mint. Picks largest chains first.
+          <br><br><strong style="color:var(--c-amber)">⚡ Unified Balance</strong> spends from MULTIPLE Gateway chains at once - N intents signed with <strong>one signature</strong> (BurnIntentSet) → 1 attestation → 1 mint. Picks largest chains first.
           <br><br>Deposit sync: <strong>~30s on Fuji/Arc</strong>, <strong>~12-15 min on Sepolia / L2</strong> (block-finality bottleneck).
         </div>
       </div>
@@ -1416,7 +1442,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     for (const s of steps) {
       nodes.push('<span class="route-arrow">→</span>');
       if (s.type === 'gateway-spend') nodes.push(`<span class="route-step" style="background:rgba(244,200,154,.1);border-color:rgba(244,200,154,.3)">⚡ Gateway ${chainShort(s.src)}→${chainShort(s.dst)}</span>`);
-      else if (s.type === 'gateway-multi-spend') nodes.push(`<span class="route-step" style="background:rgba(244,200,154,.15);border-color:rgba(244,200,154,.45);font-weight:700;color:#FFB454">⚡ Unified Multi-burn → ${chainShort(s.dst)}</span>`);
+      else if (s.type === 'gateway-multi-spend') nodes.push(`<span class="route-step" style="background:rgba(244,200,154,.15);border-color:rgba(244,200,154,.45);font-weight:700;color:var(--c-amber)">⚡ Unified Multi-burn → ${chainShort(s.dst)}</span>`);
       else if (s.type === 'cctp-bridge') nodes.push(`<span class="route-step">CCTP ${chainShort(s.src)}→${chainShort(s.dst)}</span>`);
       else if (s.type === 'swap') nodes.push(`<span class="route-step">Swap ${s.tIn}→${s.tOut} on Arc</span>`);
       else if (s.type === 'transfer') nodes.push(`<span class="route-step">Transfer on ${chainShort(s.chain)}</span>`);

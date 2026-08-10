@@ -16,10 +16,10 @@
 :root{
   --bg:#0A1628;
   --bg2:#0F1E36;
-  --surface:rgba(255,255,255,0.035);
-  --surface2:rgba(255,255,255,0.065);
-  --border:rgba(255,255,255,0.09);
-  --border2:rgba(255,255,255,0.16);
+  --surface:rgba(var(--tint),0.035);
+  --surface2:rgba(var(--tint),0.065);
+  --border:rgba(var(--tint),0.09);
+  --border2:rgba(var(--tint),0.16);
   --text:#F5F7FB;
   --muted:#A4B8D0;--muted-soft:#7E92AE;
   --arc1:#4DD6DB;
@@ -52,7 +52,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 /* LIQUID GLASS */
 .glass{
-  background:rgba(255,255,255,0.025);
+  background:rgba(var(--tint),0.025);
   backdrop-filter:blur(20px);
   -webkit-backdrop-filter:blur(20px);
   border:1px solid var(--border);
@@ -62,7 +62,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .glass::before{
   content:'';position:absolute;inset:0;border-radius:inherit;
   padding:1px;
-  background:linear-gradient(135deg,rgba(255,255,255,0.2) 0%,rgba(255,255,255,0.04) 30%,rgba(255,255,255,0) 60%,rgba(255,255,255,0.08) 100%);
+  background:linear-gradient(135deg,rgba(var(--tint),0.2) 0%,rgba(var(--tint),0.04) 30%,rgba(var(--tint),0) 60%,rgba(var(--tint),0.08) 100%);
   -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
 }
@@ -135,8 +135,8 @@ nav.scrolled{background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bo
 .mobile-menu a:hover{background:var(--surface)}
 .btn-ghost{padding:9px 18px;border-radius:10px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:1px solid var(--border);font-family:var(--font);transition:all .2s}
 .btn-ghost:hover{color:var(--text);border-color:var(--border2)}
-.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;letter-spacing:-.01em;color:var(--text);cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);font-family:var(--font);transition:all .2s;white-space:nowrap}
-.btn-primary:hover{background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.3)}
+.btn-primary{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:500;letter-spacing:-.01em;color:var(--text);cursor:pointer;background:rgba(var(--tint),0.08);border:1px solid rgba(var(--tint),0.18);font-family:var(--font);transition:all .2s;white-space:nowrap}
+.btn-primary:hover{background:rgba(var(--tint),0.14);border-color:rgba(var(--tint),0.3)}
 .btn-primary:hover{box-shadow:0 0 30px rgba(0,255,178,0.35);transform:translateY(-1px)}
 .btn-primary:active{transform:translateY(0)}
 
@@ -150,7 +150,7 @@ nav.scrolled{background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bo
   display:inline-flex;align-items:center;gap:8px;
   padding:6px 16px;border-radius:100px;
   background:rgba(77,214,219,0.10);border:1px solid rgba(77,214,219,0.28);
-  font-size:11.5px;font-weight:500;color:#FF9F4A;
+  font-size:11.5px;font-weight:500;color:var(--c-orange);
   font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;
   margin-bottom:28px;animation:fade-up .8s ease both;
 }
@@ -193,25 +193,25 @@ nav.scrolled{background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bo
 .hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fade-up .8s .3s ease both}
 .btn-launch{
   padding:14px 32px;border-radius:14px;font-size:16px;font-weight:600;
-  color:var(--text);background:rgba(255,255,255,0.1);
-  border:1px solid rgba(255,255,255,0.22);cursor:pointer;font-family:var(--font);transition:all .25s;
+  color:var(--text);background:rgba(var(--tint),0.1);
+  border:1px solid rgba(var(--tint),0.22);cursor:pointer;font-family:var(--font);transition:all .25s;
   display:flex;align-items:center;gap:8px;backdrop-filter:blur(8px);
 }
-.btn-launch:hover{background:rgba(255,255,255,0.16);border-color:rgba(255,255,255,0.35);transform:translateY(-1px)}
+.btn-launch:hover{background:rgba(var(--tint),0.16);border-color:rgba(var(--tint),0.35);transform:translateY(-1px)}
 .btn-secondary{
   padding:14px 32px;border-radius:14px;font-size:16px;font-weight:600;
   color:var(--text);background:var(--surface);border:1px solid var(--border2);
   cursor:pointer;font-family:var(--font);transition:all .25s;
   backdrop-filter:blur(10px);
 }
-.btn-secondary:hover{background:var(--surface2);border-color:rgba(255,255,255,0.25)}
+.btn-secondary:hover{background:var(--surface2);border-color:rgba(var(--tint),0.25)}
 .hero-stats{
   display:flex;gap:40px;justify-content:center;flex-wrap:wrap;
   margin-top:64px;padding-top:40px;border-top:1px solid var(--border);
   animation:fade-up .8s .5s ease both;width:100%;max-width:700px;
 }
 .stat-item{text-align:center}
-.stat-num{font-size:32px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--text),rgba(255,255,255,.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-num{font-size:32px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--text),rgba(var(--tint),.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .stat-label{font-size:13px;color:var(--muted);margin-top:4px;font-weight:500}
 
 /* ===== MARQUEE ===== */
@@ -219,8 +219,8 @@ nav.scrolled{background:rgba(10,22,40,0.85);backdrop-filter:blur(20px);border-bo
 .marquee-track{display:flex;gap:0;width:max-content;animation:marquee 30s linear infinite}
 .marquee-item{display:flex;align-items:center;gap:14px;padding:0 56px;white-space:nowrap}
 .m-logo{height:36px;width:auto;display:block;opacity:.92;filter:saturate(1.05)}
-.m-name{font-size:18px;font-weight:700;color:#C8D1E0;letter-spacing:-.2px}
-.m-sep{color:rgba(255,255,255,0.10);font-size:22px}
+.m-name{font-size:18px;font-weight:700;color:var(--c-body);letter-spacing:-.2px}
+.m-sep{color:rgba(var(--tint),0.10);font-size:22px}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
 /* ===== SECTION BASE ===== */
@@ -238,7 +238,7 @@ section{position:relative;z-index:1}
   padding:40px 36px;background:var(--bg2);transition:background .3s;
   display:flex;flex-direction:column;gap:16px;position:relative;
 }
-.feat-card:hover{background:rgba(255,255,255,0.025)}
+.feat-card:hover{background:rgba(var(--tint),0.025)}
 /* Bento layout: flagship spend card spans 2 cols, dashboard card spans full width */
 .feat-wide{grid-column:span 2;flex-direction:row;align-items:stretch;gap:32px}
 .feat-full{grid-column:1/-1;flex-direction:row;align-items:center;gap:32px}
@@ -292,7 +292,7 @@ section{position:relative;z-index:1}
 .ub-num{font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1}
 .ub-num span{font-size:16px;font-weight:700;color:var(--muted)}
 .ub-cap{font-size:12px;color:var(--muted);margin-top:8px}
-.ub-modes{display:flex;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:10px}
+.ub-modes{display:flex;gap:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:10px}
 .ub-mode{flex:1;padding:8px 0;border:none;border-radius:9px;background:none;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .ub-mode:hover{color:var(--text)}
 .ub-mode.active{background:rgba(77,214,219,.14);color:var(--arc1)}
@@ -306,7 +306,7 @@ section{position:relative;z-index:1}
 /* ===== NUMBERS ===== */
 .numbers-section{padding:120px 0;text-align:center}
 .big-metric{margin-bottom:80px}
-.big-num{font-size:clamp(72px,14vw,160px);font-weight:900;line-height:.9;letter-spacing:-6px;background:linear-gradient(135deg,var(--text) 0%,rgba(255,255,255,.4) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.big-num{font-size:clamp(72px,14vw,160px);font-weight:900;line-height:.9;letter-spacing:-6px;background:linear-gradient(135deg,var(--text) 0%,rgba(var(--tint),.4) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .big-label{font-size:18px;color:var(--muted);margin-top:16px;font-weight:500}
 .mini-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:24px;overflow:hidden;max-width:700px;margin:0 auto}
 .mini-card{padding:40px;background:var(--bg2);text-align:left;position:relative}
@@ -317,8 +317,8 @@ section{position:relative;z-index:1}
 .how-section{padding:120px 0}
 .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:24px;overflow:hidden;margin-top:64px}
 .step-card{padding:36px 28px;background:var(--bg2);position:relative;overflow:hidden;transition:background .3s}
-.step-card:hover{background:rgba(255,255,255,.02)}
-.step-card::after{content:attr(data-n);position:absolute;bottom:-10px;right:10px;font-size:80px;font-weight:900;color:rgba(255,255,255,.03);line-height:1;pointer-events:none}
+.step-card:hover{background:rgba(var(--tint),.02)}
+.step-card::after{content:attr(data-n);position:absolute;bottom:-10px;right:10px;font-size:80px;font-weight:900;color:rgba(var(--tint),.03);line-height:1;pointer-events:none}
 .step-num{font-size:12px;font-weight:700;color:var(--arc4);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;font-family:var(--mono)}
 .step-icon{font-size:28px;margin-bottom:16px}
 .step-name{font-size:18px;font-weight:700;margin-bottom:10px;letter-spacing:-.3px}
@@ -333,7 +333,7 @@ section{position:relative;z-index:1}
 .testi-card:hover{border-color:rgba(108,63,255,.25);transform:translateY(-4px)}
 .testi-mid{transform:translateY(-12px)}
 .quote-icon{font-size:32px;color:var(--arc1);opacity:.5;margin-bottom:16px;line-height:1}
-.testi-text{font-size:15px;color:rgba(244,240,255,.8);line-height:1.75;margin-bottom:24px;font-weight:400}
+.testi-text{font-size:15px;color:var(--c-quote);line-height:1.75;margin-bottom:24px;font-weight:400}
 .testi-divider{height:1px;background:var(--border);margin-bottom:20px}
 .testi-author{display:flex;align-items:center;gap:12px}
 .testi-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--arc1),var(--arc3));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
@@ -358,7 +358,7 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
 .footer-brand .logo-name{font-size:22px;margin-bottom:12px;display:block;font-family:var(--display);font-weight:700;letter-spacing:-.035em}
 .footer-tagline{font-size:14px;color:var(--muted);line-height:1.7;max-width:300px;margin-top:12px}
 .footer-col-title{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--arc1);margin-bottom:22px;font-family:var(--mono)}
-.footer-col-title::before{content:'// ';color:rgba(140,160,189,.55);font-weight:400}
+.footer-col-title::before{content:'// ';color:var(--c-prefix);font-weight:400}
 .footer-link{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;color:var(--text);margin-bottom:14px;text-decoration:none;transition:color .2s,transform .2s;cursor:pointer;width:fit-content}
 .footer-link:hover{color:var(--arc1);transform:translateX(2px)}
 .footer-link svg{width:14px;height:14px;opacity:.5;transition:opacity .2s}
@@ -419,7 +419,26 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
   .cta-card{padding:48px 24px}
   .footer-grid{grid-template-columns:1fr}
 }
+
+/* Page-local accents, light side. Kept here rather than in
+   arc-theme.css because these token names carry different hues
+   on different pages. */
+:root[data-theme="light"]{
+  --legacy-purple:#5A2BE0;
+}
+
+/* ── Light theme: home-specific surfaces ────────────────
+   The nav, the mobile menu, the Balance showcase card and the
+   footer all paint a navy of their own instead of reading a token. */
+:root[data-theme="light"] nav.scrolled{background:rgba(255,255,255,.88)}
+:root[data-theme="light"] .mobile-menu{background:rgba(255,255,255,.97);box-shadow:0 20px 60px rgba(15,23,42,.16)}
+:root[data-theme="light"] .swap-inner{background:#FFFFFF;box-shadow:0 1px 3px rgba(15,23,42,.07)}
+:root[data-theme="light"] .ub-chains img{border-color:#FFFFFF;background:#FFFFFF}
+:root[data-theme="light"] .ub-btn.primary{color:#FFFFFF}
+:root[data-theme="light"] footer{background:linear-gradient(180deg,rgba(15,23,42,.02) 0%,rgba(15,23,42,.05) 100%)}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=1"/>
+<script src="/assets/arc-theme.js?v=1"></script>
 </head>
 <body>
 
