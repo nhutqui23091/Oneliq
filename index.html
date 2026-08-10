@@ -282,8 +282,12 @@ section{position:relative;z-index:1}
   border-radius:24px;padding:2px;
   background:linear-gradient(135deg,rgba(77,214,219,.45),rgba(74,123,236,.28),rgba(244,200,154,.22));
 }
+/* Same reasoning as .feat-card: a flat fill cannot follow the fixed aurora.
+   This card has no .glass parent under it, so the alpha/colour differ — they
+   are solved to land on the exact same composite the bento cards produce
+   (0.45 of #0A1628 over page + 9% tint). Light keeps solid white, below. */
 .swap-inner{
-  background:#101F3A;border-radius:22px;padding:28px;
+  background:rgba(34,45,61,.5);border-radius:22px;padding:28px;
 }
 .sw-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
 .sw-title{font-size:18px;font-weight:700}
@@ -318,15 +322,19 @@ section{position:relative;z-index:1}
 .big-num{font-size:clamp(72px,14vw,160px);font-weight:900;line-height:.9;letter-spacing:-6px;background:linear-gradient(135deg,var(--text) 0%,rgba(var(--tint),.4) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .big-label{font-size:18px;color:var(--muted);margin-top:16px;font-weight:500}
 .mini-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-radius:24px;overflow:hidden;max-width:700px;margin:0 auto}
-.mini-card{padding:40px;background:var(--bg2);text-align:left;position:relative}
+/* Translucent for the same reason as .feat-card, and the same value because
+   .mini-metrics is also a .glass grid contributing 9% tint underneath. */
+.mini-card{padding:40px;background:rgba(10,22,40,.45);text-align:left;position:relative}
 .mini-num{font-size:48px;font-weight:900;letter-spacing:-2px;background:linear-gradient(135deg,var(--arc2),var(--arc1));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .mini-label{font-size:15px;color:var(--muted);margin-top:8px;font-weight:500}
 
 /* ===== HOW IT WORKS ===== */
 .how-section{padding:120px 0}
 .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:24px;overflow:hidden;margin-top:64px}
-.step-card{padding:36px 28px;background:var(--bg2);position:relative;overflow:hidden;transition:background .3s}
-.step-card:hover{background:rgba(var(--tint),.02)}
+/* Same treatment again; .steps-grid is .glass too. Used by both the "how it
+   works" grid and the roadmap grid further down. */
+.step-card{padding:36px 28px;background:rgba(10,22,40,.45);position:relative;overflow:hidden;transition:background .3s}
+.step-card:hover{background:rgba(10,22,40,.30)}
 .step-card::after{content:attr(data-n);position:absolute;bottom:-10px;right:10px;font-size:80px;font-weight:900;color:rgba(var(--tint),.03);line-height:1;pointer-events:none}
 .step-num{font-size:12px;font-weight:700;color:var(--arc4);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;font-family:var(--mono)}
 .step-icon{font-size:28px;margin-bottom:16px}
@@ -449,13 +457,18 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
    track the aurora, which light mode does not have). The grid background is
    what paints the 1px dividers and .glass paints the outer hairline, so both
    step up from .10 to .16 to sit visibly above the #F7F8FA page. */
-:root[data-theme="light"] .feat-card{background:var(--bg2)}
+:root[data-theme="light"] .feat-card,
+:root[data-theme="light"] .mini-card,
+:root[data-theme="light"] .step-card{background:var(--bg2)}
 :root[data-theme="light"] .feat-card:hover{background:rgba(15,23,42,.02)}
+:root[data-theme="light"] .step-card:hover{background:rgba(15,23,42,.02)}
 /* .features-grid also carries .glass, and arc-theme.css loads after this block
    with `:root[data-theme="light"] .glass{background:#FFFFFF}` at the same
    specificity, which would repaint the 1px gaps white and erase the dividers.
    Matching both classes here outranks it. */
-:root[data-theme="light"] .features-grid.glass{background:rgba(15,23,42,.16);border-color:rgba(15,23,42,.16)}
+:root[data-theme="light"] .features-grid.glass,
+:root[data-theme="light"] .mini-metrics.glass,
+:root[data-theme="light"] .steps-grid.glass{background:rgba(15,23,42,.16);border-color:rgba(15,23,42,.16)}
 :root[data-theme="light"] .feat-stat,
 :root[data-theme="light"] .feat-wide .feat-stat,
 :root[data-theme="light"] .feat-full .feat-stat{border-color:rgba(15,23,42,.16)}
