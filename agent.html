@@ -4389,7 +4389,9 @@ select option:checked{background:#1a2c4a;color:#fff}
     const statusEl = status.querySelector('.chat-bubble');
     let est;
     try {
-      const balances = await ARC.gateway.readBalances(ARC.wallet.address, ARC.gateway.gatewayChains());
+      // readBalances resolves to { token, balances } — take the array off it.
+      const out = await ARC.gateway.readBalances(ARC.wallet.address, ARC.gateway.gatewayChains());
+      const balances = (out.balances || []).filter(b => b.chainKey);
       const valueCanonical = ARC.parseAmt(String(amount), 6);
       const eligible = balances.filter(b => b.chainKey !== dst);
       est = ARC.gateway.estimateSpend({ targetCanonical: valueCanonical, dstChainKey: dst, available: eligible, useForwarder: true });
