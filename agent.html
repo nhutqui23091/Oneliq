@@ -4010,13 +4010,26 @@ select option:checked{background:#1a2c4a;color:#fff}
     if (s) s.scrollTop = s.scrollHeight;
   }
 
+  // A completed swap / deposit / spend stores a structured `receipt` alongside
+  // its plain-text content, so reloading the thread rebuilds the ✅ bubble with
+  // its explorer link instead of flattening it to one line of prose.
+  function receiptHtml(r) {
+    const link = r.link
+      ? ` <a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">${escapeHtml(r.linkText || 'tx')} ↗</a>`
+      : '';
+    return `✅ ${escapeHtml(r.lead || '')}<strong>${escapeHtml(r.subject || '')}</strong>${escapeHtml(r.tail || '')}${link}`;
+  }
+
   // Rebuild the whole thread (intro + stored messages) — load / new / switch.
   function renderConversation() {
     const scroll = document.getElementById('chat-scroll');
     if (!scroll) return;
     scroll.innerHTML = '';
     appendChat('ai', CHAT_INTRO);
-    chatMessages.forEach(m => appendChat(m.role, m.content));
+    chatMessages.forEach(m => {
+      if (m.receipt) appendChatHtml(m.role, receiptHtml(m.receipt));
+      else appendChat(m.role, m.content);
+    });
     const sg = document.getElementById('chat-suggest');
     if (sg) sg.style.display = chatMessages.length ? 'none' : '';
   }
@@ -4251,9 +4264,12 @@ select option:checked{background:#1a2c4a;color:#fff}
     const setStatus = (m) => { statusEl.textContent = m; chatScrollBottom(); };
     try {
       const hash = await execChatSwap(a.from, a.to, a.amount, setStatus);
-      const link = ARC.CHAINS.arc.explorerTx(hash);
-      statusEl.innerHTML = `✅ Swapped <strong>${a.amount} ${a.from} → ${a.to}</strong> on Arc. <a href="${link}" target="_blank" rel="noopener">${ARC.shortAddr(hash)} ↗</a>`;
-      chatMessages.push({ role: 'assistant', content: `Swap complete: ${a.amount} ${a.from} → ${a.to} (tx ${hash})` });
+      const receipt = {
+        lead: 'Swapped ', subject: `${a.amount} ${a.from} → ${a.to}`, tail: ' on Arc.',
+        link: ARC.CHAINS.arc.explorerTx(hash), linkText: ARC.shortAddr(hash),
+      };
+      statusEl.innerHTML = receiptHtml(receipt);
+      chatMessages.push({ role: 'assistant', content: `Swap complete: ${a.amount} ${a.from} → ${a.to} (tx ${hash})`, receipt });
       persistCurrent();
       try { ARC.track('swap', 'arc', null, null, 'agent', ARC.wallet.address ? { address: ARC.wallet.address } : null); } catch {}
     } catch (e) {
@@ -4361,9 +4377,13 @@ select option:checked{background:#1a2c4a;color:#fff}
       });
       const hash = result && result.tx && result.tx.hash;
       const link = (hash && ARC.CHAINS[a.chain].explorerTx) ? ARC.CHAINS[a.chain].explorerTx(hash) : null;
-      statusEl.innerHTML = `✅ Deposited <strong>${a.amount} USDC</strong> from ${chainLabel(a.chain)} to your Unified Balance.` +
-        (link ? ` <a href="${link}" target="_blank" rel="noopener">${ARC.shortAddr(hash)} ↗</a>` : '');
-      chatMessages.push({ role: 'assistant', content: `Deposit complete: ${a.amount} USDC from ${a.chain}` });
+      const receipt = {
+        lead: 'Deposited ', subject: `${a.amount} USDC`,
+        tail: ` from ${chainLabel(a.chain)} to your Unified Balance.`,
+        link, linkText: hash ? ARC.shortAddr(hash) : null,
+      };
+      statusEl.innerHTML = receiptHtml(receipt);
+      chatMessages.push({ role: 'assistant', content: `Deposit complete: ${a.amount} USDC from ${a.chain}`, receipt });
       persistCurrent();
       try { ARC.track('deposit', a.chain, Number(a.amount), hash || null, 'agent', ARC.wallet.address ? { address: ARC.wallet.address } : null); } catch {}
     } catch (e) {
@@ -4433,9 +4453,12 @@ select option:checked{background:#1a2c4a;color:#fff}
       const mintHash = (res && res.mint && res.mint.tx && res.mint.tx.hash) || (res && res.forwarded && res.forwarded.transactionHash) || null;
       const exp = ARC.CHAINS[a.dst] && ARC.CHAINS[a.dst].explorer;
       const link = (mintHash && exp) ? `${exp}/tx/${mintHash}` : null;
-      statusEl.innerHTML = `✅ Spent <strong>${a.amount} USDC</strong> to ${chainLabel(a.dst)}.` +
-        (link ? ` <a href="${link}" target="_blank" rel="noopener">mint ↗</a>` : '');
-      chatMessages.push({ role: 'assistant', content: `Cross-chain spend complete: ${a.amount} USDC → ${a.dst}` });
+      const receipt = {
+        lead: 'Spent ', subject: `${a.amount} USDC`, tail: ` to ${chainLabel(a.dst)}.`,
+        link, linkText: 'mint',
+      };
+      statusEl.innerHTML = receiptHtml(receipt);
+      chatMessages.push({ role: 'assistant', content: `Cross-chain spend complete: ${a.amount} USDC → ${a.dst}`, receipt });
       persistCurrent();
       try { ARC.track('spend', a.dst, Number(a.amount), mintHash, 'agent', ARC.wallet.address ? { address: ARC.wallet.address } : null); } catch {}
     } catch (e) {
@@ -4460,7 +4483,10 @@ select option:checked{background:#1a2c4a;color:#fff}
     showTyping();
 
     try {
-      const payload = JSON.stringify({ messages: chatMessages, portfolio: buildPortfolio() });
+      // Send only {role,content} — the model has no use for the receipt blobs
+      // we keep for re-rendering, and they'd just burn context.
+      const wire = chatMessages.map(m => ({ role: m.role, content: m.content }));
+      const payload = JSON.stringify({ messages: wire, portfolio: buildPortfolio() });
       // Workers AI occasionally returns a transient edge 502/504 (the worker is
       // killed before it can return, so the retry must live on the client, not
       // in the Function). A few quick attempts turn ~50% flakiness into ~90%+.
