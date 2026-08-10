@@ -135,6 +135,49 @@
     try { return ARC.parseAmt(m[1], CANONICAL_DECIMALS); } catch { return null; }
   }
 
+  // Circle's OTHER fee rejection, and it means something different:
+  //   "Insufficient total maxFee across intents to cover forwarding fee.
+  //    Required additional: 0.02197"
+  // Here the number is a TOTAL shortfall across the whole request, not a
+  // per-intent minimum. The forwarding fee is charged once for the destination
+  // mint but has to be covered out of the summed maxFee, so a request made of
+  // several small legs can clear every per-intent floor and still fall short.
+  function parseAdditionalFee(txt) {
+    const m = /required additional:?\s*([\d.]+)/i.exec(txt || '');
+    if (!m) return null;
+    try { return ARC.parseAmt(m[1], CANONICAL_DECIMALS); } catch { return null; }
+  }
+
+  /**
+   * Raise `intents`' maxFee in response to a 400, handling both of Circle's
+   * fee messages. Mutates the intents and returns the fee to report to the
+   * user, or null when the body is not a fee complaint we understand (in which
+   * case the caller should surface the original error rather than re-sign).
+   *
+   * Retrying is safe: nothing is submitted until the user signs again.
+   */
+  function planFeeBump(intents, txt) {
+    const perIntent = parseRequiredFee(txt);
+    if (perIntent) {
+      // +25% so a rate move mid-flight doesn't trip the same error twice.
+      const bumped = perIntent + (perIntent / 4n);
+      let changed = false;
+      intents.forEach(it => { if (bumped > it.maxFee) { it.maxFee = bumped; changed = true; } });
+      return changed ? bumped : null;
+    }
+    const shortfall = parseAdditionalFee(txt);
+    if (shortfall != null && shortfall > 0n && intents.length) {
+      // Spread the total shortfall over the intents, rounding up so the sum
+      // always clears it, and add the same 25% headroom.
+      const n = BigInt(intents.length);
+      const share = (shortfall + n - 1n) / n;
+      const add = share + (share / 4n) + 1n;
+      intents.forEach(it => { it.maxFee += add; });
+      return intents[0].maxFee;
+    }
+    return null;
+  }
+
   // ───────── HELPERS ─────────
   // `balance` from REST is a decimal string in 6-decimal canonical USDC units.
   // To compare/show against Arc's 18-decimal native USDC we always work in
@@ -375,11 +418,10 @@
     };
     let { res, txt } = await submit(burnIntent, 'Sign burn intent in wallet…');
     if (!res.ok && res.status === 400) {
-      const required = parseRequiredFee(txt);
-      if (required && required > burnIntent.maxFee) {
-        // Bump well above the quoted minimum (+25%) so a tiny rate change
-        // mid-flight doesn't trip the same error a second time.
-        burnIntent.maxFee = required + (required / 4n);
+      // Handles both the per-intent minimum and the total forwarding-fee
+      // shortfall — see planFeeBump.
+      const bumped = planFeeBump([burnIntent], txt);
+      if (bumped) {
         opts.onStep?.(`Fee bumped to ${ARC.formatAmt(burnIntent.maxFee, CANONICAL_DECIMALS, 4)} USDC. Please re-sign.`);
         ({ res, txt } = await submit(burnIntent, 'Re-sign with bumped fee…'));
       }
@@ -820,25 +862,18 @@
     let signed = await signBundle('Sign burn intent');
     let { res, txt } = await submit(signed);
     if (!res.ok && res.status === 400) {
-      const required = parseRequiredFee(txt);
-      if (required) {
-        const bumped = required + (required / 4n); // +25% headroom
-        let bumpedAny = false;
-        intents.forEach(it => {
-          if (bumped > it.maxFee) { it.maxFee = bumped; bumpedAny = true; }
-        });
-        if (bumpedAny) {
-          onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
-          // The re-sign happens AFTER the awaited submit() above, so Chrome's
-          // transient activation from the first click is gone — wallets like OKX
-          // won't auto-surface the second popup, they just badge it. If the caller
-          // supplies beforeResign, let it gate the re-sign behind a FRESH user
-          // gesture (a button click) so signTypedData fires within a live
-          // activation window and the popup actually opens. No hook → old behavior.
-          if (beforeResign) await beforeResign(bumped);
-          signed = await signBundle('Re-sign');
-          ({ res, txt } = await submit(signed));
-        }
+      const bumped = planFeeBump(intents, txt);
+      if (bumped) {
+        onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
+        // The re-sign happens AFTER the awaited submit() above, so Chrome's
+        // transient activation from the first click is gone — wallets like OKX
+        // won't auto-surface the second popup, they just badge it. If the caller
+        // supplies beforeResign, let it gate the re-sign behind a FRESH user
+        // gesture (a button click) so signTypedData fires within a live
+        // activation window and the popup actually opens. No hook → old behavior.
+        if (beforeResign) await beforeResign(bumped);
+        signed = await signBundle('Re-sign');
+        ({ res, txt } = await submit(signed));
       }
     }
     if (!res.ok) throw new Error(`Gateway /v1/transfer ${res.status}: ${(txt || '').slice(0, 300)}`);
@@ -934,17 +969,17 @@
     let signed = await signBundle('Sign batch');
     let { res, txt } = await submit(signed);
     if (!res.ok && res.status === 400) {
-      const required = parseRequiredFee(txt);
-      if (required) {
-        const bumped = required + (required / 4n); // +25% headroom
-        let bumpedAny = false;
-        intents.forEach(it => { if (bumped > it.maxFee) { it.maxFee = bumped; bumpedAny = true; } });
-        if (bumpedAny) {
-          onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
-          if (beforeResign) await beforeResign(bumped);
-          signed = await signBundle('Re-sign');
-          ({ res, txt } = await submit(signed));
-        }
+      // A batch is especially prone to the forwarding-fee shortfall: the
+      // forwarder is charged once per request but paid out of the SUM of the
+      // intents' maxFee, so several small legs can each clear their own floor
+      // and still leave the request short. planFeeBump covers that message as
+      // well as the per-intent one.
+      const bumped = planFeeBump(intents, txt);
+      if (bumped) {
+        onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
+        if (beforeResign) await beforeResign(bumped);
+        signed = await signBundle('Re-sign');
+        ({ res, txt } = await submit(signed));
       }
     }
     if (!res.ok) throw new Error(`Gateway /v1/transfer ${res.status}: ${(txt || '').slice(0, 300)}`);

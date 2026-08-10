@@ -264,13 +264,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 .recipient-row input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12.5px;min-width:0}
 .recipient-toggle{font-size:11px;color:var(--arc2);cursor:pointer;font-weight:600;padding:3px 8px;border-radius:6px}
 .recipient-toggle:hover{background:var(--surface)}
-/* "Park the output" row. Only rendered when the trade actually ends in USDC
-   on a chain with a GatewayWallet and the recipient is the sender, so it is
-   hidden far more often than it is shown. */
-.park-row{margin-top:10px;display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border:1px solid rgba(244,200,154,.28);border-radius:12px;background:rgba(244,200,154,.05);cursor:pointer}
-.park-row input{margin:2px 0 0;accent-color:var(--c-amber);cursor:pointer;flex-shrink:0;width:15px;height:15px}
-.park-row .park-t{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.35}
-.park-row .park-s{font-size:11px;color:var(--muted);line-height:1.45;margin-top:2px}
 
 /* Route preview */
 .route-box{margin-top:8px;padding:10px 14px;border-radius:12px;background:rgba(77,214,219,.04);border:1px solid rgba(77,214,219,.15)}
@@ -492,14 +485,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         <div class="send-other-wrap">
           <button class="send-other-btn" id="send-other-btn" type="button">+ Send to another wallet</button>
         </div>
-
-        <label class="park-row" id="park-row" style="display:none">
-          <input type="checkbox" id="park-check"/>
-          <span>
-            <span class="park-t">⚡ Park the output in your Unified Balance</span>
-            <span class="park-s" id="park-sub">Deposits the USDC you receive straight into Gateway, so it is spendable on every chain instead of sitting on one. Costs one extra on-chain transaction (you pay gas), and Circle needs a few minutes of finality before it counts as spendable.</span>
-          </span>
-        </label>
       </div>
 
       <!-- CCTP Fast/Standard toggle (bridge only) -->
@@ -567,7 +552,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
-<script src="/assets/arc-gateway.js?v=9.7.3"></script>
+<script src="/assets/arc-gateway.js?v=9.13.0"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -629,7 +614,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     amountOut: '0',
     recipient: '',
     useSelfRecipient: true,
-    parkInUB: false,   // deposit the trade's USDC output into Gateway as a final step
     slippageBps: 50, // 0.5%
     cctpMode: 'fast',
     quote: null,
@@ -1321,10 +1305,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     recInput.style.color = '';
     state.recipient = recInput.value.trim();
     state.useSelfRecipient = !state.recipient;
-    // Typing someone else's address disqualifies parking, so re-evaluate the
-    // row on every keystroke rather than only on the next quote.
-    syncParkRow();
-    triggerQuote();
     refreshExec();
   };
   document.getElementById('use-self').onclick = () => {
@@ -1333,15 +1313,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     document.getElementById('recipient-row').style.display = 'none';
     const sendBtn = document.getElementById('send-other-btn');
     if (sendBtn) sendBtn.textContent = '+ Send to another wallet';
-    syncParkRow();
-    triggerQuote();
     refreshExec();
-  };
-
-  // ── PARK OUTPUT IN UNIFIED BALANCE ───────────────────
-  document.getElementById('park-check').onchange = (e) => {
-    state.parkInUB = !!e.target.checked;
-    triggerQuote();
   };
 
   // ── FLIP ─────────────────────────────────────────────
@@ -1387,7 +1359,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   //   { type:'gateway-spend', src,   dst   }           - Gateway burn+mint (instant)
   //   { type:'cctp-bridge',   src,   dst   }           - CCTP V2 burn+attest+mint
   //   { type:'transfer',      chain, token }           - same-chain ERC-20 transfer
-  //   { type:'gateway-deposit', chain }                - park the USDC output in Gateway
   // Throws when there's no viable route (e.g. EURC destination outside Arc).
   function planRoute() {
     const srcKind = state.src.kind;
@@ -1403,7 +1374,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         if (dstChain !== 'arc') throw new Error('Non-USDC destination supported only on Arc');
         steps.push({ type: 'swap', chain: 'arc', tIn: 'USDC', tOut: dstSym });
       }
-      return withPark(steps, dstChain);
+      return steps;
     }
 
     const srcChain = state.src.chainKey;
@@ -1452,61 +1423,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       }
     }
 
-    return withPark(steps, dstChain);
-  }
-
-  // Append the optional deposit step. Kept out of planRoute's two return paths
-  // so the rule lives in exactly one place. A no-op unless the user ticked the
-  // box AND the trade still qualifies (canParkOutput is re-checked here because
-  // the token or recipient can change between the tick and the quote).
-  function withPark(steps, dstChain) {
-    if (!state.parkInUB || !canParkOutput()) return steps;
-    if (!steps.length) return steps;  // nothing was traded — nothing to park
-    steps.push({ type: 'gateway-deposit', chain: dstChain });
     return steps;
-  }
-
-  /* ───── Park the output in the Unified Balance ─────
-     A trade currently ends with tokens sitting in the wallet on one chain. When
-     that output is plain USDC on a Gateway chain, we can add one more step and
-     deposit it, so the trade ends spendable everywhere instead of stranded.
-
-     Three hard conditions, none of them cosmetic:
-       · output must be USDC  — GatewayWallet takes no other token
-       · destination must have a gatewayWallet, and not be deposit-disabled
-         (Arc's native USDC is excluded by gatewayDepositDisabled)
-       · recipient must be the sender — deposit() credits msg.sender, so parking
-         a payment meant for someone else would silently credit US, not them */
-  function canParkOutput() {
-    if (state.toToken?.symbol !== 'USDC') return false;
-    const dst = state.dst.chainKey;
-    const c = CHAINS[dst];
-    if (!c?.contracts?.gatewayWallet || c.gatewayDepositDisabled) return false;
-    // Any recipient other than the connected wallet makes parking wrong, not
-    // just unhelpful — see the note above. This check FAILS CLOSED: an earlier
-    // version ANDed in `wallet.address`, so with no wallet connected the whole
-    // clause went false and parking stayed enabled for a third-party address —
-    // exactly the case the rule exists to stop. If a recipient is set and we
-    // cannot prove it is the user's own address, refuse.
-    if (state.recipient && isAddress(state.recipient)) {
-      if (!wallet.address) return false;
-      if (getAddress(state.recipient).toLowerCase() !== wallet.address.toLowerCase()) return false;
-    }
-    return true;
-  }
-
-  function syncParkRow() {
-    const row = document.getElementById('park-row');
-    const box = document.getElementById('park-check');
-    if (!row || !box) return;
-    const ok = canParkOutput();
-    row.style.display = ok ? 'flex' : 'none';
-    // Never leave the flag set behind a hidden checkbox, or a later trade would
-    // silently inherit it.
-    if (!ok) { box.checked = false; state.parkInUB = false; return; }
-    document.getElementById('park-sub').textContent =
-      `Deposits the ${chainShort(state.dst.chainKey)} USDC you receive straight into Gateway, so it is spendable on every chain instead of sitting on one. Costs one extra on-chain transaction (you pay gas on ${chainShort(state.dst.chainKey)}), and Circle needs a few minutes of finality before it counts as spendable.`;
-    box.checked = !!state.parkInUB;
   }
 
   // Render the visual route preview based on the step pipeline
@@ -1529,7 +1446,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       else if (s.type === 'cctp-bridge') nodes.push(`<span class="route-step">CCTP ${chainShort(s.src)}→${chainShort(s.dst)}</span>`);
       else if (s.type === 'swap') nodes.push(`<span class="route-step">Swap ${s.tIn}→${s.tOut} on Arc</span>`);
       else if (s.type === 'transfer') nodes.push(`<span class="route-step">Transfer on ${chainShort(s.chain)}</span>`);
-      else if (s.type === 'gateway-deposit') nodes.push(`<span class="route-step" style="background:rgba(244,200,154,.15);border-color:rgba(244,200,154,.45);font-weight:700;color:var(--c-amber)">⚡ Park in Unified Balance</span>`);
     }
     nodes.push('<span class="route-arrow">→</span>');
     nodes.push(`<span class="route-step">${state.toToken.symbol} (${chainShort(state.dst.chainKey)})</span>`);
@@ -1552,9 +1468,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   async function quote() {
     const seq = ++quoteSeq;
     state.holdOnly = false;
-    // Eligibility depends on the token / chain / recipient trio, all of which
-    // can have changed since the last quote — settle it before planning.
-    syncParkRow();
     let steps;
     try {
       steps = planRoute();
@@ -1647,11 +1560,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         } else if (step.type === 'transfer') {
           totalSec += 5;
           fees.push('gas only');
-        } else if (step.type === 'gateway-deposit') {
-          // Amount is unchanged (a deposit moves USDC, it does not convert it),
-          // but it is a real on-chain tx: budget the time and say so in fees.
-          totalSec += 20;
-          fees.push(`Deposit to Gateway · gas on ${chainShort(step.chain)}`);
         }
       }
 
@@ -2051,15 +1959,12 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       if (s.type === 'gateway-spend')      label = `Gateway burn · ${chainShort(s.src)} → ${chainShort(s.dst)}`;
       else if (s.type === 'cctp-burn')     label = `CCTP burn · ${chainShort(s.src)} → ${chainShort(s.dst)}`;
       else if (s.type === 'swap')          label = `Swap ${s.tIn}→${s.tOut} on ${chainShort(s.chain)}`;
-      else if (s.type === 'gateway-deposit') label = `Deposit USDC into Gateway on ${chainShort(s.chain)} (your own balance)`;
       else                                 label = `${s.type} on ${chainShort(s.chain || s.src)}`;
       return `<div class="row"><span class="k">Step ${n}</span><span class="v">${label}</span></div>`;
     }).join('');
     const recipShort = recipient.slice(0, 6) + '…' + recipient.slice(-4);
     const isOwnWallet = recipient.toLowerCase() === wallet.address.toLowerCase();
-    // A deposit is an on-chain tx (plus a possible approve), so it costs the
-    // user wallet confirmations just like the signing steps do.
-    const signCount = steps.filter(s => s.type === 'gateway-spend' || s.type === 'cctp-burn' || s.type === 'swap' || s.type === 'gateway-deposit').length;
+    const signCount = steps.filter(s => s.type === 'gateway-spend' || s.type === 'cctp-burn' || s.type === 'swap').length;
     const recipientHtml = isOwnWallet
       ? `<span class="v">Your wallet</span>`
       : `<span class="v warn">${recipShort} (external)</span>`;
@@ -2184,29 +2089,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           modal.set(stepId, 'done', `<a href="${CHAINS[step.chain].explorerTx(tx.hash)}" target="_blank" rel="noopener" style="color:var(--arc2)">${shortAddr(tx.hash)} ↗</a>`);
           pushActivity({ kind: 'transfer', chain: step.chain, hash: tx.hash, status: 'done', text: `${formatAmt(runAmt, tok.decimals)} ${step.token} → ${shortAddr(stepRecipient)}` });
         }
-        else if (step.type === 'gateway-deposit') {
-          // Final step only: deposit whatever USDC this pipeline produced into
-          // GatewayWallet on the destination. deposit() credits msg.sender, which
-          // is why canParkOutput() refuses to offer this for a third-party
-          // recipient — see the note there.
-          await wallet.ensureChain(step.chain);
-          const tok = TOKENS[step.chain].USDC;
-          // Deposit what we actually hold, not what the quote predicted: a swap
-          // can land a few wei off its estimate and deposit() would then revert
-          // on an over-spend. Fall back to the pipeline amount if the read fails.
-          let depositAmt = runAmt;
-          try {
-            const onChain = await tokenBalance(step.chain, tok, wallet.address);
-            if (onChain > 0n && onChain < depositAmt) depositAmt = onChain;
-          } catch {}
-          if (depositAmt <= 0n) { modal.set(stepId, 'done', 'Nothing to park'); continue; }
-          await ARC.gateway.deposit(step.chain, depositAmt, {
-            onStep: (m) => modal.set(stepId, 'active', m),
-            onSubmitted: (h) => { lastTxHash = h; lastTxChain = step.chain; },
-          });
-          modal.set(stepId, 'done', `Parked ${formatAmt(depositAmt, tok.decimals, 4)} USDC — spendable across chains once Circle finalises it`);
-          pushActivity({ kind: 'balance', chain: step.chain, hash: lastTxHash || '', status: 'done', text: `⚡ Parked ${formatAmt(depositAmt, tok.decimals, 4)} USDC into Unified Balance on ${chainShort(step.chain)}` });
-        }
       } catch (e) {
         console.error(e);
         modal.fail(stepId, explainError(e));
@@ -2239,7 +2121,6 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     if (s.type === 'cctp-bridge') return `CCTP burn+mint ${chainShort(s.src)} → ${chainShort(s.dst)}`;
     if (s.type === 'swap') return `Swap ${s.tIn} → ${s.tOut} on Arc`;
     if (s.type === 'transfer') return `Transfer on ${chainShort(s.chain)}`;
-    if (s.type === 'gateway-deposit') return `⚡ Park output in Unified Balance (${chainShort(s.chain)})`;
     return 'Step';
   }
 

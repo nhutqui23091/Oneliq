@@ -539,7 +539,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.12.0"></script>
+<script src="/assets/arc-gateway.js?v=9.13.0"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1338,21 +1338,29 @@ html{scroll-behavior:smooth}
 
       for (let i = 0; i < legs.length; i += BP_MAX_INTENTS) {
         const slice = legs.slice(i, i + BP_MAX_INTENTS);
-        // Rebuild payment objects for this chunk, re-merging legs that belong
-        // to the same recipient so batchSpend still sees one entry per person.
-        const perRecipient = new Map();
+        // Rebuild payment objects for this chunk, regrouping each leg under the
+        // ROW it came from.
+        //
+        // Keyed by the payment object, not by the recipient address: paying the
+        // same address on several rows is normal (a payroll sheet with two lines
+        // for one person, or the Distribute preset where every row is you), and
+        // keying by address collapsed those rows into one. batchSpend saw the
+        // right total either way, but the preview then ticked only the first of
+        // the merged rows, so a finished batch looked half-done. Separate
+        // entries with the same recipient produce exactly the same intents.
+        const perRow = new Map();
         for (const { p, leg } of slice) {
-          if (!perRecipient.has(p.recipient)) {
+          if (!perRow.has(p)) {
             // `_orig` points back at the row the preview renders, so a chunk
             // completing can tick off the right line even though this object
-            // is a copy holding only part of that recipient's legs.
-            perRecipient.set(p.recipient, { ...p, sources: [], _orig: p });
+            // is a copy holding only part of that row's legs.
+            perRow.set(p, { ...p, sources: [], _orig: p });
           }
-          perRecipient.get(p.recipient).sources.push(leg);
+          perRow.get(p).sources.push(leg);
         }
         groups.push({
           dstChainKey,
-          payments: [...perRecipient.values()],
+          payments: [...perRow.values()],
           done: false,
           hash: null,
         });
