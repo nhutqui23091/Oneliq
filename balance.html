@@ -264,6 +264,7 @@ html{scroll-behavior:smooth}
     <div class="balance-actions">
       <button class="act-btn" id="ub-spend-top" type="button">↗ Spend</button>
       <button class="act-btn" id="ub-batchpay-top" type="button">⇉ Batch Pay</button>
+      <button class="act-btn" id="ub-distribute-top" type="button">⤴ Distribute</button>
       <button class="act-btn" id="ub-consolidate-top" type="button">⤵ Consolidate</button>
     </div>
     <div class="sync-line" id="sync-line"><span class="sync-dot"></span><span id="sync-line-txt">Not synced</span></div>
@@ -486,14 +487,37 @@ html{scroll-behavior:smooth}
 <div class="gw-modal-bg" id="modal-batchpay">
   <div class="gw-modal">
     <div class="gw-modal-head">
-      <div class="gw-modal-title">Batch Pay</div>
+      <div class="gw-modal-title" id="bp-title">Batch Pay</div>
       <button class="gw-modal-close" data-close>×</button>
     </div>
-    <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 14px">
+    <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 14px" id="bp-intro">
       Pay several recipients straight from your Unified Balance — sources are auto-picked across your chains and every payment is gasless. Recipients on the <strong style="color:var(--text)">same destination chain</strong> are paid in one signature; different chains take one signature each. Add a recipient, its amount, and the chain they receive on.
     </p>
+
+    <!-- Saved recipients. Populated from /api/recipients, so the book follows the
+         wallet across browsers the same way History does. -->
+    <div id="bp-book-wrap" style="display:none;margin:0 0 12px">
+      <div style="font-size:10.5px;font-family:var(--mono);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Saved recipients</div>
+      <div id="bp-book" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
     <div id="bp-rows"></div>
-    <button id="bp-add" type="button" style="width:100%;padding:9px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font)">+ Add recipient</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="bp-add" type="button" style="flex:1 1 160px;padding:9px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font)">+ Add recipient</button>
+      <button id="bp-paste-toggle" type="button" style="flex:1 1 160px;padding:9px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font)">⇤ Paste a list</button>
+    </div>
+
+    <!-- Bulk paste. One recipient per line; the chain column is optional. -->
+    <div id="bp-paste-wrap" style="display:none;margin-top:10px">
+      <textarea id="bp-paste" spellcheck="false" rows="5" placeholder="0xAbc…1234, 25.00, base&#10;0xDef…5678, 10, arc&#10;0x9876…4321, 5.5"
+        style="width:100%;padding:11px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.7;outline:none;resize:vertical"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap">
+        <button id="bp-paste-apply" type="button" style="padding:8px 14px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:var(--font)">Load rows</button>
+        <span style="font-size:11px;color:var(--muted);line-height:1.5">One per line: <code style="font-family:var(--mono)">address, amount, chain</code>. Chain is optional and defaults to Arc. Commas, semicolons or tabs all work.</span>
+      </div>
+      <div id="bp-paste-err" style="display:none;margin-top:7px;color:var(--danger);font-size:11.5px;line-height:1.6"></div>
+    </div>
+
     <button id="bp-review" class="gw-action" type="button" style="margin-top:12px">Preview payment</button>
 
     <div id="bp-preview" style="display:none;margin-top:12px;padding:11px 13px;border-radius:10px;background:rgba(244,200,154,.06);border:1px solid rgba(244,200,154,.22);font-size:12.5px;color:var(--muted);line-height:1.5">
@@ -1266,22 +1290,75 @@ html{scroll-behavior:smooth}
     const fwdFee = ARC.gateway.FORWARDER_FEE_EST * BigInt(bpPayments.length);
     const estFee = burnFee + fwdFee;
     const sig = groups.length;
-    const overGroup = groups.some(g => g.payments.reduce((a, p) => a + p.sources.length, 0) > 16);
-    const sigNote = sig === 1 ? '1 signature' : `${sig} signatures — one per destination chain`;
+    const dstCount = new Set(bpPayments.map(p => p.dstChainKey)).size;
+    // Say WHY there is more than one signature, since the two causes need
+    // different fixes: more destinations is inherent, more chunks means the
+    // balance is fragmented and Consolidate would reduce the count.
+    let sigNote;
+    if (sig === 1) sigNote = '1 signature';
+    else if (sig === dstCount) sigNote = `${sig} signatures — one per destination chain`;
+    else sigNote = `${sig} signatures — ${dstCount} destination${dstCount > 1 ? 's' : ''}, split further because Circle allows ${BP_MAX_INTENTS} transfers per signature`;
+    const fragmented = sig > dstCount;
     totalEl.innerHTML =
       `<div style="font-size:21px;font-weight:700;color:var(--text);line-height:1.2">Total <span style="font-family:var(--mono)">${ARC.formatAmt(total, 6, 2)}</span> USDC <span style="font-size:12px;font-weight:400;color:var(--muted)">to ${bpPayments.length} recipient${bpPayments.length > 1 ? 's' : ''}</span></div>` +
-      `<div style="font-weight:400;font-size:11px;color:var(--muted);margin-top:5px">Est. fee ≈ ${ARC.formatAmt(estFee, 6, 4)} USDC · ${sigNote}${overGroup ? ' <span style="color:var(--danger)">(a destination needs >16 transfers — Circle limit; reduce recipients on that chain or Consolidate first)</span>' : ''}</div>`;
+      `<div style="font-weight:400;font-size:11px;color:var(--muted);margin-top:5px">Est. fee ≈ ${ARC.formatAmt(estFee, 6, 4)} USDC · ${sigNote}</div>` +
+      (fragmented ? `<div style="font-weight:400;font-size:11px;color:var(--c-amber);margin-top:4px">⤵ Your balance is spread thin, so each payment needs several source chains. Consolidate first and this drops to ${dstCount} signature${dstCount > 1 ? 's' : ''}.</div>` : '');
   }
 
-  // Group payments by destination chain — Circle allows only one destination
-  // domain per signed request, so each group is one batchSpend / one signature.
+  // Group payments into signable requests.
+  //
+  // Two separate Circle constraints, and it matters that they are separate:
+  //   1. one destination domain per request  → group by dstChainKey
+  //   2. at most 16 burn intents per request → chunk each group
+  //
+  // The second one counts INTENTS, not recipients: every source leg is its own
+  // intent, so a recipient funded from four chains costs four of the sixteen.
+  // Twenty recipients on one chain can therefore need several signatures even
+  // though they share a destination. We used to just refuse in that case; now
+  // we split, because a payroll run legitimately exceeds the cap.
+  //
+  // A single recipient's legs can be split across chunks safely — each intent
+  // burns and mints independently, so the recipient simply receives more than
+  // one mint for the same total.
+  const BP_MAX_INTENTS = 16;
+
   function bpGroupBy(payments) {
-    const map = new Map();
+    const byDst = new Map();
     for (const p of payments) {
-      if (!map.has(p.dstChainKey)) map.set(p.dstChainKey, []);
-      map.get(p.dstChainKey).push(p);
+      if (!byDst.has(p.dstChainKey)) byDst.set(p.dstChainKey, []);
+      byDst.get(p.dstChainKey).push(p);
     }
-    return [...map.entries()].map(([dstChainKey, list]) => ({ dstChainKey, payments: list, done: false, hash: null }));
+
+    const groups = [];
+    for (const [dstChainKey, list] of byDst.entries()) {
+      // Flatten to (recipient, leg) pairs so the chunker can count what Circle
+      // actually counts.
+      const legs = [];
+      for (const p of list) for (const leg of (p.sources || [])) legs.push({ p, leg });
+
+      for (let i = 0; i < legs.length; i += BP_MAX_INTENTS) {
+        const slice = legs.slice(i, i + BP_MAX_INTENTS);
+        // Rebuild payment objects for this chunk, re-merging legs that belong
+        // to the same recipient so batchSpend still sees one entry per person.
+        const perRecipient = new Map();
+        for (const { p, leg } of slice) {
+          if (!perRecipient.has(p.recipient)) {
+            // `_orig` points back at the row the preview renders, so a chunk
+            // completing can tick off the right line even though this object
+            // is a copy holding only part of that recipient's legs.
+            perRecipient.set(p.recipient, { ...p, sources: [], _orig: p });
+          }
+          perRecipient.get(p.recipient).sources.push(leg);
+        }
+        groups.push({
+          dstChainKey,
+          payments: [...perRecipient.values()],
+          done: false,
+          hash: null,
+        });
+      }
+    }
+    return groups;
   }
 
   function bpUpdateGoBtn() {
@@ -1347,9 +1424,8 @@ html{scroll-behavior:smooth}
     bpGroups = bpGroupBy(bpPayments);
     errEl.style.display = 'none';
     bpRenderPlan();
-    // 16-intent cap is per destination group (per signed request).
-    const overGroup = bpGroups.some(g => g.payments.reduce((a, p) => a + p.sources.length, 0) > 16);
-    if (overGroup) { go.style.display = 'none'; return; }
+    // No 16-intent bail-out any more: bpGroupBy splits oversized destinations
+    // into extra signatures instead of refusing the batch.
     go.onclick = bpPayGroup;
     bpUpdateGoBtn();
   }
@@ -1379,10 +1455,23 @@ html{scroll-behavior:smooth}
       });
       const hash = res?.forwarded?.transactionHash || res?.mint?.tx?.hash || null;
       group.done = true; group.hash = hash;
-      group.payments.forEach(p => { p._done = true; p._hash = hash; });
+      group.payments.forEach(p => {
+        p._done = true; p._hash = hash;
+        // A recipient whose legs were split across chunks is only really paid
+        // once every chunk has landed, so count legs rather than assuming this
+        // group finished them.
+        const orig = p._orig || p;
+        orig._paidLegs = (orig._paidLegs || 0) + p.sources.length;
+        orig._hash = orig._hash || hash;
+        if (orig._paidLegs >= (orig.sources || []).length) orig._done = true;
+      });
       group.payments.forEach(p => {
         pushToHistory('bridge', p.dstChainKey, hash, `Batch pay ${p.amount} USDC → ${bpShort(p.recipient)} on ${chainName(p.dstChainKey)}`);
       });
+      // Remember who was paid, so the next batch starts from a list instead of
+      // a blank form. Best-effort: the book is a convenience, never a gate.
+      Promise.all(group.payments.map(p => bookSave(p.recipient, p.dstChainKey)))
+        .then(() => bookLoad()).catch(() => {});
       try {
         const t = group.payments.reduce((a, p) => a + p.amtCanonical, 0n);
         ARC.track('spend', group.dstChainKey, Number(ARC.formatAmt(t, 6, 6)), hash, 'balance',
@@ -1402,11 +1491,182 @@ html{scroll-behavior:smooth}
     }
   }
 
-  function openBatchPayModal() {
-    if (!state.addr) { alert('Connect wallet first'); return; }
+  /* ───── Recipient book ─────
+     Stored server-side per wallet (/api/recipients) so it follows the wallet
+     between browsers, the same reason History moved off localStorage. Every
+     call here is best-effort: if the endpoint is down, Batch Pay still works,
+     the chips just don't appear. */
+  let bpBook = [];
+
+  async function bookLoad() {
+    if (!state.addr) { bpBook = []; bookRender(); return; }
+    try {
+      const r = await fetch(`/api/recipients/list?address=${state.addr}`);
+      const j = await r.json();
+      bpBook = Array.isArray(j?.rows) ? j.rows : [];
+    } catch { bpBook = []; }
+    bookRender();
+  }
+
+  // Returns the in-flight request so a caller saving a whole batch can wait for
+  // all of them and refresh the chips once, instead of once per recipient.
+  function bookSave(addr, chain, label) {
+    if (!state.addr) return Promise.resolve();
+    // Your own address is not a counterparty — Distribute would otherwise fill
+    // the book with yourself.
+    if (String(addr).toLowerCase() === String(state.addr).toLowerCase()) return Promise.resolve();
+    return fetch('/api/recipients/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner: state.addr, addr, chain, label: label || '' }),
+    }).catch(() => {});
+  }
+
+  function bookRemove(addr, chain) {
+    if (!state.addr) return;
+    fetch('/api/recipients/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner: state.addr, addr, chain }),
+    }).then(() => bookLoad()).catch(() => {});
+  }
+
+  function bookRender() {
+    const wrap = document.getElementById('bp-book-wrap');
+    const box = document.getElementById('bp-book');
+    if (!wrap || !box) return;
+    if (!bpBook.length) { wrap.style.display = 'none'; box.innerHTML = ''; return; }
+    wrap.style.display = 'block';
+    box.innerHTML = bpBook.map((r, i) => `
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 8px 5px 10px;border:1px solid var(--border);border-radius:100px;background:var(--surface);font-size:11.5px">
+        <button type="button" data-book-add="${i}" title="Add as a row" style="border:none;background:none;padding:0;cursor:pointer;color:var(--text);font-family:var(--mono);font-size:11.5px">${r.label ? r.label + ' · ' : ''}${bpShort(r.addr)} <span style="color:var(--muted)">${chainName(r.chain) || r.chain}</span></button>
+        <button type="button" data-book-del="${i}" title="Forget this recipient" style="border:none;background:none;padding:0 0 0 2px;cursor:pointer;color:var(--muted);font-size:13px;line-height:1">×</button>
+      </span>`).join('');
+    box.querySelectorAll('[data-book-add]').forEach(b => b.onclick = () => {
+      const r = bpBook[Number(b.dataset.bookAdd)];
+      if (!r) return;
+      // Reuse the first row while it is still blank, so the very first pick
+      // doesn't leave an empty row above it.
+      const first = document.querySelector('#bp-rows .bp-row');
+      const firstBlank = first && !first.querySelector('.bp-addr').value.trim() && !first.querySelector('.bp-amt').value.trim();
+      if (firstBlank) { first.remove(); }
+      bpAddRow(r.addr, '', r.chain);
+      bpInvalidate();
+    });
+    box.querySelectorAll('[data-book-del]').forEach(b => b.onclick = () => {
+      const r = bpBook[Number(b.dataset.bookDel)];
+      if (r) bookRemove(r.addr, r.chain);
+    });
+  }
+
+  /* ───── Bulk paste ─────
+     `address, amount, chain` per line. The chain column is matched loosely
+     against the key, the short name and the full name so "base", "Base
+     Sepolia" and "baseSepolia" all resolve. */
+  function bpChainFromText(txt) {
+    const want = String(txt || '').toLowerCase().replace(/[\s_-]/g, '');
+    if (!want) return null;
+    for (const k of Object.keys(ARC.CHAINS)) {
+      const c = ARC.CHAINS[k];
+      const cands = [k, c.short, c.name].filter(Boolean)
+        .map(s => String(s).toLowerCase().replace(/[\s_-]/g, ''));
+      if (cands.includes(want)) return k;
+      // "base" should find "baseSepolia" on a testnet deployment.
+      if (cands.some(s => s.startsWith(want) && want.length >= 3)) return k;
+    }
+    return null;
+  }
+
+  function bpApplyPaste() {
+    const errEl = document.getElementById('bp-paste-err');
+    const raw = document.getElementById('bp-paste').value || '';
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const errors = [];
+    const parsed = [];
+    lines.forEach((line, i) => {
+      // Skip a header row like "address,amount,chain".
+      if (i === 0 && /address/i.test(line) && /amount/i.test(line)) return;
+      const cols = line.split(/[,;\t]/).map(c => c.trim()).filter(c => c !== '');
+      if (!cols.length) return;
+      const addr = cols[0];
+      if (!ethers.isAddress(addr)) { errors.push(`Line ${i + 1}: "${addr.slice(0, 24)}" is not an address`); return; }
+      const amt = (cols[1] || '').replace(/[$,\s]/g, '').replace(/usdc$/i, '');
+      if (!amt || !(parseFloat(amt) > 0)) { errors.push(`Line ${i + 1}: missing or zero amount`); return; }
+      let chain = 'arc';
+      if (cols[2]) {
+        const k = bpChainFromText(cols[2]);
+        if (!k) { errors.push(`Line ${i + 1}: unknown chain "${cols[2]}"`); return; }
+        chain = k;
+      }
+      if (!ARC.CHAINS[chain]?.contracts?.gatewayMinter) {
+        errors.push(`Line ${i + 1}: ${chainName(chain)} cannot receive a Gateway payment`);
+        return;
+      }
+      parsed.push({ addr: ethers.getAddress(addr), amt, chain });
+    });
+
+    if (errors.length) {
+      errEl.style.display = 'block';
+      errEl.innerHTML = errors.slice(0, 8).map(e => `• ${e}`).join('<br>')
+        + (errors.length > 8 ? `<br>• …and ${errors.length - 8} more` : '');
+      return;
+    }
+    if (!parsed.length) {
+      errEl.style.display = 'block';
+      errEl.textContent = 'Nothing to load — paste at least one line.';
+      return;
+    }
+    errEl.style.display = 'none';
     document.getElementById('bp-rows').innerHTML = '';
     bpRowSeq = 0;
-    bpAddRow();
+    parsed.forEach(p => bpAddRow(p.addr, p.amt, p.chain));
+    document.getElementById('bp-paste-wrap').style.display = 'none';
+    document.getElementById('bp-paste-toggle').textContent = '⇤ Paste a list';
+    bpInvalidate();
+  }
+
+  /* ───── Distribute ─────
+     Batch Pay with yourself as every recipient: push spendable balance back OUT
+     to your own wallets on chosen chains. It is NOT the cheap mirror of
+     Consolidate — Consolidate is one signature because every intent shares one
+     destination, while each chain you distribute to is its own destination and
+     so its own signature. The modal says as much. */
+  function openDistributeModal() {
+    if (!state.addr) { alert('Connect wallet first'); return; }
+    openBatchPayModal({ distribute: true });
+  }
+
+  function openBatchPayModal(opts = {}) {
+    if (!state.addr) { alert('Connect wallet first'); return; }
+    const distribute = !!opts.distribute;
+    document.getElementById('bp-title').textContent = distribute ? 'Distribute to your own wallets' : 'Batch Pay';
+    document.getElementById('bp-intro').innerHTML = distribute
+      ? `Push spendable balance back out to <strong style="color:var(--text)">your own wallet</strong> on several chains at once. Every row is pre-filled with your address. Note this is not the mirror of Consolidate: Consolidate is one signature because everything lands on one chain, whereas <strong style="color:var(--text)">each chain you distribute to costs its own signature and its own Circle fee</strong>.`
+      : `Pay several recipients straight from your Unified Balance — sources are auto-picked across your chains and every payment is gasless. Recipients on the <strong style="color:var(--text)">same destination chain</strong> are paid in one signature; different chains take one signature each. Add a recipient, its amount, and the chain they receive on.`;
+    // The saved-recipient chips are meaningless when every row is you.
+    document.getElementById('bp-book-wrap').style.display = 'none';
+    document.getElementById('bp-paste-wrap').style.display = 'none';
+    document.getElementById('bp-paste-err').style.display = 'none';
+    document.getElementById('bp-paste').value = '';
+    document.getElementById('bp-paste-toggle').style.display = distribute ? 'none' : '';
+    document.getElementById('bp-paste-toggle').textContent = '⇤ Paste a list';
+
+    document.getElementById('bp-rows').innerHTML = '';
+    bpRowSeq = 0;
+    if (distribute) {
+      // Seed with the mintable chains holding the least, since those are the
+      // ones a distribution is usually topping up.
+      const mintable = ARC.gateway.gatewayChains()
+        .filter(k => ARC.CHAINS[k]?.contracts?.gatewayMinter);
+      const held = new Map((state.balances || []).map(b => [b.chainKey, b.canonical || 0n]));
+      const seeds = mintable
+        .sort((a, b) => ((held.get(a) || 0n) < (held.get(b) || 0n) ? -1 : 1))
+        .slice(0, 2);
+      (seeds.length ? seeds : ['arc']).forEach(k => bpAddRow(state.addr, '', k));
+    } else {
+      bpAddRow();
+      bookLoad();
+    }
     document.getElementById('bp-preview').style.display = 'none';
     document.getElementById('bp-errors').style.display = 'none';
     const go = document.getElementById('bp-go');
@@ -1427,9 +1687,27 @@ html{scroll-behavior:smooth}
     }
     openBatchPayModal();
   };
+  document.getElementById('ub-distribute-top').onclick = async () => {
+    if (!state.addr) {
+      try { await ARC.wallet.connect(); }
+      catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError(e)); return; }
+      state.addr = ARC.wallet.address;
+      refreshAll();
+      return;
+    }
+    openDistributeModal();
+  };
   document.getElementById('bp-add').onclick = () => { bpAddRow(); bpInvalidate(); };
   document.getElementById('bp-review').onclick = bpReview;
   document.getElementById('bp-go').onclick = bpPayGroup;
+  document.getElementById('bp-paste-toggle').onclick = () => {
+    const w = document.getElementById('bp-paste-wrap');
+    const open = w.style.display !== 'none';
+    w.style.display = open ? 'none' : 'block';
+    document.getElementById('bp-paste-toggle').textContent = open ? '⇤ Paste a list' : '✕ Close paste';
+    if (!open) document.getElementById('bp-paste').focus();
+  };
+  document.getElementById('bp-paste-apply').onclick = bpApplyPaste;
 
   // ───── Deposit modal ─────
   // Default chain: if user clicked from a per-chain row use that. Otherwise

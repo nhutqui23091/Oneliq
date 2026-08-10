@@ -626,7 +626,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </p>
     <div class="callout note">
       <div class="callout-title">Circle's per-request rules</div>
-      <div class="callout-body">A single <code>BurnIntentSet</code> must share one destination domain, so cross-chain batches are grouped per destination. Each group is also capped at <strong>16 intents</strong> per request; the preview warns and hides Pay if a destination exceeds it.</div>
+      <div class="callout-body">A single <code>BurnIntentSet</code> must share one destination domain, so cross-chain batches are grouped per destination. Each group is also capped at <strong>16 intents</strong> per request. Note the cap counts <em>intents</em>, not recipients: every source chain a recipient draws from is its own intent, so a fragmented balance uses the budget faster. Oversized groups are split into extra signatures automatically, and the preview says how many and why.</div>
     </div>
 
     <h4 class="docs-h4">⤵ Consolidate</h4>

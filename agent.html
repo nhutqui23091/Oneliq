@@ -1318,6 +1318,14 @@ select option:checked{background:#1a2c4a;color:#fff}
     dist: 'each',                     // 'each' | 'split' (schedule mode only)
     balances: {},                     // chip-id → formatted string ("12.34" or "0")  [USDC per chain]
     arcTokens: {},                    // symbol → formatted string ("12.34")  [Arc holdings: USDC/EURC/cirBTC]
+    // Gateway (Unified Balance) holdings, READ ONLY. The agent pulls from the
+    // wallet via EIP-2612 permit and cannot spend Gateway balance — a burn
+    // intent is signed by the user for a fixed amount, so there is nothing for
+    // an unattended cron to re-use. We read it purely so the pre-flight can say
+    // "your rule will run dry, but you have funds parked elsewhere" instead of
+    // letting the rule fail later for a reason the user could have fixed.
+    gwTotal: null,                    // number | null (null = not loaded yet)
+    gwChains: 0,
   };
 
   let agents = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
@@ -1413,6 +1421,19 @@ select option:checked{background:#1a2c4a;color:#fff}
       }
     }));
     hint.textContent = 'wallet balances · live';
+
+    // Unified Balance, read-only (see state.gwTotal). Never blocks the wallet
+    // balances above: a Gateway outage should not stop the rule builder.
+    try {
+      const gw = await ARC.gateway.readBalances(addr);
+      const rows = (gw?.balances || []).filter(b => (b.canonical || 0n) > 0n);
+      state.gwTotal = rows.reduce((a, b) => a + Number(b.canonical) / 1e6, 0);
+      state.gwChains = rows.length;
+    } catch {
+      state.gwTotal = null;
+      state.gwChains = 0;
+    }
+    renderPreflight();
     // Also load the user's Arc holdings across the real Arc tokens so the AI
     // can answer "where is my EURC?" etc. Only USDC/EURC/cirBTC are deployed on
     // Arc — no USDT — so we read exactly those three.
@@ -2530,6 +2551,26 @@ select option:checked{background:#1a2c4a;color:#fff}
       infos.push(`Sources hold <strong>$${srcTotal.toFixed(2)}</strong> — enough for the first ${state.mode === 'topup' ? 'refill' : 'send'}.`);
       const empties = srcChips.filter(c => (parseFloat(state.balances[c]) || 0) <= 0).map(c => CHAIN_SHORT[c] || c);
       if (empties.length) warns.push(`No USDC on ${empties.join(', ')} — those sources contribute nothing.`);
+      // Runway. A rule that funds two fires and then stalls is the single most
+      // common way an agent "breaks" without anything actually being wrong.
+      if (firstNeed > 0) {
+        const runs = Math.floor(srcTotal / firstNeed);
+        if (runs <= 3) {
+          warns.push(`That is about <strong>${runs} ${state.mode === 'topup' ? 'refill' : 'send'}${runs === 1 ? '' : 's'}</strong> of runway before the sources run dry.`);
+        }
+      }
+    }
+
+    /* Unified Balance cross-check.
+       The agent pulls from the WALLET (EIP-2612 permit → transferFrom). It
+       cannot touch Gateway balance, so parked funds are invisible to it. When
+       the wallet side looks thin, say where the rest of the money is and what
+       to do about it, rather than letting the rule fail on a cron tick. */
+    if (connected && loaded && state.gwTotal !== null && state.gwTotal > 0) {
+      const thin = srcTotal <= 0 || firstNeed > srcTotal || (firstNeed > 0 && srcTotal / firstNeed <= 3);
+      if (thin) {
+        warns.push(`You also hold <strong>$${state.gwTotal.toFixed(2)}</strong> in your Unified Balance across ${state.gwChains} chain${state.gwChains === 1 ? '' : 's'}, but the agent cannot spend it — it pulls from your wallet, not from Gateway. <a href="/balance" style="color:var(--arc1);text-decoration:underline">Consolidate then withdraw</a> onto a source chain to extend this rule.`);
+      }
     }
 
     // Arc has no EIP-2612 permit → agent wallet must be pre-funded.
