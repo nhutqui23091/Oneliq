@@ -3,7 +3,7 @@
 > **The stablecoin command center on Arc.**
 > One USDC. One Balance. Everywhere.
 
-Unified balance across 8 chains · cross-chain settlement in ~30s · bounded autonomous agents - all native USDC, no wrappers.
+Unified balance across 8 chains · cross-chain settlement in ~30s · bounded autonomous agents you steer in plain English - all native USDC, no wrappers.
 
 🌐 Live at **[oneliq.xyz](https://oneliq.xyz)** · 🐦 [@oneliq_](https://x.com/oneliq_) · 💬 [Discord](https://discord.gg/7XUPdWWrGk)
 
@@ -17,11 +17,16 @@ Oneliq is a **non-custodial stablecoin terminal** built on the [Arc Layer 1](htt
 
 | Surface | What it does | Powered by |
 |---|---|---|
-| **Unified Balance** | See USDC across 8 chains as one number. Spend cross-chain with a single EIP-712 signature (**Auto**, **Single**, or **Manual** sourcing), **Batch Pay** many recipients grouped by destination, **Consolidate** scattered dust into one chain, and mint gasless on the destination via the Circle forwarder. | [Circle Gateway](https://www.circle.com/gateway) |
-| **Trade** | On-Arc stablecoin swap (USDC ⇄ EURC) routed through Circle App Kit into the Arc Curve StableSwap pool, with `OneliqRouter` (0.3% fee) recording every trade, plus a CCTP V2 bridge merged into one flow. Fast (~20s) or Standard (free) mode. | [Circle App Kit](https://developers.circle.com/) + [Circle CCTP V2](https://www.circle.com/cross-chain-transfer-protocol) |
-| **Agent** | Bounded autonomous USDC operations. Pre-sign EIP-712 intents with hard ceilings; software executes within those bounds. | [Circle Programmable Wallets](https://developers.circle.com/w3s/programmable-wallets) |
-| **Portal** | Daily on-chain check-in (`OneliqCheckIn`) with Star Points, streaks, badges, and a live leaderboard - the loyalty layer for everything above. | Arc L1 + on-chain check-in contract |
-| **Dashboard** | Operator console: live network metrics (total users, on-chain swap & check-in counters) verified directly from Arc. | Arc RPC + Cloudflare KV |
+| **Unified Balance** | See USDC across 8 chains as one number. Spend cross-chain with a single EIP-712 signature (**Auto**, **Single**, or **Manual** sourcing), **Batch Pay** many recipients from a saved recipient book or a pasted list, **Distribute** back out to your own wallets, **Consolidate** scattered dust into one chain, and mint gasless on the destination via the Circle forwarder. Transfers still in flight resume after a page reload. | [Circle Gateway](https://www.circle.com/gateway) |
+| **Trade** | On-Arc stablecoin swap (USDC ⇄ EURC) routed through Circle App Kit into the Arc Curve StableSwap pool, with `OneliqRouter` (0.3% fee) recording every trade, plus a CCTP V2 bridge merged into one flow. Fast (~20s) or Standard (free) mode, and the output can be parked straight into your Unified Balance without a second trip. | [Circle App Kit](https://developers.circle.com/) + [Circle CCTP V2](https://www.circle.com/cross-chain-transfer-protocol) |
+| **Oneliq AI** | Chat that turns plain English into a ready-to-sign action - an automation rule with hard EIP-712 ceilings, or a cross-chain payment with its route and fee shown up front. The model only drafts and prefills; every transaction is signed by your own wallet. | Cloudflare Workers AI + [Circle Programmable Wallets](https://developers.circle.com/w3s/programmable-wallets) |
+| **Portal** | Daily on-chain check-in (`OneliqCheckIn`) with Star Points, streaks, badges, referrals, and a live leaderboard - the loyalty layer for everything above. | Arc L1 + on-chain check-in contract |
+| **Dashboard** | Your portfolio at a glance: profile, total value, holdings per chain, and recent activity. | Arc RPC + Cloudflare KV |
+| **History** | Every Trade, Balance, and Agent action rendered as a receipt, stored per wallet so the log follows you between browsers and devices. | Cloudflare KV |
+
+Network counters (total users, on-chain swap and check-in totals) are recomputed from Arc itself rather than from our own database. The operator console that surfaces them internally is credential-gated and is not part of the public surface.
+
+Both a light and a dark theme ship on every page, and the choice is remembered.
 
 ### Coming soon
 
@@ -61,19 +66,27 @@ Supported chains for Unified Balance and CCTP V2: **Arc, Ethereum, Base, Arbitru
 - Pure HTML + CSS + vanilla JavaScript - no framework, no build step
 - [ethers.js v6](https://docs.ethers.org/v6/) - only external runtime dependency (SRI-pinned CDN)
 - EIP-6963 multi-wallet detection (MetaMask, Rabby, Coinbase Wallet, OKX, Brave)
+- Light/dark theming shared across every page (`assets/arc-theme.css`, `assets/arc-theme.js`)
 
 **Backend (Cloudflare Pages Functions)**
 - `functions/api/gateway-proxy/` - server-side proxy to Circle Gateway REST (`gateway-api-testnet.circle.com`)
 - `functions/api/circle-proxy/` - proxies Circle App Kit (`api.circle.com`) so `KIT_KEY` stays out of the browser
 - `functions/api/agent/` - Agent CRUD endpoints backed by Cloudflare KV (`AGENT_KV`)
 - `functions/api/agent/_circle.js` - Circle Programmable Wallets integration (wallet provisioning, USDC transfers)
+- `functions/api/ai/` - Oneliq AI chat, running on the Cloudflare Workers AI binding (no third-party model key)
 - `functions/api/history/` - per-wallet, cross-browser Trade/Balance history (`AGENT_KV`)
-- `functions/auth/` - Portal: check-in, Star Points, streaks, badges, leaderboard (`PROFILE_KV`)
+- `functions/api/recipients/` - per-wallet recipient book for Batch Pay (`AGENT_KV`)
+- `functions/api/metrics/` - network counters, reconciled against Arc RPC
+- `functions/auth/` - Portal: check-in, Star Points, streaks, badges, referrals, leaderboard (`PROFILE_KV`)
+- `functions/_middleware.js` - page-level access gate for the private operator console (fails closed if its credentials are unset)
 - `workers/agent-cron/` - scheduled Cloudflare Worker that fires agent rules on cadence
+- `workers/kv-backup/` - scheduled Worker that snapshots KV so profiles and history are recoverable
 
 **Infra**
 - **Cloudflare Pages** - hosting + CDN + DDoS protection
-- **Cloudflare KV** - agent rules, per-wallet history, and Portal profiles
+- **Cloudflare KV** - agent rules, per-wallet history and recipients, Portal profiles
+- **Cloudflare Workers AI** - the model behind Oneliq AI, called server-side
+- **Status page** - separate Pages project at [status.oneliq.xyz](https://status.oneliq.xyz) so uptime reporting is isolated from the app
 - **Optional: IPFS + ENS** - decentralized backup (see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md))
 
 First paint < 1s on 4G. No `node_modules` in production.
@@ -112,7 +125,7 @@ KIT_KEY=...                  # Circle App Kit API key
 GATEWAY_KEY=...              # Optional - Gateway bearer if Circle requires it
 ```
 
-No keys are needed for read-only frontend dev.
+No keys are needed for read-only frontend dev. Oneliq AI runs on the Cloudflare `AI` binding rather than a hosted model API, so there is no model key to configure - `wrangler pages dev` picks it up from the project bindings.
 
 ---
 
@@ -138,31 +151,42 @@ oneliq/
 ├── index.html              ← Homepage
 ├── balance.html            ← Unified Balance (Circle Gateway)         [LIVE]
 ├── trade.html              ← Swap (App Kit → Curve) + CCTP V2 Bridge  [LIVE]
-├── agent.html              ← Autonomous agents (EIP-712 + PW)         [LIVE]
+├── agent.html              ← Oneliq AI chat + agent rules (EIP-712)   [LIVE]
 ├── portal.html             ← Check-in, Star Points, leaderboard       [LIVE]
-├── dashboard.html          ← Operator console / network metrics       [LIVE]
+├── dashboard.html          ← User portfolio (holdings + activity)     [LIVE]
 ├── history.html            ← Cross-browser Trade/Balance history      [LIVE]
+├── ops.html                ← Private operator console (credential-gated)
 ├── docs.html, blog.html    ← Static docs + blog
+├── blog/                   ← One HTML file per post
 │
 ├── assets/
 │   ├── arc-core.js         ← Shared on-chain helpers (RPC, ABIs, USDC addresses, EIP-6963)
+│   ├── arc-core-v2.js      ← Newer chain helpers (deposit gas overrides, OP-Stack quirks)
 │   ├── arc-gateway.js      ← Circle Gateway client (BurnIntent, spend, Consolidate, forwarder)
+│   ├── arc-appkit.js       ← Circle App Kit swap client (config is generated at build time)
+│   ├── arc-theme.js/.css   ← Light/dark theme switch, shared tokens
 │   ├── arc-ui.js, arc-ui.css ← Shared app shell (sidebar nav + UI primitives)
-│   └── social/             ← X avatar + cover SVGs
+│   └── logos/, badges/, social/ ← Brand marks and share images
 │
 ├── functions/
+│   ├── _middleware.js      ← Access gate for the private operator console
 │   ├── api/gateway-proxy/  ← Server-side proxy → Circle Gateway REST
 │   ├── api/circle-proxy/   ← Server-side proxy → Circle App Kit (KIT_KEY)
+│   ├── api/ai/             ← Oneliq AI chat on the Workers AI binding
 │   ├── api/agent/          ← Agent CRUD + Programmable Wallets backend
 │   │   ├── [[path]].js     ← Routes (create, list, pause, resume, run-now, executions)
 │   │   ├── _circle.js      ← Circle Developer-Controlled Wallets API integration
 │   │   └── _balance.js     ← USDC balance checks per chain
 │   ├── api/history/        ← Per-wallet Trade/Balance history (cross-browser sync)
-│   └── auth/               ← Portal: check-in, Star Points, streaks, badges, leaderboard
+│   ├── api/recipients/     ← Per-wallet recipient book for Batch Pay
+│   ├── api/metrics/        ← Network counters, reconciled against Arc RPC
+│   └── auth/               ← Portal: check-in, Star Points, streaks, badges, referrals, leaderboard
 │
 ├── workers/
-│   └── agent-cron/         ← Scheduled execution worker (Cloudflare Cron Trigger)
+│   ├── agent-cron/         ← Scheduled execution worker (Cloudflare Cron Trigger)
+│   └── kv-backup/          ← Scheduled KV snapshot worker
 │
+├── status/                ← Status page (deployed as its own Pages project)
 ├── contracts/             ← OneliqRouter + OneliqCheckIn sources
 ├── _headers, _redirects   ← Cloudflare Pages security + clean URLs
 ├── docs/                  ← Deployment + governance + incident-response runbooks
@@ -182,6 +206,9 @@ oneliq/
 - Strict referrer + permissions policies via `_headers`
 - API keys never reach the browser (server-side proxies for App Kit + Programmable Wallets)
 - Origin allowlist on every Pages Function
+- The operator console and every maintenance endpoint are credential-gated and fail closed when their secrets are unset
+- Prompts are sent to a Cloudflare-hosted model over the platform binding; Oneliq AI never sees a private key and can only prefill a form you sign yourself
+- Source, config, and deck files are 404'd at the edge as defence in depth (see [`_redirects`](_redirects))
 - Multi-sig governance for any privileged action (see [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md))
 
 **Found a vulnerability?** See [`SECURITY.md`](SECURITY.md). Bounties from $100 to $50,000.
