@@ -125,7 +125,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   --m-row-hover: rgba(255,255,255,0.06);
   --m-row-active-wallet: rgba(91,211,217,0.10);
   --m-row-active-gateway: rgba(255,180,84,0.10);
-  width:100%;max-width:1120px;max-height:calc(100vh - 80px);
+  width:100%;max-width:760px;max-height:calc(100vh - 80px);
   background:linear-gradient(180deg, #16273F 0%, #0F1E36 100%);
   border:1px solid var(--m-border);border-radius:22px;
   box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04);
@@ -149,44 +149,68 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 }
 .src-modal-close:hover{color:var(--m-text);border-color:var(--m-border-strong);background:rgba(255,255,255,0.08)}
 
-.src-modal-body{padding:20px 24px 24px;overflow-y:auto;flex:1;background:transparent}
+.src-modal-body{padding:18px 20px 20px;overflow-y:auto;flex:1;background:transparent}
 
-.src-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:620px){.src-cols{grid-template-columns:1fr;gap:22px}}
+/* Two-pane layout: a narrow rail on the left picks the funding *kind*
+   (Wallet vs Unified Balance), the right pane lists that kind's chains.
+   Keeps the modal compact instead of showing both lists side by side. */
+.src-split{display:grid;grid-template-columns:224px 1fr;gap:18px;min-width:0}
+@media(max-width:640px){.src-split{grid-template-columns:1fr;gap:14px}}
 
-.src-col{display:flex;flex-direction:column;min-width:0}
-.src-col-head{
-  position:relative;
-  font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:.01em;
-  color:var(--m-wallet);
-  margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--m-border);
-  display:flex;align-items:center;flex-wrap:wrap;
+.src-tabs{display:flex;flex-direction:column;gap:8px;min-width:0}
+@media(max-width:640px){.src-tabs{flex-direction:row}.src-tabs .src-tab{flex:1}}
+.src-tab{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;min-width:0;
+  padding:12px 13px;border-radius:13px;cursor:pointer;font-family:var(--font);
+  background:rgba(255,255,255,.02);border:1px solid var(--m-border);color:var(--m-text);
+  transition:background .12s,border-color .12s;
 }
-.src-col.gateway .src-col-head{color:var(--m-gateway)}
-.src-col-sub{display:block;width:100%;font-size:12.5px;color:var(--m-text-soft);font-weight:400;
-  text-transform:none;letter-spacing:0;margin-top:6px;font-family:var(--font);line-height:1.4}
+.src-tab:hover{background:rgba(255,255,255,.05);border-color:var(--m-border-strong)}
+.src-tab.active{background:var(--m-row-active-wallet);border-color:var(--m-wallet)}
+.src-tab.gateway.active{background:var(--m-row-active-gateway);border-color:var(--m-gateway)}
+.src-tab-ico{
+  width:30px;height:30px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.05);color:var(--m-wallet);
+}
+.src-tab.gateway .src-tab-ico{background:transparent}
+.src-tab-ico img{width:28px;height:28px;display:block;object-fit:contain}
+.src-tab-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.src-tab-name{font-size:14px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-tab.active .src-tab-name{color:var(--m-wallet)}
+.src-tab.gateway.active .src-tab-name{color:var(--m-gateway)}
+.src-tab-sum{font-family:var(--mono);font-size:11px;color:var(--m-text-soft);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-.src-list{display:flex;flex-direction:column;gap:7px;max-height:54vh;overflow:auto;padding-right:4px}
+.src-pane{display:flex;flex-direction:column;min-width:0}
+.src-pane-head{
+  position:relative;display:flex;align-items:center;
+  font-size:12.5px;color:var(--m-text-soft);font-family:var(--font);
+  padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--m-border);
+}
+.src-pane-head .src-help-btn{margin-left:7px}
+
+.src-list{display:flex;flex-direction:column;gap:7px;height:min(46vh,326px);overflow:auto;padding-right:4px}
 .src-list::-webkit-scrollbar{width:6px}
 .src-list::-webkit-scrollbar-track{background:transparent}
 .src-list::-webkit-scrollbar-thumb{background:var(--m-border-strong);border-radius:3px}
 
 .src-row{
-  display:flex;align-items:center;gap:14px;
-  padding:15px 16px;border-radius:13px;
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:12px;flex-shrink:0;
   background:rgba(255,255,255,.02);border:1px solid var(--m-border);
   cursor:pointer;transition:background .12s,border-color .12s;
   font-family:var(--font);width:100%;text-align:left;color:var(--m-text);
 }
 .src-row:hover{background:rgba(255,255,255,.05);border-color:var(--m-border-strong)}
 .src-row.active{background:var(--m-row-active-wallet);border-color:var(--m-wallet);box-shadow:0 0 0 2px rgba(91,211,217,.22)}
-.src-col.gateway .src-row.active{background:var(--m-row-active-gateway);border-color:var(--m-gateway);box-shadow:0 0 0 2px rgba(255,180,84,.22)}
+.src-list.gateway .src-row.active{background:var(--m-row-active-gateway);border-color:var(--m-gateway);box-shadow:0 0 0 2px rgba(255,180,84,.22)}
 .src-row-icon{
-  width:34px;height:34px;flex-shrink:0;
+  width:30px;height:30px;flex-shrink:0;
   border-radius:8px;overflow:hidden;
 }
 .src-row-icon img{width:100%;height:100%;display:block;object-fit:cover}
-.src-row-dot{width:34px;height:34px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff}
+.src-row-dot{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff}
+.src-row-dot img{width:26px;height:26px;display:block;object-fit:contain}
 .src-row-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .src-row-name{font-size:15px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--m-text);letter-spacing:-.01em}
 .src-row-meta{display:flex;flex-direction:column;align-items:flex-end;min-width:0;gap:2px}
@@ -209,7 +233,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 }
 .src-help-btn:hover{color:var(--m-text);border-color:var(--m-text-soft);background:rgba(255,255,255,0.10)}
 .src-help-pop{
-  position:absolute;top:36px;left:0;z-index:200;
+  position:absolute;top:30px;left:0;z-index:200;
   min-width:260px;max-width:320px;padding:13px 15px;
   background:#16273F;
   border:1px solid var(--m-border);border-radius:12px;
@@ -740,9 +764,10 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     // then ONE mint on destination).
     const gwFunded = gateway.filter(s => s.canonical > 0n);
     const unifiedTotal = gwFunded.reduce((acc, s) => acc + s.canonical, 0n);
+    const walletTotal = wallet.reduce((acc, s) => acc + s.canonical, 0n);
     const unifiedRow = (gwFunded.length >= 2) ? `
       <button class="src-row src-row-unified ${isUnifiedActive ? 'active' : ''}" type="button" data-src="unified:unified" style="background:linear-gradient(135deg,rgba(255,180,84,0.14) 0%,rgba(255,180,84,0.05) 100%);border-color:rgba(255,180,84,0.45);margin-bottom:8px">
-        <span class="src-row-dot" style="background:linear-gradient(135deg,#FFB454,#F4C89A);box-shadow:0 4px 12px rgba(244,200,154,.3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+        <span class="src-row-dot"><img src="assets/logos/oneliq-mark-gradient.png" alt=""/></span>
         <span class="src-row-info">
           <span class="src-row-name" style="color:#FFB454;font-weight:700">Unified Balance</span>
         </span>
@@ -751,6 +776,29 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           <span class="src-row-pending" style="color:#FFB454">across ${gwFunded.length} chains</span>
         </span>
       </button>` : '';
+
+    // Which side of the rail is showing. Remembered across opens; the first
+    // open follows whatever kind the user currently has selected.
+    if (state.srcTab !== 'wallet' && state.srcTab !== 'gateway') {
+      state.srcTab = state.src.kind === 'wallet' ? 'wallet' : 'gateway';
+    }
+
+    const paneHtml = (t) => t === 'wallet' ? `
+      <div class="src-pane-head">USDC sitting in your MetaMask<button class="src-help-btn" type="button" data-help="wallet" aria-label="What is Wallet?">?</button>
+        <div class="src-help-pop" id="src-help-wallet">
+          <span class="pill wl">Wallet</span> = USDC sitting in your MetaMask on each chain. To move it cross-chain we use <strong>CCTP burn-and-mint</strong> (~30s fast mode with a tiny fee, or ~13 min standard mode for free).
+          <br><br>Sync time: instant - what's in your wallet IS in your wallet.
+        </div>
+      </div>
+      <div class="src-list wallet">${wallet.length ? wallet.map(s => rowHtml(s, isActive(s))).join('') : emptyHtml}</div>` : `
+      <div class="src-pane-head">Pre-deposited · spend instantly anywhere<button class="src-help-btn" type="button" data-help="gateway" aria-label="What is Unified Balance?">?</button>
+        <div class="src-help-pop" id="src-help-gateway">
+          <span class="pill gw">Gateway</span> = USDC you've pre-deposited into Circle's instant pool. Spend across any chain in <strong>~30s</strong>, no bridge tx, no wrapped tokens.
+          <br><br><strong style="color:#FFB454">⚡ Unified Balance</strong> spends from MULTIPLE Gateway chains at once - N intents signed with <strong>one signature</strong> (BurnIntentSet) → 1 attestation → 1 mint. Picks largest chains first.
+          <br><br>Deposit sync: <strong>~30s on Fuji/Arc</strong>, <strong>~12-15 min on Sepolia / L2</strong> (block-finality bottleneck).
+        </div>
+      </div>
+      <div class="src-list gateway">${unifiedRow}${gateway.length ? gateway.map(s => rowHtml(s, isActive(s))).join('') : emptyHtml}</div>`;
 
     fromPanelEl.innerHTML = `
       <div class="src-modal" role="dialog" aria-modal="true" aria-label="Pick funding source">
@@ -762,71 +810,86 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           <button class="src-modal-close" type="button" id="src-modal-close" aria-label="Close">×</button>
         </div>
         <div class="src-modal-body">
-          <div class="src-cols">
-            <div class="src-col wallet">
-              <div class="src-col-head"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-right:6px"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6"/><circle cx="17" cy="13" r="2"/></svg>Wallet<button class="src-help-btn" type="button" data-help="wallet" aria-label="What is Wallet?">?</button>
-                <span class="src-col-sub">USDC sitting in your MetaMask</span>
-                <div class="src-help-pop" id="src-help-wallet">
-                  <span class="pill wl">Wallet</span> = USDC sitting in your MetaMask on each chain. To move it cross-chain we use <strong>CCTP burn-and-mint</strong> (~30s fast mode with a tiny fee, or ~13 min standard mode for free).
-                  <br><br>Sync time: instant - what's in your wallet IS in your wallet.
-                </div>
-              </div>
-              <div class="src-list">${wallet.length ? wallet.map(s => rowHtml(s, isActive(s))).join('') : emptyHtml}</div>
+          <div class="src-split">
+            <div class="src-tabs" role="tablist">
+              <button class="src-tab wallet ${state.srcTab === 'wallet' ? 'active' : ''}" type="button" role="tab" aria-selected="${state.srcTab === 'wallet'}" data-tab="wallet">
+                <span class="src-tab-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6"/><circle cx="17" cy="13" r="2"/></svg></span>
+                <span class="src-tab-txt">
+                  <span class="src-tab-name">Wallet</span>
+                  <span class="src-tab-sum">${ARC.formatAmt(walletTotal, 6, 2)} USDC</span>
+                </span>
+              </button>
+              <button class="src-tab gateway ${state.srcTab === 'gateway' ? 'active' : ''}" type="button" role="tab" aria-selected="${state.srcTab === 'gateway'}" data-tab="gateway">
+                <span class="src-tab-ico"><img src="assets/logos/oneliq-mark-gradient.png" alt=""/></span>
+                <span class="src-tab-txt">
+                  <span class="src-tab-name">Unified Balance</span>
+                  <span class="src-tab-sum">${ARC.formatAmt(unifiedTotal, 6, 2)} USDC</span>
+                </span>
+              </button>
             </div>
-            <div class="src-col gateway">
-              <div class="src-col-head"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-right:6px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Gateway<button class="src-help-btn" type="button" data-help="gateway" aria-label="What is Gateway?">?</button>
-                <span class="src-col-sub">Pre-deposited · spend instantly anywhere</span>
-                <div class="src-help-pop" id="src-help-gateway">
-                  <span class="pill gw">Gateway</span> = USDC you've pre-deposited into Circle's instant pool. Spend across any chain in <strong>~30s</strong>, no bridge tx, no wrapped tokens.
-                  <br><br><strong style="color:#FFB454">⚡ Unified Balance</strong> spends from MULTIPLE Gateway chains at once - N intents signed with <strong>one signature</strong> (BurnIntentSet) → 1 attestation → 1 mint. Picks largest chains first.
-                  <br><br>Deposit sync: <strong>~30s on Fuji/Arc</strong>, <strong>~12-15 min on Sepolia / L2</strong> (block-finality bottleneck).
-                </div>
-              </div>
-              <div class="src-list">${unifiedRow}${gateway.length ? gateway.map(s => rowHtml(s, isActive(s))).join('') : emptyHtml}</div>
-            </div>
+            <div class="src-pane" id="src-pane">${paneHtml(state.srcTab)}</div>
           </div>
         </div>
       </div>`;
 
     document.getElementById('src-modal-close').onclick = closeSourcePanel;
 
-    // Wire ? buttons - toggle popover, close on outside click within panel
-    fromPanelEl.querySelectorAll('.src-help-btn').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const which = btn.dataset.help;
-        const pop = document.getElementById('src-help-' + which);
-        // close any other open pop first
-        fromPanelEl.querySelectorAll('.src-help-pop.open').forEach(p => { if (p !== pop) p.classList.remove('open'); });
-        pop?.classList.toggle('open');
+    // Rows and the ? popover live inside the swappable pane, so they get
+    // rewired every time the rail switches sides.
+    function wirePane() {
+      fromPanelEl.querySelectorAll('.src-help-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          const pop = document.getElementById('src-help-' + btn.dataset.help);
+          pop?.classList.toggle('open');
+        };
+      });
+
+      fromPanelEl.querySelectorAll('.src-row').forEach(btn => {
+        btn.onclick = () => {
+          const [chainKey, kind] = btn.dataset.src.split(':');
+          state.src = { chainKey, kind };
+          // Both kind=gateway and kind=unified are USDC-only paths
+          if (kind === 'gateway' || kind === 'unified') {
+            // For unified: lock to Arc USDC display (Arc is canonical home chain)
+            state.fromToken = TOKENS[kind === 'unified' ? 'arc' : chainKey].USDC;
+          } else {
+            const sym = state.fromToken?.symbol;
+            state.fromToken = TOKENS[chainKey]?.[sym] || TOKENS[chainKey]?.USDC;
+          }
+          closeSourcePanel();
+          renderSourceTrigger();
+          renderPickBtn('from');
+          updateBalances();
+          triggerQuote();
+        };
+      });
+    }
+    wirePane();
+
+    fromPanelEl.querySelectorAll('.src-tab').forEach(btn => {
+      btn.onclick = () => {
+        state.srcTab = btn.dataset.tab;
+        fromPanelEl.querySelectorAll('.src-tab').forEach(t => {
+          const on = t.dataset.tab === state.srcTab;
+          t.classList.toggle('active', on);
+          t.setAttribute('aria-selected', String(on));
+        });
+        document.getElementById('src-pane').innerHTML = paneHtml(state.srcTab);
+        wirePane();
       };
-    });
-    // Close popovers when clicking elsewhere INSIDE the panel
-    fromPanelEl.addEventListener('click', (e) => {
-      if (!e.target.closest('.src-help-btn') && !e.target.closest('.src-help-pop')) {
-        fromPanelEl.querySelectorAll('.src-help-pop.open').forEach(p => p.classList.remove('open'));
-      }
     });
 
-    fromPanelEl.querySelectorAll('.src-row').forEach(btn => {
-      btn.onclick = () => {
-        const [chainKey, kind] = btn.dataset.src.split(':');
-        state.src = { chainKey, kind };
-        // Both kind=gateway and kind=unified are USDC-only paths
-        if (kind === 'gateway' || kind === 'unified') {
-          // For unified: lock to Arc USDC display (Arc is canonical home chain)
-          state.fromToken = TOKENS[kind === 'unified' ? 'arc' : chainKey].USDC;
-        } else {
-          const sym = state.fromToken?.symbol;
-          state.fromToken = TOKENS[chainKey]?.[sym] || TOKENS[chainKey]?.USDC;
+    // Close popovers when clicking elsewhere INSIDE the panel. Wired once -
+    // the panel element itself survives every re-render.
+    if (!fromPanelEl.dataset.popWired) {
+      fromPanelEl.dataset.popWired = '1';
+      fromPanelEl.addEventListener('click', (e) => {
+        if (!e.target.closest('.src-help-btn') && !e.target.closest('.src-help-pop')) {
+          fromPanelEl.querySelectorAll('.src-help-pop.open').forEach(p => p.classList.remove('open'));
         }
-        closeSourcePanel();
-        renderSourceTrigger();
-        renderPickBtn('from');
-        updateBalances();
-        triggerQuote();
-      };
-    });
+      });
+    }
   }
 
   function renderSourceTrigger() {
