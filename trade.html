@@ -145,11 +145,10 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 
 .src-modal-head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:20px 24px 16px;border-bottom:1px solid var(--m-border);
+  padding:16px 20px;border-bottom:1px solid var(--m-border);
   background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
 }
-.src-modal-title{font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--m-text);text-transform:uppercase}
-.src-modal-sub{display:block;font-size:13px;color:var(--m-text-soft);font-weight:400;margin-top:4px;font-family:var(--m-font);letter-spacing:-.005em}
+.src-modal-title{font-size:16px;font-weight:600;letter-spacing:-.018em;color:var(--m-text)}
 .src-modal-close{
   width:34px;height:34px;border-radius:10px;
   background:rgba(255,255,255,0.04);border:1px solid var(--m-border);
@@ -810,12 +809,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       <div class="src-list gateway">${unifiedRow}${gateway.length ? gateway.map(s => rowHtml(s, isActive(s))).join('') : emptyHtml}</div>`;
 
     fromPanelEl.innerHTML = `
-      <div class="src-modal" role="dialog" aria-modal="true" aria-label="Pick funding source">
+      <div class="src-modal" role="dialog" aria-modal="true" aria-label="Select USDC">
         <div class="src-modal-head">
-          <div>
-            <div class="src-modal-title">Pick funding source</div>
-            <div class="src-modal-sub">Choose where USDC for this swap comes from</div>
-          </div>
+          <div class="src-modal-title">Select USDC</div>
           <button class="src-modal-close" type="button" id="src-modal-close" aria-label="Close">×</button>
         </div>
         <div class="src-modal-body">
