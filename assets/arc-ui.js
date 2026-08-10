@@ -33,7 +33,7 @@
       const tabs = navTabs(active);
       nav.innerHTML = `
         <a class="nav-logo" href="/">
-          <img class="logo-img logo-on-dark" src="/assets/logos/wordmark-oneliq.png?v=2" alt="Oneliq" height="34"/><img class="logo-img logo-on-light" style="display:none" src="/assets/logos/wordmark-oneliq-light.png?v=2" alt="" aria-hidden="true" height="34"/>
+          <img class="logo-img logo-on-dark" src="/assets/logos/wordmark-oneliq.png?v=3" alt="Oneliq" height="34"/><img class="logo-img logo-on-light" style="display:none" src="/assets/logos/wordmark-oneliq-light.png?v=3" alt="" aria-hidden="true" height="34"/>
         </a>
         <div class="nav-tabs">
           ${tabs.map(t => `<a class="nav-tab ${t.id===active?'active':''}${t.newBadge?' new-pill':''}" href="${t.href}">${t.label}</a>`).join('')}
@@ -469,7 +469,7 @@
       side.innerHTML = `
         <div class="arc-side-head">
           <a class="arc-side-brand" href="/" aria-label="Oneliq home">
-            <img class="arc-side-logo logo-on-dark" src="/assets/logos/wordmark-oneliq.png?v=2" alt="Oneliq" height="38"/><img class="arc-side-logo logo-on-light" style="display:none" src="/assets/logos/wordmark-oneliq-light.png?v=2" alt="" aria-hidden="true" height="38"/>
+            <img class="arc-side-logo logo-on-dark" src="/assets/logos/wordmark-oneliq.png?v=3" alt="Oneliq" height="38"/><img class="arc-side-logo logo-on-light" style="display:none" src="/assets/logos/wordmark-oneliq-light.png?v=3" alt="" aria-hidden="true" height="38"/>
           </a>
           <button class="arc-side-toggle" type="button" aria-label="Toggle sidebar">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
