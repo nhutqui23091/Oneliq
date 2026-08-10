@@ -109,6 +109,14 @@
 :root[data-theme="light"] .glass{background:#FFFFFF;box-shadow:0 1px 2px rgba(15,23,42,.04)}
 :root[data-theme="light"] .glass::before{display:none}
 
+
+/* Wordmark swap. The shipped wordmark is white type, invisible on a light
+   page, so each logo is two <img>s and the theme picks one. Both are the
+   same pixel height, so the box never reflows on toggle. */
+.logo-on-light{display:none}
+:root[data-theme="light"] .logo-on-dark{display:none}
+:root[data-theme="light"] .logo-on-light{display:block}
+
 /* Two-icon pill. The active half is decided purely by the
    data-theme attribute, so no JS class bookkeeping. */
 .theme-toggle{
