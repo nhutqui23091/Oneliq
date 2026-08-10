@@ -539,7 +539,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.13.0"></script>
+<script src="/assets/arc-gateway.js?v=9.13.1"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1287,7 +1287,11 @@ html{scroll-behavior:smooth}
     const total = bpPayments.reduce((a, p) => a + p.amtCanonical, 0n);
     const burnFee = bpPayments.reduce((a, p) => a + p.sources.reduce((x, s) => x + ARC.gateway.defaultMaxFee(s.valueCanonical, s.chainKey), 0n), 0n);
     const groups = bpGroups || bpGroupBy(bpPayments);
-    const fwdFee = ARC.gateway.FORWARDER_FEE_EST * BigInt(bpPayments.length);
+    // The forwarder is charged once per SIGNED REQUEST, not once per recipient:
+    // eight people on one chain settle in a single forwarded mint and pay it
+    // once. Counting it per recipient overstated a big same-chain batch and
+    // understated a batch fanned across chains.
+    const fwdFee = ARC.gateway.FORWARDER_FEE_EST * BigInt(groups.length);
     const estFee = burnFee + fwdFee;
     const sig = groups.length;
     const dstCount = new Set(bpPayments.map(p => p.dstChainKey)).size;

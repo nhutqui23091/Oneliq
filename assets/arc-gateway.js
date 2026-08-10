@@ -105,7 +105,18 @@
   // /v1/transfer and surfaced during settleForwarded — this constant only powers
   // the pre-sign UI estimate (estimateSpend) so the user sees the gasless cost
   // before signing rather than after.
-  const FORWARDER_FEE_EST = 3_500n;       // 0.0035 USDC canonical (estimate)
+  // Observed requirement for a forwarded single-intent transfer to Base Sepolia
+  // was ~0.10 USDC total (two rejections seconds apart quoted 0.072 then 0.103),
+  // so the old 0.0035 understated the real cost by more than an order of
+  // magnitude and every preview read far too cheap. This is a measurement, not
+  // a derivation: Circle returns the exact figure per request, and the fee is
+  // gas-linked so it moves. It powers the pre-sign estimate only — the actual
+  // authorisation is negotiated by planFeeBump.
+  const FORWARDER_FEE_EST = 100_000n;     // 0.10 USDC canonical (observed)
+  // Cap on fee re-negotiation rounds. Each one costs the user a signature, so
+  // this is deliberately small; planFeeBump overshoots precisely so one round
+  // is normally enough.
+  const MAX_FEE_ATTEMPTS = 3;
   function defaultMaxFee(valueCanonical, chainKey) {
     const floor = feeFloorFor(chainKey);
     const proportional = valueCanonical / MAX_FEE_BPS_DIVISOR;
@@ -167,12 +178,24 @@
     }
     const shortfall = parseAdditionalFee(txt);
     if (shortfall != null && shortfall > 0n && intents.length) {
-      // Spread the total shortfall over the intents, rounding up so the sum
-      // always clears it, and add the same 25% headroom.
       const n = BigInt(intents.length);
-      const share = (shortfall + n - 1n) / n;
-      const add = share + (share / 4n) + 1n;
-      intents.forEach(it => { it.maxFee += add; });
+      const currentTotal = intents.reduce((acc, it) => acc + it.maxFee, 0n);
+      const requiredTotal = currentTotal + shortfall;
+      // Overshoot hard, on purpose. Two reasons:
+      //
+      //  · maxFee is a CEILING, not a charge. Circle bills the actual fee and
+      //    the rest is never taken, so aiming high costs the user nothing
+      //    except needing the balance to back the authorisation.
+      //  · the quote MOVES. Observed on Base Sepolia seconds apart: the first
+      //    rejection wanted 0.072 USDC total, and after we raised the fee to
+      //    0.0774 the retry wanted 0.103. A 25% margin lost that race and the
+      //    user was left signing twice for nothing.
+      //
+      // Doubling the stated requirement clears the drift we have actually seen
+      // in one extra signature instead of several.
+      const targetTotal = requiredTotal * 2n;
+      const addEach = (targetTotal - currentTotal + n - 1n) / n;
+      intents.forEach(it => { it.maxFee += addEach; });
       return intents[0].maxFee;
     }
     return null;
@@ -417,14 +440,13 @@
       return { res, txt };
     };
     let { res, txt } = await submit(burnIntent, 'Sign burn intent in wallet…');
-    if (!res.ok && res.status === 400) {
-      // Handles both the per-intent minimum and the total forwarding-fee
-      // shortfall — see planFeeBump.
+    // Handles both the per-intent minimum and the total forwarding-fee
+    // shortfall — see planFeeBump — and retries while the quote keeps moving.
+    for (let attempt = 0; attempt < MAX_FEE_ATTEMPTS && !res.ok && res.status === 400; attempt++) {
       const bumped = planFeeBump([burnIntent], txt);
-      if (bumped) {
-        opts.onStep?.(`Fee bumped to ${ARC.formatAmt(burnIntent.maxFee, CANONICAL_DECIMALS, 4)} USDC. Please re-sign.`);
-        ({ res, txt } = await submit(burnIntent, 'Re-sign with bumped fee…'));
-      }
+      if (!bumped) break;   // a 400 that is not about fees — surface it as-is
+      opts.onStep?.(`Fee bumped to ${ARC.formatAmt(burnIntent.maxFee, CANONICAL_DECIMALS, 4)} USDC. Please re-sign.`);
+      ({ res, txt } = await submit(burnIntent, 'Re-sign with bumped fee…'));
     }
     if (!res.ok) throw new Error(`Gateway /v1/transfer ${res.status}: ${(txt || '').slice(0, 300)}`);
     return await res.json();
@@ -861,20 +883,21 @@
     };
     let signed = await signBundle('Sign burn intent');
     let { res, txt } = await submit(signed);
-    if (!res.ok && res.status === 400) {
+    // Looped for the same reason as batchSpend: Circle's fee quote can rise
+    // between attempts, so a single bump is not guaranteed to land.
+    for (let attempt = 0; attempt < MAX_FEE_ATTEMPTS && !res.ok && res.status === 400; attempt++) {
       const bumped = planFeeBump(intents, txt);
-      if (bumped) {
-        onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
-        // The re-sign happens AFTER the awaited submit() above, so Chrome's
-        // transient activation from the first click is gone — wallets like OKX
-        // won't auto-surface the second popup, they just badge it. If the caller
-        // supplies beforeResign, let it gate the re-sign behind a FRESH user
-        // gesture (a button click) so signTypedData fires within a live
-        // activation window and the popup actually opens. No hook → old behavior.
-        if (beforeResign) await beforeResign(bumped);
-        signed = await signBundle('Re-sign');
-        ({ res, txt } = await submit(signed));
-      }
+      if (!bumped) break;   // a 400 that is not about fees — surface it as-is
+      onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
+      // The re-sign happens AFTER the awaited submit() above, so Chrome's
+      // transient activation from the first click is gone — wallets like OKX
+      // won't auto-surface the second popup, they just badge it. If the caller
+      // supplies beforeResign, let it gate the re-sign behind a FRESH user
+      // gesture (a button click) so signTypedData fires within a live
+      // activation window and the popup actually opens. No hook → old behavior.
+      if (beforeResign) await beforeResign(bumped);
+      signed = await signBundle('Re-sign');
+      ({ res, txt } = await submit(signed));
     }
     if (!res.ok) throw new Error(`Gateway /v1/transfer ${res.status}: ${(txt || '').slice(0, 300)}`);
     const attResp = await res.json();
@@ -968,19 +991,20 @@
 
     let signed = await signBundle('Sign batch');
     let { res, txt } = await submit(signed);
-    if (!res.ok && res.status === 400) {
-      // A batch is especially prone to the forwarding-fee shortfall: the
-      // forwarder is charged once per request but paid out of the SUM of the
-      // intents' maxFee, so several small legs can each clear their own floor
-      // and still leave the request short. planFeeBump covers that message as
-      // well as the per-intent one.
+    // A batch is especially prone to the forwarding-fee shortfall: the
+    // forwarder is charged once per request but paid out of the SUM of the
+    // intents' maxFee, so several small legs can each clear their own floor and
+    // still leave the request short. planFeeBump covers that message as well as
+    // the per-intent one. Looped because Circle can quote a higher figure on
+    // the retry than it did on the first rejection; bounded because each round
+    // costs a signature.
+    for (let attempt = 0; attempt < MAX_FEE_ATTEMPTS && !res.ok && res.status === 400; attempt++) {
       const bumped = planFeeBump(intents, txt);
-      if (bumped) {
-        onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
-        if (beforeResign) await beforeResign(bumped);
-        signed = await signBundle('Re-sign');
-        ({ res, txt } = await submit(signed));
-      }
+      if (!bumped) break;   // a 400 that is not about fees — surface it as-is
+      onStep?.(`Fee bumped to ${ARC.formatAmt(bumped, CANONICAL_DECIMALS, 4)} USDC per intent. Please re-sign.`);
+      if (beforeResign) await beforeResign(bumped);
+      signed = await signBundle('Re-sign');
+      ({ res, txt } = await submit(signed));
     }
     if (!res.ok) throw new Error(`Gateway /v1/transfer ${res.status}: ${(txt || '').slice(0, 300)}`);
     const attResp = await res.json();
