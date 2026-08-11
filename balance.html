@@ -264,6 +264,10 @@ html{scroll-behavior:smooth}
 
 @media(max-width:768px){
   .balance-amount{font-size:48px}
+  /* Five buttons in a 273px card wrap to three lines at the desktop padding,
+     leaving the ⋯ stranded on a line of its own. Tightening the secondaries
+     by 5px a side is enough to land Deposit, Withdraw and ⋯ on one line. */
+  .act-btn.secondary{padding:10px 13px}
   .chain-row{grid-template-columns:1fr 1fr;row-gap:8px}
   .chain-row.header{display:none}
   /* The header wraps at this width: title on line 1, count and filter share
