@@ -386,7 +386,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     <table class="docs-table">
       <tr><th style="width:24%">Surface</th><th>What it does</th><th style="width:22%">Built on</th></tr>
       <tr><td><strong>Trade</strong></td><td>Spend USDC anywhere - swap inside Arc (USDC ⇄ EURC) or bridge cross-chain. One panel, one source picker (wallet + Gateway pre-deposits), one destination. The output can be parked straight into your Unified Balance.</td><td>OneliqRouter → Circle Curve pool + CCTP V2</td></tr>
-      <tr><td><strong>Unified Balance</strong></td><td>One USDC balance across every supported chain. Deposit from any chain, spend instantly on Arc - no bridge clicks, no wrapped tokens. Batch Pay, Consolidate, and Distribute sit on top of the same engine.</td><td>Circle Gateway V1</td></tr>
+      <tr><td><strong>Unified Balance</strong></td><td>One USDC balance across every supported chain. Deposit from any chain, spend instantly on Arc - no bridge clicks, no wrapped tokens. Batch Pay and Consolidate sit on top of the same engine.</td><td>Circle Gateway V1</td></tr>
       <tr><td><strong>Oneliq AI</strong> <em style="color:var(--peach);font-size:12px">preview</em></td><td>Describe what you want in plain language; the assistant drafts the automation rule, the swap, or the cross-chain payment and hands it to you to sign. Daily safety cap, revocable anytime.</td><td>Cloudflare Workers AI + Circle Programmable Wallets</td></tr>
       <tr><td><strong>Portal</strong></td><td>Daily on-chain check-in with Star Points, streaks, badges, referrals, and a live leaderboard - the loyalty layer over everything else.</td><td>OneliqCheckIn on Arc L1</td></tr>
       <tr><td><strong>History</strong></td><td>A receipt-style feed of every Trade, Balance, and Agent moment on your USDC activity. Filter by surface, jump to the chain explorer in one click.</td><td>Per-wallet history API + agent API</td></tr>
@@ -653,15 +653,6 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       recipient set to you. Chains whose balance is too small to clear their per-intent fee floor are
       skipped automatically (and listed in the preview) rather than failing the whole sweep. Use it to
       tidy dust across chains or stage liquidity where you need it next.
-    </p>
-
-    <h4 class="docs-h4">⇱ Distribute</h4>
-    <p class="docs-p">
-      <strong>Distribute</strong> is Batch Pay with yourself as every recipient: it pushes spendable
-      balance back out from the unified pool to your own wallets on the chains you choose. It is
-      deliberately <em>not</em> the mirror of Consolidate. Consolidate is one signature because every
-      intent shares a single destination; each chain you distribute to is its own destination, so it
-      is its own signature and its own fee. The modal says so up front rather than implying symmetry.
     </p>
 
     <h4 class="docs-h4">If you close the tab mid-transfer</h4>
@@ -1232,7 +1223,7 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
     <h2 class="docs-h2" id="changelog">Changelog</h2>
     <p class="docs-p" style="font-family:var(--mono);font-size:13px;color:var(--muted)">v0.10.x - Public Beta on Arc Testnet</p>
     <ul class="docs-ul">
-      <li><strong>2026-08-10</strong> - Surfaces that talk to each other. <strong>Trade</strong> can park a swap output straight into the Unified Balance; <strong>Batch Pay</strong> gains bulk paste and a per-wallet recipient book, and splits past Circle's 16-intent cap instead of refusing; <strong>Distribute</strong> pushes balance back out to your own wallets; the agent now reads your unified balance in its pre-flight.</li>
+      <li><strong>2026-08-10</strong> - Surfaces that talk to each other. <strong>Trade</strong> can park a swap output straight into the Unified Balance; <strong>Batch Pay</strong> gains bulk paste and a per-wallet recipient book, and splits past Circle's 16-intent cap instead of refusing; the agent now reads your unified balance in its pre-flight.</li>
       <li><strong>2026-08-10</strong> - <strong>Light theme</strong> across every page with a sun/moon switch, plus a new Oneliq wordmark for both themes.</li>
       <li><strong>2026-08-09</strong> - Balance power-ups. <strong>⇉ Batch Pay</strong> (pay N recipients, grouped by destination, one signature per chain) and <strong>⤵ Consolidate</strong> (sweep every chain onto one in a single signature). Spend gains a <strong>Manual</strong> mode alongside Auto and Single, plus estimate-before-sign and three explicit partial-liquidity states.</li>
       <li><strong>2026-08-09</strong> - <strong>Oneliq AI</strong>. The agent grows a chat layer: describe a rule in plain language, the assistant prefills the config, you sign. Powered by Cloudflare Workers AI.</li>

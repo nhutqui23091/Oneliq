@@ -304,7 +304,6 @@ html{scroll-behavior:smooth}
     <div class="balance-actions">
       <button class="act-btn" id="ub-spend-top" type="button">↗ Spend</button>
       <button class="act-btn" id="ub-batchpay-top" type="button">⇉ Batch Pay</button>
-      <button class="act-btn" id="ub-distribute-top" type="button">⤴ Distribute</button>
       <button class="act-btn" id="ub-consolidate-top" type="button">⤵ Consolidate</button>
     </div>
     <div class="sync-line" id="sync-line"><span class="sync-dot"></span><span id="sync-line-txt">Not synced</span></div>
@@ -1387,8 +1386,8 @@ html{scroll-behavior:smooth}
         //
         // Keyed by the payment object, not by the recipient address: paying the
         // same address on several rows is normal (a payroll sheet with two lines
-        // for one person, or the Distribute preset where every row is you), and
-        // keying by address collapsed those rows into one. batchSpend saw the
+        // for one person, say), and keying by address collapsed those rows into
+        // one. batchSpend saw the
         // right total either way, but the preview then ticked only the first of
         // the merged rows, so a finished batch looked half-done. Separate
         // entries with the same recipient produce exactly the same intents.
@@ -1564,8 +1563,8 @@ html{scroll-behavior:smooth}
   // all of them and refresh the chips once, instead of once per recipient.
   function bookSave(addr, chain, label) {
     if (!state.addr) return Promise.resolve();
-    // Your own address is not a counterparty — Distribute would otherwise fill
-    // the book with yourself.
+    // Your own address is not a counterparty — paying yourself in a batch
+    // should not fill the book with your own wallet.
     if (String(addr).toLowerCase() === String(state.addr).toLowerCase()) return Promise.resolve();
     return fetch('/api/recipients/save', {
       method: 'POST',
@@ -1677,48 +1676,21 @@ html{scroll-behavior:smooth}
     bpInvalidate();
   }
 
-  /* ───── Distribute ─────
-     Batch Pay with yourself as every recipient: push spendable balance back OUT
-     to your own wallets on chosen chains. It is NOT the cheap mirror of
-     Consolidate — Consolidate is one signature because every intent shares one
-     destination, while each chain you distribute to is its own destination and
-     so its own signature. The modal says as much. */
-  function openDistributeModal() {
+  function openBatchPayModal() {
     if (!state.addr) { alert('Connect wallet first'); return; }
-    openBatchPayModal({ distribute: true });
-  }
-
-  function openBatchPayModal(opts = {}) {
-    if (!state.addr) { alert('Connect wallet first'); return; }
-    const distribute = !!opts.distribute;
-    document.getElementById('bp-title').textContent = distribute ? 'Distribute to your own wallets' : 'Batch Pay';
-    document.getElementById('bp-intro').innerHTML = distribute
-      ? `Push spendable balance back out to <strong style="color:var(--text)">your own wallet</strong> on several chains at once. Every row is pre-filled with your address. Note this is not the mirror of Consolidate: Consolidate is one signature because everything lands on one chain, whereas <strong style="color:var(--text)">each chain you distribute to costs its own signature and its own Circle fee</strong>.`
-      : `Pay several recipients straight from your Unified Balance — sources are auto-picked across your chains and every payment is gasless. Recipients on the <strong style="color:var(--text)">same destination chain</strong> are paid in one signature; different chains take one signature each. Add a recipient, its amount, and the chain they receive on.`;
-    // The saved-recipient chips are meaningless when every row is you.
+    document.getElementById('bp-title').textContent = 'Batch Pay';
+    document.getElementById('bp-intro').innerHTML = `Pay several recipients straight from your Unified Balance — sources are auto-picked across your chains and every payment is gasless. Recipients on the <strong style="color:var(--text)">same destination chain</strong> are paid in one signature; different chains take one signature each. Add a recipient, its amount, and the chain they receive on.`;
     document.getElementById('bp-book-wrap').style.display = 'none';
     document.getElementById('bp-paste-wrap').style.display = 'none';
     document.getElementById('bp-paste-err').style.display = 'none';
     document.getElementById('bp-paste').value = '';
-    document.getElementById('bp-paste-toggle').style.display = distribute ? 'none' : '';
+    document.getElementById('bp-paste-toggle').style.display = '';
     document.getElementById('bp-paste-toggle').textContent = '⇤ Paste a list';
 
     document.getElementById('bp-rows').innerHTML = '';
     bpRowSeq = 0;
-    if (distribute) {
-      // Seed with the mintable chains holding the least, since those are the
-      // ones a distribution is usually topping up.
-      const mintable = ARC.gateway.gatewayChains()
-        .filter(k => ARC.CHAINS[k]?.contracts?.gatewayMinter);
-      const held = new Map((state.balances || []).map(b => [b.chainKey, b.canonical || 0n]));
-      const seeds = mintable
-        .sort((a, b) => ((held.get(a) || 0n) < (held.get(b) || 0n) ? -1 : 1))
-        .slice(0, 2);
-      (seeds.length ? seeds : ['arc']).forEach(k => bpAddRow(state.addr, '', k));
-    } else {
-      bpAddRow();
-      bookLoad();
-    }
+    bpAddRow();
+    bookLoad();
     document.getElementById('bp-preview').style.display = 'none';
     document.getElementById('bp-errors').style.display = 'none';
     const go = document.getElementById('bp-go');
@@ -1738,16 +1710,6 @@ html{scroll-behavior:smooth}
       return;
     }
     openBatchPayModal();
-  };
-  document.getElementById('ub-distribute-top').onclick = async () => {
-    if (!state.addr) {
-      try { await ARC.wallet.connect(); }
-      catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError(e)); return; }
-      state.addr = ARC.wallet.address;
-      refreshAll();
-      return;
-    }
-    openDistributeModal();
   };
   document.getElementById('bp-add').onclick = () => { bpAddRow(); bpInvalidate(); };
   document.getElementById('bp-review').onclick = bpReview;
