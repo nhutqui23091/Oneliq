@@ -277,7 +277,10 @@ html{scroll-behavior:smooth}
   .chain-row{grid-template-columns:1fr 1fr 20px;row-gap:8px}
   .chain-row.header{display:none}
   .chain-drawer{padding-left:18px}
-  .chain-empty-toggle{margin-left:0;width:100%}
+  /* The header wraps at this width: chevron + title take line 1, and the count
+     and the filter share line 2. margin-left:auto still pushes the filter to
+     the right edge of whichever line it lands on. */
+  .chain-panel-head{gap:10px}
 }
 /* Loading shimmer while refreshAll() is fetching */
 .chain-table.loading .chain-row:not(.header){animation:bal-shimmer .9s ease-in-out infinite;pointer-events:none}
