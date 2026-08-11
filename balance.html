@@ -47,8 +47,10 @@ html{scroll-behavior:smooth}
 .eyebrow::before{content:'// ';color:var(--c-prefix)}
 
 /* TOTAL CARD */
-.balance-card{margin-top:18px;padding:32px;border-radius:20px;background:linear-gradient(135deg,rgba(244,200,154,0.10),rgba(77,214,219,0.06),rgba(74,123,236,0.08));border:1px solid var(--border);position:relative;overflow:hidden}
-.balance-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(244,200,154,0.10),transparent 50%);pointer-events:none}
+/* No overflow:hidden here - the ⋯ menu drops out past the bottom edge and was
+   getting clipped by it. The ::before glow rounds its own corners instead. */
+.balance-card{margin-top:18px;padding:32px;border-radius:20px;background:linear-gradient(135deg,rgba(244,200,154,0.10),rgba(77,214,219,0.06),rgba(74,123,236,0.08));border:1px solid var(--border);position:relative}
+.balance-card::before{content:'';position:absolute;inset:0;border-radius:20px;background:radial-gradient(circle at 80% 20%,rgba(244,200,154,0.10),transparent 50%);pointer-events:none}
 .balance-label{font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;position:relative}
 .balance-amount{font-family:var(--display);font-size:64px;font-weight:300;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;color:var(--text);position:relative}
 .balance-token{font-size:24px;font-weight:500;color:var(--muted);margin-left:8px;letter-spacing:-.02em}
@@ -60,16 +62,52 @@ html{scroll-behavior:smooth}
 .ub-refresh-icon:disabled .ub-refresh-glyph{display:none}
 .ub-refresh-icon .btn-spinner{margin:0}
 .balance-sub{font-size:13px;color:var(--muted);margin-top:8px;font-family:var(--mono);position:relative}
-.balance-actions{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;position:relative}
+/* align-items:stretch is deliberate - Spend sets the row height and everything
+   else matches it, so the hierarchy reads from the fill and the width, not from
+   buttons of three different heights sitting in a ragged line. */
+.balance-actions{display:flex;align-items:stretch;gap:10px;margin-top:24px;flex-wrap:wrap;position:relative}
 .act-btn{padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .2s;display:inline-flex;align-items:center;gap:8px}
 .act-btn:hover{background:rgba(var(--tint),0.12);border-color:rgba(var(--tint),0.3);transform:translateY(-1px)}
 .act-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .act-btn.primary{background:linear-gradient(135deg,var(--arc1),var(--arc2));border-color:transparent;color:var(--bg);font-weight:700}
 .act-btn.primary:hover{box-shadow:0 4px 20px rgba(77,214,219,0.3)}
+/* Spend is the one action this page exists for, so it carries the fill and a
+   slightly larger hit area; everything else stays outlined. Secondary buttons
+   step down a size so the row reads as "one main thing, then the rest". */
+.act-btn.primary{padding:13px 26px;font-size:15px}
+.act-btn.secondary{padding:10px 18px;font-size:13.5px}
+/* Consolidate and Withdraw move money around INSIDE your own balance rather
+   than out of it. Different kind of action, occasional use - so they live
+   behind a ⋯ instead of competing with Spend for the eye. */
+.act-more{position:relative;display:inline-flex}
+.act-more-btn{padding:10px 15px;font-size:16px;line-height:1}
+.act-more-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:236px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:6px;z-index:40;display:none;box-shadow:0 16px 44px rgba(5,12,24,.45)}
+.act-more.open .act-more-menu{display:block}
+.act-more-menu button{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:9px;border:none;background:none;color:var(--text);font-size:13.5px;font-weight:600;font-family:var(--font);cursor:pointer}
+.act-more-menu button:hover{background:rgba(var(--tint),0.1)}
+:root[data-theme="light"] .act-more-menu{background:#FFFFFF;box-shadow:0 16px 44px rgba(15,23,42,.16)}
+
+/* PER-CHAIN PANEL — collapsible, same interaction as the Dashboard cards so
+   the two pages behave identically. Collapsed state is remembered per browser. */
+.chain-panel{margin-top:32px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(var(--tint),0.02)}
+.chain-panel-head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;flex-wrap:wrap}
+.chain-chev{width:26px;height:26px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;transition:transform .2s,color .15s,border-color .15s;flex-shrink:0}
+.chain-panel-head:hover .chain-chev{color:var(--text);border-color:var(--border2)}
+.chain-panel.collapsed .chain-chev{transform:rotate(-90deg)}
+.chain-panel.collapsed .chain-panel-body{display:none}
+.chain-panel-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.chain-panel-title::before{content:'// ';color:var(--c-prefix);font-weight:400}
+.chain-count{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 10px;white-space:nowrap}
+.chain-empty-toggle{display:inline-flex;align-items:center;gap:7px;margin-left:auto;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
+.chain-empty-toggle:hover{color:var(--text)}
+.chain-empty-toggle input{accent-color:var(--arc1);width:14px;height:14px;cursor:pointer;margin:0}
+.chain-hidden-note{padding:11px 18px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.chain-hidden-note button{background:none;border:none;color:var(--arc1);font:inherit;font-weight:600;cursor:pointer;padding:0}
+.chain-hidden-note button:hover{text-decoration:underline}
 
 /* PER-CHAIN TABLE */
-.chain-table{margin-top:32px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(var(--tint),0.02)}
-.chain-row{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--border);transition:background .15s}
+.chain-table{border-top:1px solid var(--border)}
+.chain-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 26px;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid var(--border);transition:background .15s}
 .chain-row:first-child{border-top:none}
 .chain-row.header{background:rgba(var(--tint),0.04);font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:11px 18px}
 .chain-row:hover:not(.header){background:rgba(var(--tint),0.025)}
@@ -89,10 +127,19 @@ html{scroll-behavior:smooth}
 .chain-bal{font-family:var(--display);font-size:16px;font-weight:400;color:var(--text);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;letter-spacing:-.01em}
 .chain-bal small{color:var(--muted);margin-left:5px;font-weight:400;font-size:11px;letter-spacing:.02em}
 .chain-bal.zero{color:var(--muted-soft,#7E92AE);font-weight:400}
-.chain-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.chain-actions button{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;font-family:var(--font)}
-.chain-actions button:hover{color:var(--text);border-color:var(--border2);background:var(--surface2)}
-.chain-actions button:disabled{opacity:.4;cursor:not-allowed}
+/* Deposit / Withdraw used to sit on every row: 8 chains x 2 buttons = 16 ghost
+   buttons on screen at once, none of them the thing you came here to do. They
+   now live in a drawer that opens when you click the row. */
+.chain-row:not(.header){cursor:pointer}
+.chain-row.open{background:rgba(var(--tint),0.05)}
+.chain-caret{justify-self:end;color:var(--muted);font-size:11px;transition:transform .2s,color .15s}
+.chain-row:hover .chain-caret{color:var(--text)}
+.chain-row.open .chain-caret{transform:rotate(180deg)}
+.chain-drawer{border-top:1px solid var(--border);background:rgba(var(--tint),0.045);padding:13px 18px 14px 62px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chain-drawer button{padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;font-family:var(--font)}
+.chain-drawer button:hover:not(:disabled){color:var(--text);border-color:var(--border2);background:var(--surface2)}
+.chain-drawer button:disabled{opacity:.4;cursor:not-allowed}
+.chain-drawer-note{font-size:12px;color:var(--muted);margin-left:4px}
 
 /* PENDING WITHDRAWALS */
 .pending-section{margin-top:32px}
@@ -227,9 +274,10 @@ html{scroll-behavior:smooth}
 
 @media(max-width:768px){
   .balance-amount{font-size:48px}
-  .chain-row{grid-template-columns:1fr 1fr;row-gap:8px}
+  .chain-row{grid-template-columns:1fr 1fr 20px;row-gap:8px}
   .chain-row.header{display:none}
-  .chain-actions{grid-column:1/-1;justify-content:flex-start}
+  .chain-drawer{padding-left:18px}
+  .chain-empty-toggle{margin-left:0;width:100%}
 }
 /* Loading shimmer while refreshAll() is fetching */
 .chain-table.loading .chain-row:not(.header){animation:bal-shimmer .9s ease-in-out infinite;pointer-events:none}
@@ -302,22 +350,42 @@ html{scroll-behavior:smooth}
     </div>
     <div class="balance-sub" id="ub-sub">Connect wallet to view your balance across all Gateway chains.</div>
     <div class="balance-actions">
-      <button class="act-btn" id="ub-spend-top" type="button">↗ Spend</button>
-      <button class="act-btn" id="ub-batchpay-top" type="button">⇉ Batch Pay</button>
-      <button class="act-btn" id="ub-consolidate-top" type="button">⤵ Consolidate</button>
+      <button class="act-btn primary" id="ub-spend-top" type="button">↗ Spend</button>
+      <button class="act-btn secondary" id="ub-batchpay-top" type="button">⇉ Batch Pay</button>
+      <button class="act-btn secondary" id="ub-deposit-top" type="button">+ Add funds</button>
+      <div class="act-more" id="ub-more">
+        <button class="act-btn secondary act-more-btn" id="ub-more-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More actions">⋯</button>
+        <div class="act-more-menu" role="menu">
+          <button type="button" role="menuitem" id="ub-consolidate-top">⤵ Consolidate to one chain</button>
+          <button type="button" role="menuitem" id="ub-withdraw-top">↙ Withdraw to wallet</button>
+        </div>
+      </div>
     </div>
     <div class="sync-line" id="sync-line"><span class="sync-dot"></span><span id="sync-line-txt">Not synced</span></div>
   </div>
 
-  <div class="section-title">Per-chain breakdown</div>
-  <div class="chain-table" id="chain-table">
-    <div class="chain-row header">
-      <div>Chain</div>
-      <div>Available · Pending</div>
-      <div>Wallet (USDC)</div>
-      <div style="text-align:right">Actions</div>
+  <div class="chain-panel" id="chain-panel">
+    <div class="chain-panel-head" id="chain-panel-head">
+      <span class="chain-chev">▾</span>
+      <span class="chain-panel-title">Per-chain breakdown</span>
+      <span class="chain-count" id="chain-count">-</span>
+      <label class="chain-empty-toggle">
+        <input type="checkbox" id="chain-hide-empty" checked/>
+        <span>Hide empty chains</span>
+      </label>
     </div>
-    <!-- rows injected by JS -->
+    <div class="chain-panel-body" id="chain-panel-body">
+      <div class="chain-table" id="chain-table">
+        <div class="chain-row header">
+          <div>Chain</div>
+          <div>Available · Pending</div>
+          <div>Wallet (USDC)</div>
+          <div></div>
+        </div>
+        <!-- rows injected by JS -->
+      </div>
+      <div class="chain-hidden-note" id="chain-hidden-note" style="display:none"></div>
+    </div>
   </div>
 
   <div id="pending-wrap" style="display:none">
@@ -705,6 +773,18 @@ html{scroll-behavior:smooth}
 
   const chainKeys = ARC.gateway.gatewayChains();
 
+  // ───── Per-chain panel: collapse + empty-chain filter ─────
+  // Both preferences are per-browser, like the Dashboard accordion. They only
+  // affect what is drawn, never what the page can do. Declared up here because
+  // renderTable() reads them and can fire from the wallet listener below.
+  const PANEL_COLLAPSE_KEY = 'arcswap:balance:chainsCollapsed';
+  const HIDE_EMPTY_KEY = 'arcswap:balance:hideEmptyChains';
+  const hideEmptyChains = () => { try { return localStorage.getItem(HIDE_EMPTY_KEY) !== 'false'; } catch { return true; } };
+  const setHideEmptyChains = (v) => { try { localStorage.setItem(HIDE_EMPTY_KEY, v ? 'true' : 'false'); } catch {} };
+  // Which row has its Deposit/Withdraw drawer open, so a background refresh
+  // that repaints the table doesn't slam it shut under the user.
+  let openChainRow = null;
+
   // ───── Wallet ─────
   // Connect/disconnect lives in the sidebar foot (rendered by ArcUI.bootApp).
   // We just need to react to state changes here so the page refreshes when
@@ -837,6 +917,16 @@ html{scroll-behavior:smooth}
   function chainName(k) { return ARC.CHAINS[k]?.name || k; }
   function chainColor(k) { return ARC.CHAINS[k]?.iconGrad || 'linear-gradient(135deg,#4DD6DB,#4A7BEC)'; }
 
+  // A chain is "empty" only when there is nothing to see AND nothing to do on
+  // it: no unified balance, nothing pending, and no USDC sitting in the wallet
+  // to deposit. A chain you could still fund stays visible.
+  function chainIsEmpty(k) {
+    const bal = state.balances.find(b => b.chainKey === k);
+    if (bal && (bal.canonical !== 0n || bal.pending > 0n)) return false;
+    const wal = state.walletBals[k];
+    return !wal || wal === 0n;
+  }
+
   function renderTable() {
     const table = document.getElementById('chain-table');
     // Keep header
@@ -844,7 +934,17 @@ html{scroll-behavior:smooth}
     table.innerHTML = '';
     table.appendChild(header);
     const connected = !!state.addr;
-    chainKeys.forEach(k => {
+    // Hiding is a display convenience, never a dead end: skip it while
+    // disconnected (every row looks empty then) and skip it if it would leave
+    // the table with nothing in it at all.
+    let hidden = [];
+    let visibleKeys = chainKeys;
+    if (connected && hideEmptyChains()) {
+      const kept = chainKeys.filter(k => !chainIsEmpty(k));
+      if (kept.length) { visibleKeys = kept; hidden = chainKeys.filter(k => chainIsEmpty(k)); }
+    }
+    renderChainCount(visibleKeys.length, hidden.length, connected);
+    visibleKeys.forEach(k => {
       const tok = ARC.TOKENS[k]?.USDC;
       const row = document.createElement('div');
       row.className = 'chain-row';
@@ -875,6 +975,10 @@ html{scroll-behavior:smooth}
       const dotHtml = iconUrl
         ? `<div class="chain-dot"><img src="${iconUrl}" alt="${chainShort(k)}" onerror="this.parentElement.classList.add('fallback');this.parentElement.textContent='${shortLabel}'"/></div>`
         : `<div class="chain-dot fallback" style="background:${chainColor(k)}">${shortLabel}</div>`;
+      row.dataset.chain = k;
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('aria-expanded', 'false');
       row.innerHTML = `
         <div class="chain-info">
           ${dotHtml}
@@ -882,21 +986,108 @@ html{scroll-behavior:smooth}
         </div>
         ${balCell}
         <div class="chain-bal ${(!wal||wal===0n)?'zero':''}">${walDisp}<small>USDC</small></div>
-        <div class="chain-actions">
-          <button data-act="deposit" data-chain="${k}" ${(connected && !depositOff)?'':'disabled'} title="${depositTitle}">Deposit</button>
-          <button data-act="withdraw" data-chain="${k}" ${(connected && !isZero)?'':'disabled'}>Withdraw</button>
-        </div>`;
+        <div class="chain-caret">▾</div>`;
       table.appendChild(row);
+
+      // Drawer: rendered up front but hidden, so opening a row costs no work.
+      // Arc's "you can't deposit here" explanation used to be a title tooltip
+      // nobody hovers; it reads as a plain sentence here instead.
+      const drawer = document.createElement('div');
+      drawer.className = 'chain-drawer';
+      drawer.dataset.for = k;
+      drawer.hidden = true;
+      const note = depositOff
+        ? depositTitle
+        : `Deposits credit in ${SYNC_LABEL[k] || 'a few minutes'}.`;
+      drawer.innerHTML = `
+        <button data-act="deposit" data-chain="${k}" ${(connected && !depositOff)?'':'disabled'}>Deposit</button>
+        <button data-act="withdraw" data-chain="${k}" ${(connected && !isZero)?'':'disabled'}>Withdraw</button>
+        <span class="chain-drawer-note">${note}</span>`;
+      table.appendChild(drawer);
     });
+    // Accordion: one drawer at a time, otherwise the table grows taller than
+    // the wall of buttons it replaced.
+    const setOpen = (k, open) => {
+      table.querySelectorAll('.chain-row[data-chain]').forEach(r => {
+        const on = open && r.dataset.chain === k;
+        r.classList.toggle('open', on);
+        r.setAttribute('aria-expanded', on ? 'true' : 'false');
+      });
+      table.querySelectorAll('.chain-drawer').forEach(d => {
+        d.hidden = !(open && d.dataset.for === k);
+      });
+      openChainRow = open ? k : null;
+    };
+    table.querySelectorAll('.chain-row[data-chain]').forEach(row => {
+      const k = row.dataset.chain;
+      const toggle = () => setOpen(k, openChainRow !== k);
+      row.addEventListener('click', toggle);
+      row.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+    // Re-open whatever the user had open before the refresh repainted the table.
+    if (openChainRow && visibleKeys.includes(openChainRow)) setOpen(openChainRow, true);
+    else openChainRow = null;
+
     table.querySelectorAll('button[data-act]').forEach(btn => {
-      btn.onclick = () => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
         const k = btn.dataset.chain;
         if (btn.dataset.act === 'deposit') openDepositModal(k);
         else if (btn.dataset.act === 'withdraw') openWithdrawModal(k);
       };
     });
+    renderHiddenNote(hidden);
     table.classList.remove('loading');
   }
+
+  function renderChainCount(shown, hiddenCount, connected) {
+    const el = document.getElementById('chain-count');
+    if (!el) return;
+    el.textContent = !connected ? `${chainKeys.length} chains`
+      : hiddenCount ? `${shown} active` : `${shown} chains`;
+  }
+
+  function renderHiddenNote(hidden) {
+    const el = document.getElementById('chain-hidden-note');
+    if (!el) return;
+    if (!hidden.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = '';
+    el.innerHTML = `${hidden.length} empty ${hidden.length === 1 ? 'chain' : 'chains'} hidden · <button type="button" id="chain-show-all">Show all</button>`;
+    document.getElementById('chain-show-all').onclick = () => {
+      document.getElementById('chain-hide-empty').checked = false;
+      setHideEmptyChains(false);
+      renderTable();
+    };
+  }
+
+  (function setupChainPanel() {
+    const panel = document.getElementById('chain-panel');
+    const head = document.getElementById('chain-panel-head');
+    const cb = document.getElementById('chain-hide-empty');
+    try { if (localStorage.getItem(PANEL_COLLAPSE_KEY) === 'true') panel.classList.add('collapsed'); } catch {}
+    cb.checked = hideEmptyChains();
+    head.setAttribute('role', 'button');
+    head.setAttribute('tabindex', '0');
+    head.setAttribute('aria-controls', 'chain-panel-body');
+    const toggle = () => {
+      const now = panel.classList.toggle('collapsed');
+      head.setAttribute('aria-expanded', now ? 'false' : 'true');
+      try { localStorage.setItem(PANEL_COLLAPSE_KEY, now ? 'true' : 'false'); } catch {}
+    };
+    head.setAttribute('aria-expanded', panel.classList.contains('collapsed') ? 'false' : 'true');
+    head.addEventListener('click', e => {
+      // The filter checkbox lives in the header; let it handle its own clicks.
+      if (e.target.closest('label, input, button')) return;
+      toggle();
+    });
+    head.addEventListener('keydown', e => {
+      if (e.target !== head) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+    cb.addEventListener('change', () => { setHideEmptyChains(cb.checked); renderTable(); });
+  })();
 
   function refreshTotal() {
     const totalCanonical = state.balances.reduce((acc, b) => acc + b.canonical, 0n);
@@ -1100,6 +1291,52 @@ html{scroll-behavior:smooth}
       return;
     }
     openSpendModal();
+  };
+
+  // ───── Top-bar Add funds ─────
+  // Deposit used to be reachable only from a per-chain row. Now the rows can be
+  // collapsed, so funding needs a door that is always open - otherwise a new
+  // user lands on a balance of 0 with no way to top it up. The modal already
+  // has its own chain picker, so no chain is passed here.
+  document.getElementById('ub-deposit-top').onclick = async () => {
+    if (!state.addr) {
+      try { await ARC.wallet.connect(); }
+      catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError(e)); return; }
+      state.addr = ARC.wallet.address;
+      refreshAll();
+      return;
+    }
+    openDepositModal(null);
+  };
+
+  // ───── Overflow menu (⋯) ─────
+  (function setupMoreMenu() {
+    const wrap = document.getElementById('ub-more');
+    const btn = document.getElementById('ub-more-btn');
+    const close = () => { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !wrap.classList.contains('open');
+      wrap.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    wrap.querySelectorAll('[role="menuitem"]').forEach(item => item.addEventListener('click', close));
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  })();
+
+  // Withdraw from the menu has no row to take a chain from, so default to
+  // wherever the money actually is.
+  document.getElementById('ub-withdraw-top').onclick = async () => {
+    if (!state.addr) {
+      try { await ARC.wallet.connect(); }
+      catch (e) { ArcUI.toast('error', 'Connect failed', ARC.explainError(e)); return; }
+      state.addr = ARC.wallet.address;
+      refreshAll();
+      return;
+    }
+    const richest = [...state.balances].sort((a, b) => (b.canonical > a.canonical ? 1 : b.canonical < a.canonical ? -1 : 0))[0];
+    openWithdrawModal(richest && richest.canonical > 0n ? richest.chainKey : null);
   };
 
   /* ───── Consolidate (sweep unified balance to one chain) ─────
