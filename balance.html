@@ -865,7 +865,20 @@ html{scroll-behavior:smooth}
       e.stopPropagation();
       const wasOpen = host.classList.contains('open');
       closeAllChainSelects();
-      if (!wasOpen) host.classList.add('open');
+      if (!wasOpen) {
+        host.classList.add('open');
+        // The modal is an overflow:auto scroll box, so it clips anything that
+        // drops past its bottom edge - in the short Deposit modal that ate the
+        // last chain in the list. Cap the menu to the room actually left and
+        // let it scroll inside itself instead.
+        const menu = host.querySelector('.cs-menu');
+        const box = host.closest('.gw-modal');
+        menu.style.maxHeight = '';
+        if (box) {
+          const room = box.getBoundingClientRect().bottom - host.getBoundingClientRect().bottom - 18;
+          if (room > 120) menu.style.maxHeight = Math.min(280, Math.round(room)) + 'px';
+        }
+      }
     });
     host.querySelectorAll('.cs-row').forEach(r => {
       r.addEventListener('click', (e) => {
