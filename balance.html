@@ -606,13 +606,13 @@ html{scroll-behavior:smooth}
       <button id="bp-paste-toggle" type="button" style="flex:1 1 160px;padding:9px;border:1px dashed var(--border2);background:transparent;color:var(--muted);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font)">⇤ Paste a list</button>
     </div>
 
-    <!-- Bulk paste. One recipient per line; the chain column is optional. -->
+    <!-- Bulk paste. One recipient per line; only the address is required. -->
     <div id="bp-paste-wrap" style="display:none;margin-top:10px">
-      <textarea id="bp-paste" spellcheck="false" rows="5" placeholder="0xAbc…1234, 25.00, base&#10;0xDef…5678, 10, arc&#10;0x9876…4321, 5.5"
+      <textarea id="bp-paste" spellcheck="false" rows="5" placeholder="0xAbc…1234, 25.00, base&#10;0xDef…5678, 10&#10;0x9876…4321"
         style="width:100%;padding:11px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.7;outline:none;resize:vertical"></textarea>
       <div style="display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap">
         <button id="bp-paste-apply" type="button" style="padding:8px 14px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:var(--font)">Load rows</button>
-        <span style="font-size:11px;color:var(--muted);line-height:1.5">One per line: <code style="font-family:var(--mono)">address, amount, chain</code>. Chain is optional and defaults to Arc. Commas, semicolons or tabs all work.</span>
+        <span style="font-size:11px;color:var(--muted);line-height:1.5">One per line: <code style="font-family:var(--mono)">address, amount, chain</code>. Only the address is required, so a plain list of wallets loads too and you fill the amount and chain in after. Chain defaults to Arc. Commas, semicolons or tabs all work.</span>
       </div>
       <div id="bp-paste-err" style="display:none;margin-top:7px;color:var(--danger);font-size:11.5px;line-height:1.6"></div>
     </div>
@@ -1766,9 +1766,9 @@ html{scroll-behavior:smooth}
   }
 
   /* ───── Bulk paste ─────
-     `address, amount, chain` per line. The chain column is matched loosely
-     against the key, the short name and the full name so "base", "Base
-     Sepolia" and "baseSepolia" all resolve. */
+     `address, amount, chain` per line, where only the address is required. The
+     chain column is matched loosely against the key, the short name and the
+     full name so "base", "Base Sepolia" and "baseSepolia" all resolve. */
   function bpChainFromText(txt) {
     const want = String(txt || '').toLowerCase().replace(/[\s_-]/g, '');
     if (!want) return null;
@@ -1790,18 +1790,28 @@ html{scroll-behavior:smooth}
     const errors = [];
     const parsed = [];
     lines.forEach((line, i) => {
-      // Skip a header row like "address,amount,chain".
-      if (i === 0 && /address/i.test(line) && /amount/i.test(line)) return;
       const cols = line.split(/[,;\t]/).map(c => c.trim()).filter(c => c !== '');
       if (!cols.length) return;
+      // Skip a header row, whether it is "address,amount,chain" or a bare
+      // "Address" above a plain list of wallets.
+      if (i === 0 && !ethers.isAddress(cols[0]) && /address|wallet|recipient/i.test(line)) return;
       const addr = cols[0];
       if (!ethers.isAddress(addr)) { errors.push(`Line ${i + 1}: "${addr.slice(0, 24)}" is not an address`); return; }
-      const amt = (cols[1] || '').replace(/[$,\s]/g, '').replace(/usdc$/i, '');
-      if (!amt || !(parseFloat(amt) > 0)) { errors.push(`Line ${i + 1}: missing or zero amount`); return; }
+      // Amount and chain are both optional, so a bare list of addresses loads
+      // and the user fills the rest in on the rows. Whatever follows the
+      // address is read by shape rather than by position: a number is the
+      // amount, anything else is the chain.
+      let amt = '', chainTxt = '';
+      for (const col of cols.slice(1)) {
+        const num = col.replace(/[$,\s]/g, '').replace(/usdc$/i, '');
+        if (/^\d*\.?\d+$/.test(num)) { if (!amt) amt = num; }
+        else if (!chainTxt) chainTxt = col;
+      }
+      if (amt && !(parseFloat(amt) > 0)) { errors.push(`Line ${i + 1}: amount must be greater than zero`); return; }
       let chain = 'arc';
-      if (cols[2]) {
-        const k = bpChainFromText(cols[2]);
-        if (!k) { errors.push(`Line ${i + 1}: unknown chain "${cols[2]}"`); return; }
+      if (chainTxt) {
+        const k = bpChainFromText(chainTxt);
+        if (!k) { errors.push(`Line ${i + 1}: unknown chain "${chainTxt}"`); return; }
         chain = k;
       }
       if (!ARC.CHAINS[chain]?.contracts?.gatewayMinter) {
