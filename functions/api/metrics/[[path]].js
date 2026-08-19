@@ -53,7 +53,45 @@
  * contended) fixes any drift within 24h.
  */
 
-import { underRateLimit } from '../../_session.js';
+import { underRateLimit, sessionAddress } from '../../_session.js';
+import { getRpcUrl } from '../agent/_balance.js';
+
+/**
+ * Decide whether a tracked event may be attributed to a wallet.
+ *
+ * /track has to stay unauthenticated — it fires right after an action and a
+ * wallet prompt per event would be absurd — so the address in the body used to
+ * be taken on faith. That made the published "Total Users" number something
+ * anyone could move with a loop over random addresses.
+ *
+ * The events that matter all carry a transaction hash and are only reported
+ * after `tx.wait()`, so the chain itself can settle it:
+ *
+ *   'verified' — the transaction exists and was sent by the claimed address
+ *   'mismatch' — the transaction exists and was sent by someone else (forgery)
+ *   'unknown'  — not visible yet, or the RPC did not answer
+ *
+ * A single attempt with a short timeout: this runs on a fire-and-forget path,
+ * and 'unknown' costs the caller nothing but wallet attribution.
+ */
+async function verifyTxSender(env, chainKey, txHash, address) {
+  const rpcUrl = getRpcUrl(env, chainKey);
+  if (!rpcUrl) return 'unknown';
+  try {
+    const res = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getTransactionByHash', params: [txHash] }),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return 'unknown';
+    const tx = (await res.json())?.result;
+    if (!tx || !tx.from) return 'unknown';
+    return tx.from.toLowerCase() === address.toLowerCase() ? 'verified' : 'mismatch';
+  } catch {
+    return 'unknown';
+  }
+}
 
 const ALLOWED_ORIGINS = [
   'https://oneliq.xyz',
@@ -519,10 +557,29 @@ export async function onRequest(context) {
     // Validate and normalise wallet address when provided. Stored in the event
     // and in a dedicated per-wallet KV key so /summary can count distinct
     // active wallets via kv.list — fully race-free unlike the fpToday JSON blob.
-    const walletAddr = typeof body.address === 'string' && /^0x[0-9a-f]{40}$/i.test(body.address)
+    const claimedAddr = typeof body.address === 'string' && /^0x[0-9a-f]{40}$/i.test(body.address)
       ? body.address.toLowerCase() : null;
+
+    // A wallet only counts toward the published totals once we can show it is
+    // real: either the chain confirms it sent the transaction, or it signed in
+    // (/api/session) so the address is backed by a signature rather than a
+    // string in a POST body. Anything else still records the event — the
+    // counters stay useful — but never touches the distinct-wallet registry.
+    let attribution = 'none';
+    if (claimedAddr && txHash) {
+      const verdict = await verifyTxSender(env, chain, txHash, claimedAddr);
+      if (verdict === 'mismatch') return bad('tx_sender_mismatch', origin, 400);
+      attribution = verdict === 'verified' ? 'onchain' : 'none';
+    } else if (claimedAddr) {
+      // Events with no transaction of their own (agent-create, agent-exec,
+      // failure). Fall back to the session token so they are not lost.
+      const signedIn = await sessionAddress(kv, request);
+      if (signedIn && signedIn === claimedAddr) attribution = 'session';
+    }
+    const walletAddr = attribution === 'none' ? null : claimedAddr;
+
     const clientVer = typeof body._cv === 'string' ? body._cv.slice(0, 16) : null;
-    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}), ...(walletAddr ? { address: walletAddr } : {}), ...(clientVer ? { _cv: clientVer } : {}) };
+    const eventData = { event, chain, amount, txHash, surface, ts, ...(sources ? { sources } : {}), ...(walletAddr ? { address: walletAddr } : {}), attribution, ...(clientVer ? { _cv: clientVer } : {}) };
     const fp = await fingerprint(request, walletAddr);
 
     // Check if this is the first time we've seen this wallet (for totalUsers lifetime count).

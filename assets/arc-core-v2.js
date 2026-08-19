@@ -1013,9 +1013,14 @@
       const payload = { event, chain, amount, txHash, surface, _cv: '9.9.3', ...(walletAddr ? { address: walletAddr } : {}) };
       if (extra && typeof extra === 'object') Object.assign(payload, extra);
       if (typeof console !== 'undefined') console.log('[arc-core v9.9.3] track', event, 'addr:', walletAddr ? walletAddr.slice(0, 8) : 'MISSING - CHECK CONSOLE');
+      // Events that carry a txHash are attributed by the chain server-side.
+      // The ones that don't (agent-create, agent-exec, failure) fall back to
+      // the session token, so pass it when we already have one. Never
+      // interactive — analytics must not raise a wallet prompt.
+      const auth = await sessionHeaders({ interactive: false, address: walletAddr });
       const res = await fetch('/api/metrics/track', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...auth },
         keepalive: true,
         body: JSON.stringify(payload),
       });

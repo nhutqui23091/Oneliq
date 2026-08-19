@@ -56,7 +56,7 @@ const ENV_KEY = {
  * Resolve the RPC URL for a chain. Prefers env override; falls back to
  * the public default. Returns null if the chain is unknown.
  */
-function getRpcUrl(env, arcChainKey) {
+export function getRpcUrl(env, arcChainKey) {
   const envKey = ENV_KEY[arcChainKey];
   if (envKey && env[envKey]) return env[envKey];
   return PUBLIC_RPC[arcChainKey] || null;

@@ -557,6 +557,20 @@
   const FILL_MS = 1200;
 
   function addr()    { return ARC.wallet.address?.toLowerCase(); }
+
+  // Claiming a task writes to this wallet's record, and X gives us no way to
+  // check the claim, so the server asks the wallet to prove it is ours instead.
+  // One signature covers a whole day.
+  //
+  //   gmAuth(true)   the user just clicked something — prompting is fair
+  //   gmAuth(false)  background sync (referral binding, handle push). Returns
+  //                  {} when no session exists yet; both callers already retry
+  //                  on every load, so they land once a task has been claimed.
+  async function gmAuth(interactive) {
+    const a = addr(); if (!a) return {};
+    try { return await ARC.session.headers({ interactive, address: a }); }
+    catch { return {}; }
+  }
   function utcDay()  { return new Date().toISOString().slice(0, 10); }
 
   // -- Star Points (mirror of functions/auth/_stars.js — keep in sync) --
@@ -1005,7 +1019,7 @@
           try {
             const r = await fetch('/auth/gm', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...(await gmAuth(true)) },
               body: JSON.stringify({ action: t.key, address: a }),
             });
             if (r.ok) {
@@ -1097,9 +1111,13 @@
       return;
     }
     try {
+      const auth = await gmAuth(false);
+      // No session yet: keep the pending ref in storage and bind on a later
+      // load, rather than raising a wallet prompt the user did not ask for.
+      if (!auth.Authorization) return;
       const r = await fetch('/auth/gm', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body:    JSON.stringify({ action: 'referral', address: a, ref }),
       });
       if (r.ok) {
@@ -1115,7 +1133,7 @@
   async function markXDone() {
     const a = addr(); if (!a) return;
     try {
-      const r = await fetch('/auth/gm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'x_follow', address: a }) });
+      const r = await fetch('/auth/gm', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await gmAuth(true)) }, body: JSON.stringify({ action: 'x_follow', address: a }) });
       if (r.ok) {
         gmState = await r.json();
         renderTasks();
@@ -1266,7 +1284,7 @@
         setEnergy(0.85);
         res = await fetch('/auth/gm', {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await gmAuth(true)) },
           body:    JSON.stringify({ address: a, date: today, reconcile: true }),
         });
       } else {
@@ -1358,11 +1376,14 @@
     try {
       const xh = (localStorage.getItem('oneliq_profile_x_' + a) || '').replace(/^@/, '');
       if (xh && xh !== (gmState?.x_handle || '')) {
-        fetch('/auth/gm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'set_x', address: a, handle: xh }),
-        }).then(() => { if (gmState) gmState.x_handle = xh; }).catch(() => {});
+        gmAuth(false).then(auth => {
+          if (!auth.Authorization) return;   // retried on the next load
+          return fetch('/auth/gm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...auth },
+            body: JSON.stringify({ action: 'set_x', address: a, handle: xh }),
+          }).then(() => { if (gmState) gmState.x_handle = xh; });
+        }).catch(() => {});
       }
     } catch {}
 

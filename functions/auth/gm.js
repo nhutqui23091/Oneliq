@@ -14,6 +14,7 @@ import { maybeAwardWelcome, reconcileLegacyWelcome } from './_welcome.js';
 import { recordReferral } from './_referral.js';
 import { computeStars } from './_stars.js';
 import { computeStreak } from './_streak.js';
+import { authorizedFor } from '../_session.js';
 
 const ARC_RPC = 'https://rpc.testnet.arc.network';
 // OneliqCheckIn contract — a valid check-in is a successful call to it
@@ -113,6 +114,28 @@ async function handlePost(request, env, context) {
 
   const addr = ((body.address || '')).toLowerCase();
   if (!isAddr(addr)) return jsonRes({ error: 'Invalid address' }, 400);
+
+  // Actions below that cannot be proved on-chain need the caller to show they
+  // control the wallet. The daily check-in is exempt: it is already settled by
+  // matching the transaction's sender, which is stronger than a session token
+  // and costs the user no extra prompt.
+  //
+  // Without this, the address in the body was the whole credential — anyone
+  // could mark any wallet as having followed on X, claim its social tasks, set
+  // the handle shown next to it on the leaderboard, or bind it to a referrer.
+  const SELF_SERVE = new Set([
+    'set_x', 'referral', 'reconcile_checkin',
+    'x_follow',
+    'like',  'retweet',  'reply',
+    'like2', 'retweet2', 'reply2',
+    'like3', 'retweet3', 'reply3',
+    'like4', 'retweet4', 'reply4',
+  ]);
+  if (SELF_SERVE.has(body.action) || body.reconcile === true) {
+    if (!(await authorizedFor(env.AGENT_KV, request, addr))) {
+      return jsonRes({ error: 'Sign in with this wallet to claim tasks.' }, 401);
+    }
+  }
 
   const today = utcToday();
   const state = await getState(kv, addr);
