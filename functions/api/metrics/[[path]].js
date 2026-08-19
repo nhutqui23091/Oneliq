@@ -74,6 +74,43 @@ import { getRpcUrl } from '../agent/_balance.js';
  * A single attempt with a short timeout: this runs on a fire-and-forget path,
  * and 'unknown' costs the caller nothing but wallet attribution.
  */
+// Contracts a Oneliq action actually touches. Checking the sender alone is not
+// enough: it proves the transaction is real, not that it has anything to do
+// with us, so anyone could scrape hashes off the explorer and register every
+// wallet that ever used the chain. The recipient has to be one of ours.
+//
+// USDC itself is here because a plain transfer is how Trade moves funds, which
+// does mean any USDC transfer on a supported chain would pass. That is a much
+// smaller opening than "any transaction", but it is why the authoritative user
+// count is the one rebuilt from router events by /api/metrics/reconcile-users,
+// not this endpoint.
+const USDC_BY_CHAIN = {
+  sepolia:         '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
+  baseSepolia:     '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
+  arbitrumSepolia: '0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d',
+  optimismSepolia: '0x5fd84259d66cd46123540766be93dfe6d43130d7',
+  polygonAmoy:     '0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582',
+  avalancheFuji:   '0x5425890298aed601595a70ab815c96711a31bc65',
+  unichainSepolia: '0x31d0220469e10c4e71834a79b1f276d740d3768f',
+  arc:             '0x3600000000000000000000000000000000000000',
+};
+
+const ONELIQ_CONTRACTS = new Set([
+  '0x48a9bd1644ac67fbef4183261c466bea3eb333fc', // OneliqRouter (Arc swaps)
+  '0xb508cc1e3a7f3ad1f8b1e0cba1e0b1e0cba1e1f7', // OneliqRouter (fee-taking, 0.3%)
+  '0x368a0e854ec69ec10b50d20fcafc1baf8b7eff10', // OneliqCheckIn (portal)
+  '0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa', // CCTP TokenMessengerV2
+  '0xe737e5cebeeba77efe34d4aa090756590b1ce275', // CCTP MessageTransmitterV2
+  '0x0077777d7eba4688bdef3e311b846f25870a19b9', // Circle Gateway wallet
+  '0x0022222abe238cc2c7bb1f21003f0a260052475b', // Circle Gateway minter
+]);
+
+function touchesOneliq(chainKey, to) {
+  if (!to) return false;                       // contract creation
+  const t = to.toLowerCase();
+  return ONELIQ_CONTRACTS.has(t) || USDC_BY_CHAIN[chainKey] === t;
+}
+
 async function verifyTxSender(env, chainKey, txHash, address) {
   const rpcUrl = getRpcUrl(env, chainKey);
   if (!rpcUrl) return 'unknown';
@@ -87,7 +124,8 @@ async function verifyTxSender(env, chainKey, txHash, address) {
     if (!res.ok) return 'unknown';
     const tx = (await res.json())?.result;
     if (!tx || !tx.from) return 'unknown';
-    return tx.from.toLowerCase() === address.toLowerCase() ? 'verified' : 'mismatch';
+    if (tx.from.toLowerCase() !== address.toLowerCase()) return 'mismatch';
+    return touchesOneliq(chainKey, tx.to) ? 'verified' : 'unrelated';
   } catch {
     return 'unknown';
   }
@@ -568,7 +606,8 @@ export async function onRequest(context) {
     let attribution = 'none';
     if (claimedAddr && txHash) {
       const verdict = await verifyTxSender(env, chain, txHash, claimedAddr);
-      if (verdict === 'mismatch') return bad('tx_sender_mismatch', origin, 400);
+      if (verdict === 'mismatch')  return bad('tx_sender_mismatch', origin, 400);
+      if (verdict === 'unrelated') return bad('tx_not_a_oneliq_action', origin, 400);
       attribution = verdict === 'verified' ? 'onchain' : 'none';
     } else if (claimedAddr) {
       // Events with no transaction of their own (agent-create, agent-exec,
