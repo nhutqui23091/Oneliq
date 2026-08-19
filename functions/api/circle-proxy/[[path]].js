@@ -16,7 +16,21 @@
  *      variables → encrypted Secret).
  *   2. Browser code routes via /api/circle-proxy/* instead of api.circle.com
  *      (handled in arc-appkit.js fetch monkey-patch).
+ *
+ * The origin check below only constrains browsers: a request that sends no
+ * Origin header at all (curl, any server) passes it, which made this an open
+ * relay to Circle carrying our key. It cannot be fixed by demanding an Origin,
+ * because browsers omit that header on same-origin GETs. So the real limits
+ * are the path allowlist and the per-IP rate limit.
  */
+
+import { underRateLimit } from '../../_session.js';
+
+// Exactly what @circle-fin/app-kit calls on api.circle.com — verified against
+// the published bundle. Everything else on Circle's API is off limits, so a
+// leaked path cannot be turned into access to the wider account.
+const ALLOWED_PATH = /^v1\/stablecoinKits(\/|$)/;
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -76,6 +90,22 @@ export async function onRequest(context) {
         'Access-Control-Allow-Origin': origin || '*',
         'Cache-Control': 'no-store',
       },
+    });
+  }
+
+  if (!ALLOWED_PATH.test(circlePath)) {
+    return new Response('Forbidden: path not allowed', {
+      status: 403,
+      headers: { 'Access-Control-Allow-Origin': origin || '*' },
+    });
+  }
+
+  // Swap quoting is chatty, so this is set well above what the UI produces
+  // while still capping anyone pointing a script at our key.
+  if (!(await underRateLimit(env.AGENT_KV, request, 'circle-proxy', 120, 60))) {
+    return new Response(JSON.stringify({ error: 'rate_limited' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin || '*' },
     });
   }
 

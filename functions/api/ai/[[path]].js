@@ -1,3 +1,5 @@
+import { underRateLimit } from '../../_session.js';
+
 // Oneliq AI — chat assistant backed by Cloudflare Workers AI.
 //
 // POST /api/ai/chat
@@ -109,6 +111,22 @@ const stripAction = (text) => String(text || '')
   .replace(new RegExp(ACTION_RE, 'g'), '')
   .trim();
 
+// Origins whose browsers may call this. A request with no Origin header is
+// still allowed, because browsers omit it on same-origin navigations — the
+// per-IP budget below is what actually bounds abuse of the model.
+const ALLOWED_ORIGINS = [
+  'https://oneliq.xyz',
+  'https://www.oneliq.xyz',
+  'https://arcswap.pages.dev',
+];
+
+function originAllowed(origin) {
+  return !origin
+    || ALLOWED_ORIGINS.includes(origin)
+    || origin.endsWith('.arcswap.pages.dev')
+    || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
+
 export async function onRequestPost({ request, env }) {
   // One outer try so ANY unexpected failure returns a parseable JSON error
   // (a raw throw would surface as Cloudflare's HTML 500 page, which the client
@@ -116,6 +134,16 @@ export async function onRequestPost({ request, env }) {
   try {
     if (!env.AI) {
       return json({ error: 'unconfigured', message: "Oneliq AI isn't configured yet (Workers AI binding \"AI\" is missing on this project)." }, 503);
+    }
+
+    // Inference is metered and billed to us, and this endpoint took anyone's
+    // prompt with no auth at all. Cap it per IP: a real conversation is a
+    // handful of turns a minute, a scraper is not.
+    if (!originAllowed(request.headers.get('Origin') || '')) {
+      return json({ error: 'forbidden', message: 'Origin not allowed.' }, 403);
+    }
+    if (!(await underRateLimit(env.AGENT_KV, request, 'ai', 12, 60))) {
+      return json({ error: 'rate_limited', message: 'Too many messages just now — give it a moment.' }, 429);
     }
 
     let body;

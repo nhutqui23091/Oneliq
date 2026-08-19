@@ -1707,7 +1707,11 @@ html{scroll-behavior:smooth}
   async function bookLoad() {
     if (!state.addr) { bpBook = []; bookRender(); return; }
     try {
-      const r = await fetch(`/api/recipients/list?address=${state.addr}`);
+      // Non-interactive: opening Batch Pay must not pop a signature request.
+      // Without a session the chips just stay hidden until the first save.
+      const auth = await ARC.session.headers({ interactive: false, address: state.addr });
+      if (!auth.Authorization) { bpBook = []; bookRender(); return; }
+      const r = await fetch(`/api/recipients/list?address=${state.addr}`, { headers: auth });
       const j = await r.json();
       bpBook = Array.isArray(j?.rows) ? j.rows : [];
     } catch { bpBook = []; }
@@ -1716,25 +1720,37 @@ html{scroll-behavior:smooth}
 
   // Returns the in-flight request so a caller saving a whole batch can wait for
   // all of them and refresh the chips once, instead of once per recipient.
-  function bookSave(addr, chain, label) {
-    if (!state.addr) return Promise.resolve();
+  // Writing to the book proves ownership, so it may ask the wallet to sign in
+  // (once a day). A refusal leaves Batch Pay fully working — the book is a
+  // convenience, so it never blocks a payment.
+  async function bookSave(addr, chain, label) {
+    if (!state.addr) return;
     // Your own address is not a counterparty — paying yourself in a batch
     // should not fill the book with your own wallet.
-    if (String(addr).toLowerCase() === String(state.addr).toLowerCase()) return Promise.resolve();
-    return fetch('/api/recipients/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ owner: state.addr, addr, chain, label: label || '' }),
-    }).catch(() => {});
+    if (String(addr).toLowerCase() === String(state.addr).toLowerCase()) return;
+    try {
+      const auth = await ARC.session.headers({ interactive: true, address: state.addr });
+      if (!auth.Authorization) return;
+      await fetch('/api/recipients/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth },
+        body: JSON.stringify({ owner: state.addr, addr, chain, label: label || '' }),
+      });
+    } catch { /* book is optional — never surface next to a payment */ }
   }
 
-  function bookRemove(addr, chain) {
+  async function bookRemove(addr, chain) {
     if (!state.addr) return;
-    fetch('/api/recipients/remove', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ owner: state.addr, addr, chain }),
-    }).then(() => bookLoad()).catch(() => {});
+    try {
+      const auth = await ARC.session.headers({ interactive: true, address: state.addr });
+      if (!auth.Authorization) return;
+      await fetch('/api/recipients/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth },
+        body: JSON.stringify({ owner: state.addr, addr, chain }),
+      });
+      await bookLoad();
+    } catch { /* leave the chip in place if the removal did not land */ }
   }
 
   function bookRender() {

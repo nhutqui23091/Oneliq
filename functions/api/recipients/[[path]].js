@@ -15,11 +15,19 @@
  *   recipients:<owner-lowercase> → JSON array, newest-first, capped BOOK_MAX
  *                                  row = { addr, chain, label, at }
  *
- * PRIVACY: this is a list of counterparties, which is more sensitive than a
- * receipt feed. It is only ever readable by knowing the owner's own address,
- * it is never joined across owners, and Batch Pay works fine without it — the
- * book is an optional convenience, not a dependency.
+ * AUTH: every endpoint requires `Authorization: Bearer <token>` from
+ * /api/session/verify, belonging to the owner address in question.
+ *
+ * This one mattered most. The owner address used to be the only credential, so
+ * anyone could write into anyone's book — and an attacker who plants
+ * { addr: <their own>, label: "Treasury" } is not corrupting data, they are
+ * placing a chip in someone's Batch Pay UI and waiting for a mis-click. On
+ * mainnet that is a direct path to lost funds. Reads are gated too: a
+ * counterparty list with human labels is not something a stranger should be
+ * able to pull by knowing a public address.
  */
+
+import { authorizedFor, underRateLimit } from '../../_session.js';
 
 const ALLOWED_ORIGINS = [
   'https://oneliq.xyz',
@@ -43,7 +51,7 @@ function cors(origin, extra = {}) {
   return {
     'Access-Control-Allow-Origin': origin || '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Cache-Control': 'no-store',
     ...extra,
   };
@@ -91,6 +99,8 @@ async function handleSave(request, env, origin) {
   const addr  = normAddr(body?.addr);
   if (!owner) return bad('bad owner', origin);
   if (!addr)  return bad('bad recipient address', origin);
+  if (!(await authorizedFor(env.AGENT_KV, request, owner)))
+    return bad('unauthorized', origin, 401);
 
   const row = {
     addr,
@@ -121,6 +131,8 @@ async function handleRemove(request, env, origin) {
   const owner = normAddr(body?.owner);
   const addr  = normAddr(body?.addr);
   if (!owner || !addr) return bad('bad address', origin);
+  if (!(await authorizedFor(env.AGENT_KV, request, owner)))
+    return bad('unauthorized', origin, 401);
   const chain = str(body.chain, CHAIN_MAX);
 
   const rows = (await readBook(env, owner))
@@ -129,9 +141,11 @@ async function handleRemove(request, env, origin) {
   return json({ ok: true, count: rows.length }, origin);
 }
 
-async function handleList(url, env, origin) {
+async function handleList(request, url, env, origin) {
   const owner = normAddr(url.searchParams.get('address'));
   if (!owner) return bad('bad address', origin);
+  if (!(await authorizedFor(env.AGENT_KV, request, owner)))
+    return bad('unauthorized', origin, 401);
   return json({ rows: await readBook(env, owner) }, origin);
 }
 
@@ -145,11 +159,13 @@ export async function onRequest(context) {
   }
   if (!isAllowed(origin)) return bad('forbidden origin', origin, 403);
   if (!env.AGENT_KV) return bad('recipient storage unconfigured', origin, 503);
+  if (!(await underRateLimit(env.AGENT_KV, request, 'recipients', 120, 60)))
+    return bad('rate limited', origin, 429);
 
   const sub = url.pathname.replace(/^\/api\/recipients\/?/, '').replace(/\/+$/, '');
 
   if (request.method === 'POST' && sub === 'save')   return handleSave(request, env, origin);
   if (request.method === 'POST' && sub === 'remove') return handleRemove(request, env, origin);
-  if (request.method === 'GET'  && sub === 'list')   return handleList(url, env, origin);
+  if (request.method === 'GET'  && sub === 'list')   return handleList(request, url, env, origin);
   return bad('not found', origin, 404);
 }

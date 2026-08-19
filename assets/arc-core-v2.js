@@ -827,6 +827,93 @@
     return msg.slice(0, 160);
   }
 
+  // ───────── WALLET SESSION ─────────
+  // /api/history and /api/recipients are keyed by wallet address. The address
+  // alone used to be enough to write, which meant anyone could forge receipts
+  // into a stranger's feed or plant a labelled entry in their Batch Pay book.
+  // Those endpoints now want proof, so the wallet signs one EIP-712 message and
+  // we exchange it for a token good for a day.
+  //
+  //   token({ interactive: false })  → a cached token, or null. Never prompts.
+  //   token({ interactive: true })   → prompts the wallet if there is no token.
+  //
+  // Reads pass interactive:false so that opening History or Batch Pay never
+  // pops a wallet dialog; a browser with no token simply shows its local copy.
+  // Writes pass interactive:true, so the prompt lands at a moment the user is
+  // already acting, and at most once per wallet per day.
+  const SESSION_DOMAIN = { name: 'Oneliq', version: '1', chainId: 5042002 };
+  const SESSION_TYPES = {
+    Session: [
+      { name: 'address',   type: 'address' },
+      { name: 'statement', type: 'string'  },
+      { name: 'nonce',     type: 'string'  },
+      { name: 'issuedAt',  type: 'uint256' },
+    ],
+  };
+  // Must match SESSION_STATEMENT in functions/_session.js byte for byte.
+  const SESSION_STATEMENT =
+    'Sign in to Oneliq. This proves you control this wallet so your history and ' +
+    'saved recipients stay yours. It costs no gas and moves no funds.';
+
+  const sessionKey = (addr) => `arc.session.v1.${String(addr).toLowerCase()}`;
+  let sessionInFlight = null;   // de-dupe concurrent prompts
+
+  function cachedSession(addr) {
+    if (!addr) return null;
+    try {
+      const rec = JSON.parse(localStorage.getItem(sessionKey(addr)) || 'null');
+      // Treat a token as stale a minute early so a request never races expiry.
+      if (rec && rec.token && rec.expiresAt && Date.now() < rec.expiresAt - 60_000) return rec.token;
+      if (rec) localStorage.removeItem(sessionKey(addr));
+    } catch { /* unreadable storage — fall through to minting */ }
+    return null;
+  }
+
+  async function mintSessionToken(addr) {
+    if (!wallet.signer) throw new Error('wallet not connected');
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const nonce = '0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const issuedAt = Date.now();
+    const signature = await wallet.signer.signTypedData(SESSION_DOMAIN, SESSION_TYPES, {
+      address: addr,
+      statement: SESSION_STATEMENT,
+      nonce,
+      issuedAt: BigInt(issuedAt),
+    });
+    const r = await fetch('/api/session/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addr, nonce, issuedAt, signature }),
+    });
+    if (!r.ok) throw new Error('session rejected (' + r.status + ')');
+    const b = await r.json();
+    if (!b.token) throw new Error('session rejected');
+    try { localStorage.setItem(sessionKey(addr), JSON.stringify({ token: b.token, expiresAt: b.expiresAt })); } catch {}
+    return b.token;
+  }
+
+  async function sessionToken({ interactive = false, address } = {}) {
+    const addr = address || wallet.address;
+    if (!addr) return null;
+    const cached = cachedSession(addr);
+    if (cached) return cached;
+    if (!interactive) return null;
+    if (sessionInFlight) return sessionInFlight;
+    sessionInFlight = mintSessionToken(addr).finally(() => { sessionInFlight = null; });
+    return sessionInFlight;
+  }
+
+  /** Authorization header for a request, or {} when we have no token. */
+  async function sessionHeaders(opts) {
+    const t = await sessionToken(opts).catch(() => null);
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  }
+
+  function clearSession(addr) {
+    try { localStorage.removeItem(sessionKey(addr || wallet.address)); } catch {}
+  }
+
   // ───────── HISTORY SYNC (server-side, keyed by wallet address) ─────────
   // Trade/Balance receipts also live in each browser's localStorage
   // (`arc.trade.activity.v1`), but that's per-browser. These mirror each receipt
@@ -838,19 +925,28 @@
     try {
       const address = wallet.address;
       if (!address || !row) return;
+      // Writing is worth one signature prompt (once a day). If the user
+      // declines, the receipt still lives in localStorage — never let a
+      // failed mirror surface as an error next to a completed transaction.
+      const auth = await sessionHeaders({ interactive: true, address });
+      if (!auth.Authorization) return;
       await fetch(`${HISTORY_API}/push`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify({ address, ...row }),
         keepalive: true, // let it finish even if the page is navigating away
       });
-    } catch { /* offline / blocked — local copy still recorded */ }
+    } catch { /* offline / blocked / declined — local copy still recorded */ }
   }
   async function listHistory(address) {
     try {
       const a = address || wallet.address;
       if (!a) return [];
-      const r = await fetch(`${HISTORY_API}/list?address=${a}`);
+      // Non-interactive: a browser that has not signed in yet just shows its
+      // local history rather than demanding a signature to open the page.
+      const auth = await sessionHeaders({ interactive: false, address: a });
+      if (!auth.Authorization) return [];
+      const r = await fetch(`${HISTORY_API}/list?address=${a}`, { headers: auth });
       if (!r.ok) return [];
       const b = await r.json().catch(() => null);
       return Array.isArray(b?.rows) ? b.rows : [];
@@ -941,6 +1037,7 @@
     multicall, sendAndWait, explainError,
     irisMessages, irisFastAllowance, IRIS_BASE,
     history: { push: pushHistory, list: listHistory },
+    session: { token: sessionToken, headers: sessionHeaders, clear: clearSession },
     // List of chain keys that have a GatewayWallet deployed (used by arc-gateway.js)
     gatewayChains: () => Object.entries(CHAINS)
       .filter(([, c]) => c.contracts?.gatewayWallet)

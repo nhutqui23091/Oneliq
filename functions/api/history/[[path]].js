@@ -8,8 +8,14 @@
  *
  * Endpoints (all under /api/history/*):
  *   POST /push   Append (or merge-by-hash) one receipt for an address.
- *                Public + origin-allowlisted; fire-and-forget from the client.
  *   GET  /list?address=0x..   Return that address's receipts, newest-first.
+ *
+ * AUTH: both require `Authorization: Bearer <token>` from /api/session/verify,
+ * and the token must belong to the address being read or written. Before that
+ * the address in the body was the only credential, so anyone could forge
+ * receipts into a stranger's feed or push HISTORY_MAX junk rows to evict their
+ * real ones. The origin allowlist below is kept as a browser-side guard but it
+ * is not the access control — it never constrained curl.
  *
  * Storage (AGENT_KV):
  *   history:<addr-lowercase>  → JSON array of rows, newest-first, capped HISTORY_MAX
@@ -20,6 +26,8 @@
  * collapses into one receipt. The original `at` (and thus the client-side id)
  * is preserved so the History page dedupes server vs local cleanly.
  */
+
+import { authorizedFor, underRateLimit } from '../../_session.js';
 
 const ALLOWED_ORIGINS = [
   'https://oneliq.xyz',
@@ -45,7 +53,7 @@ function cors(origin, extra = {}) {
   return {
     'Access-Control-Allow-Origin': origin || '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Cache-Control': 'no-store',
     ...extra,
   };
@@ -91,6 +99,8 @@ async function handlePush(request, env, origin) {
   try { body = await request.json(); } catch { return bad('invalid JSON', origin); }
   const addr = normAddr(body?.address);
   if (!addr) return bad('bad address', origin);
+  if (!(await authorizedFor(env.AGENT_KV, request, addr)))
+    return bad('unauthorized', origin, 401);
 
   const row = cleanRow(body);
   const key = `history:${addr}`;
@@ -122,9 +132,11 @@ async function handlePush(request, env, origin) {
   return json({ ok: true, count: rows.length }, origin);
 }
 
-async function handleList(url, env, origin) {
+async function handleList(request, url, env, origin) {
   const addr = normAddr(url.searchParams.get('address'));
   if (!addr) return bad('bad address', origin);
+  if (!(await authorizedFor(env.AGENT_KV, request, addr)))
+    return bad('unauthorized', origin, 401);
   let rows = [];
   try { rows = JSON.parse((await env.AGENT_KV.get(`history:${addr}`)) || '[]'); } catch { rows = []; }
   if (!Array.isArray(rows)) rows = [];
@@ -141,11 +153,13 @@ export async function onRequest(context) {
   }
   if (!isAllowed(origin)) return bad('forbidden origin', origin, 403);
   if (!env.AGENT_KV) return bad('history storage unconfigured', origin, 503);
+  if (!(await underRateLimit(env.AGENT_KV, request, 'history', 120, 60)))
+    return bad('rate limited', origin, 429);
 
   // Path after /api/history/
   const sub = url.pathname.replace(/^\/api\/history\/?/, '').replace(/\/+$/, '');
 
   if (request.method === 'POST' && sub === 'push') return handlePush(request, env, origin);
-  if (request.method === 'GET'  && sub === 'list') return handleList(url, env, origin);
+  if (request.method === 'GET'  && sub === 'list') return handleList(request, url, env, origin);
   return bad('not found', origin, 404);
 }

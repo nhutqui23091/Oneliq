@@ -53,6 +53,8 @@
  * contended) fixes any drift within 24h.
  */
 
+import { underRateLimit } from '../../_session.js';
+
 const ALLOWED_ORIGINS = [
   'https://oneliq.xyz',
   'https://www.oneliq.xyz',
@@ -475,6 +477,13 @@ export async function onRequest(context) {
 
   // ─── POST /track ─────────────────────────────────────────────────────────
   if (route === 'track' && request.method === 'POST') {
+    // /track is deliberately unauthenticated — it fires after an action the
+    // user just took, and requiring a signature would mean a wallet prompt per
+    // event. That leaves the published numbers forgeable, so cap how fast one
+    // IP can move them. A real session produces a handful of events a minute.
+    if (!(await underRateLimit(kv, request, 'metrics', 30, 60)))
+      return bad('rate_limited', origin, 429);
+
     let body;
     try { body = await request.json(); } catch { return bad('invalid_json', origin); }
     if (!body || typeof body !== 'object') return bad('invalid_body', origin);
