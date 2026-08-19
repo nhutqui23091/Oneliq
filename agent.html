@@ -1505,13 +1505,27 @@ select option:checked{background:#1a2c4a;color:#fff}
   };
   const EIP712_TYPES = {
     AgentRule: [
-      { name: 'owner',     type: 'address' },
-      { name: 'mode',      type: 'string'  },
-      { name: 'sources',   type: 'string'  }, // comma-joined chain ids
-      { name: 'targets',   type: 'string'  }, // comma-joined target addresses
-      { name: 'params',    type: 'string'  }, // JSON-stringified rule params
-      { name: 'nonce',     type: 'string'  }, // random 16-byte hex to prevent replay
-      { name: 'expiresAt', type: 'uint256' },
+      { name: 'owner',        type: 'address' },
+      { name: 'mode',         type: 'string'  },
+      { name: 'sources',      type: 'string'  }, // comma-joined chain ids
+      { name: 'targets',      type: 'string'  }, // comma-joined target addresses
+      { name: 'targetChains', type: 'string'  }, // comma-joined, parallel to targets
+      { name: 'params',       type: 'string'  }, // canonicalJson of rule params
+      { name: 'nonce',        type: 'string'  }, // random 16-byte hex to prevent replay
+      { name: 'expiresAt',    type: 'uint256' },
+    ],
+  };
+
+  // Authorizes one operation on one existing agent. Signed fresh every time:
+  // the server binds it to the agent id and the action name, rejects it after
+  // five minutes, and burns the nonce so it can never be submitted twice.
+  const EIP712_ACTION_TYPES = {
+    AgentAction: [
+      { name: 'owner',    type: 'address' },
+      { name: 'agentId',  type: 'string'  },
+      { name: 'action',   type: 'string'  },
+      { name: 'nonce',    type: 'string'  },
+      { name: 'issuedAt', type: 'uint256' },
     ],
   };
 
@@ -1519,6 +1533,17 @@ select option:checked{background:#1a2c4a;color:#fff}
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
     return '0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * Deterministic JSON so the bytes we sign never drift with property
+   * insertion order. Must stay identical to canonicalJson() in
+   * functions/api/agent/_verify.js.
+   */
+  function canonicalJson(value) {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+    return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(',')}}`;
   }
 
   async function signRule(rule) {
@@ -1529,12 +1554,47 @@ select option:checked{background:#1a2c4a;color:#fff}
       mode: rule.mode,
       sources: rule.sources.join(','),
       targets: rule.targets.join(','),
-      params: JSON.stringify(rule.params),
+      targetChains: Array.isArray(rule.targetChains) ? rule.targetChains.join(',') : '',
+      params: canonicalJson(rule.params),
       nonce,
       expiresAt: BigInt(rule.expiresAt),
     };
     const sig = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, value);
     return { sig, nonce };
+  }
+
+  /**
+   * Sign a one-shot authorization for `action` on `agent`. Returns the body
+   * fields every mutating endpoint expects.
+   */
+  async function signAction(agent, action) {
+    if (!ARC.wallet.signer) throw new Error('Connect your wallet to authorize this action');
+    const nonce = randomNonce();
+    const issuedAt = Date.now();
+    const sig = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_ACTION_TYPES, {
+      owner: agent.owner || ARC.wallet.address,
+      agentId: agent.id,
+      action,
+      nonce,
+      issuedAt: BigInt(issuedAt),
+    });
+    return { signature: sig, nonce, issuedAt };
+  }
+
+  /**
+   * Authorization fields for a mutating call. When the backend is unconfigured
+   * the change never leaves the browser, so we don't pop the wallet for it.
+   */
+  async function authFor(agent, action) {
+    if (backendStatus === 'fallback') return {};
+    return await signAction(agent, action);
+  }
+
+  /** Turn a signing failure into a toast and swallow it. */
+  function reportSignFailure(e) {
+    const msg = (e && e.message) || String(e);
+    ArcUI.toast('error', 'Authorization failed',
+      /reject|denied|cancel/i.test(msg) ? 'Signature cancelled' : msg);
   }
 
   // USDC EIP-2612 permit() typed data per source chain. Most native-USDC
@@ -1726,7 +1786,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     const res = await api(`/${agent.id}/permits`, {
       method: 'POST',
       body: {
-        signature: agent.signature || '0x0',
+        ...(await authFor(agent, 'permits')),
         permits,
       },
     });
@@ -2949,22 +3009,22 @@ select option:checked{background:#1a2c4a;color:#fff}
   /* ============================================================
      OPS: pause / resume / run-now / revoke
   ============================================================ */
-  // Each mutation requires a signature. For pause/resume/revoke/run-now we
-  // reuse the agent's stored signature as "proof of ownership" (preview-level
-  // auth - production should sign a fresh per-action message).
-  function ownershipProof(agent) {
-    return agent.signature || '0x0';
-  }
+  // Every mutation is authorized by a fresh EIP-712 AgentAction signature from
+  // the owner's wallet, bound to this agent id and this action name. See
+  // signAction() above and requireOwnerAction() in the Pages Function.
 
   window.toggleAgent = async function(id) {
     const a = agents.find(x => x.id === id);
     if (!a) return;
     const goingPaused = a.state !== 'paused';
     const endpoint = goingPaused ? 'pause' : 'resume';
+    let auth;
+    try { auth = await authFor(a, endpoint); }
+    catch (e) { reportSignFailure(e); return; }
     try {
       const res = await api(`/${id}/${endpoint}`, {
         method: 'POST',
-        body: { signature: ownershipProof(a) },
+        body: auth,
       });
       if (res && res._fallback) {
         a.state = goingPaused ? 'paused' : 'active';
@@ -2985,10 +3045,13 @@ select option:checked{background:#1a2c4a;color:#fff}
     const a = agents.find(x => x.id === id);
     if (!a) return;
     if (a.state === 'paused') { ArcUI.toast('warn', 'Agent paused', 'Resume to run.'); return; }
+    let auth;
+    try { auth = await authFor(a, 'run-now'); }
+    catch (e) { reportSignFailure(e); return; }
     try {
       const res = await api(`/${id}/run-now`, {
         method: 'POST',
-        body: { signature: ownershipProof(a) },
+        body: auth,
       });
       if (res && res._fallback) {
         // Fallback: simulate locally with same logic as before
@@ -3062,10 +3125,13 @@ select option:checked{background:#1a2c4a;color:#fff}
       danger: true,
     });
     if (!ok) return;
+    let auth;
+    try { auth = await authFor(a, 'revoke'); }
+    catch (e) { reportSignFailure(e); return; }
     try {
       const res = await api(`/${id}`, {
         method: 'DELETE',
-        body: { signature: ownershipProof(a) },
+        body: auth,
       });
       if (res && res._fallback) {
         agents = agents.filter(x => x.id !== id);
@@ -3105,12 +3171,16 @@ select option:checked{background:#1a2c4a;color:#fff}
     const failedLabels = a.failedChains.map(f => CHAIN_LABELS[f.source] || f.source).join(', ');
     if (!confirm(`Retry Circle wallet provisioning on: ${failedLabels}?\n\nIf successful you'll be asked to sign one EIP-2612 permit per newly-provisioned chain.`)) return;
 
+    let auth;
+    try { auth = await authFor(a, 'reprovision'); }
+    catch (e) { reportSignFailure(e); return; }
+
     let updated;
     try {
       ArcUI.toast('', 'Retrying…', `Talking to Circle for ${failedLabels}`);
       updated = await api(`/${id}/reprovision`, {
         method: 'POST',
-        body: { signature: ownershipProof(a) },
+        body: auth,
       });
     } catch (e) {
       ArcUI.toast('error', 'Retry failed', e.message);
@@ -3184,10 +3254,13 @@ select option:checked{background:#1a2c4a;color:#fff}
       `ONLY use if you verified the USDC arrived on the destination chain. ` +
       `This bumps the agent's totalSent and won't trigger any new blockchain tx.`;
     if (!confirm(confirmMsg)) return;
+    let auth;
+    try { auth = await authFor(a, 'cctp-force-complete'); }
+    catch (e) { reportSignFailure(e); return; }
     try {
       const res = await api(`/${agentId}/cctp-force-complete`, {
         method: 'POST',
-        body: { signature: ownershipProof(a), cctpIndex },
+        body: { ...auth, cctpIndex },
       });
       if (res && res._fallback) {
         ArcUI.toast('error', 'Backend offline', 'Cannot force complete without API');

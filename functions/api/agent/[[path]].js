@@ -19,13 +19,16 @@
  *   agent:<id>:executions     → JSON array, capped at 100 most recent
  *   owner:<addr-lower>:agents → JSON array of agent IDs for that owner
  *
- * Auth model (preview):
- *   - Mutations require `signature` field in body.
- *   - The signature is the EIP-712 message that authorizes the agent (or any
- *     subsequent action signed by the owner). For preview we just check that
- *     a signature is present and the owner address matches. Recovering the
- *     address from the EIP-712 sig is a TODO — will use ethers.verifyTypedData
- *     once we standardize the typed-data schema.
+ * Auth model:
+ *   - Every mutation carries an EIP-712 signature that we verify by recovering
+ *     the signer (see _verify.js) and requiring it to equal the agent owner.
+ *   - `create` is authorized by an `AgentRule` signature over the rule itself,
+ *     so the stored record cannot differ from what the user approved.
+ *   - Every other mutation is authorized by a *fresh* `AgentAction` signature
+ *     bound to { agentId, action, nonce, issuedAt }. Action signatures expire
+ *     after ACTION_MAX_AGE_MS and each nonce is single-use, so a captured
+ *     signature cannot be replayed or reused against a different endpoint.
+ *   - Signatures are never echoed back in responses.
  *
  * Required env:
  *   AGENT_KV  (KV namespace binding — set up in Cloudflare Pages dashboard)
@@ -42,10 +45,23 @@ import {
   CHIP_TO_ARC,
 } from './_circle.js';
 import { getUSDCBalance, isChainConfigured } from './_balance.js';
+import {
+  recoverTypedDataAddress,
+  canonicalJson,
+  AGENT_DOMAIN,
+  AGENT_RULE_TYPE,
+  AGENT_ACTION_TYPE,
+} from './_verify.js';
 
 const HEADERS_JSON = { 'Content-Type': 'application/json' };
 
 function json(status, body) {
+  // 204/205/304 are null-body statuses — both workerd and Node reject a
+  // Response that carries a body with one, which used to turn a successful
+  // DELETE /api/agent/:id into a 500.
+  if (status === 204 || status === 205 || status === 304) {
+    return new Response(null, { status, headers: HEADERS_JSON });
+  }
   return new Response(JSON.stringify(body), { status, headers: HEADERS_JSON });
 }
 
@@ -381,17 +397,100 @@ async function appendExecution(kv, agentId, event) {
   await putJSON(kv, key, arr);
 }
 
+/* ────────────────────────────────────────────────────────────
+   AUTH — EIP-712 signature verification
+   ──────────────────────────────────────────────────────────── */
+
+// How long an AgentAction signature stays valid. Long enough to absorb clock
+// skew between the browser and the edge, short enough that a signature lifted
+// off the wire is dead by the time anyone could reuse it.
+const ACTION_MAX_AGE_MS = 5 * 60 * 1000;
+
+// Nonces are remembered for slightly longer than the validity window, so a
+// signature can never be accepted twice even at the edge of its lifetime.
+const NONCE_TTL_S = 900;
+
+function isNonce(v) {
+  return typeof v === 'string' && /^0x[0-9a-fA-F]{32}$/.test(v);
+}
+
 /**
- * Verify the signature accompanying a mutation. For preview we accept any
- * non-empty hex string. Production should run ethers.verifyTypedData against
- * the EIP-712 domain + the agent's params and confirm the recovered address
- * matches the owner.
+ * Burn a single-use nonce. Returns false if it was already spent.
+ *
+ * KV is eventually consistent across colos, so this is a strong deterrent
+ * rather than a hard mutex — but every action is also bound to an agentId, an
+ * action name and a 5-minute window, and the underlying operations are
+ * idempotent (pause twice is still paused). The one non-idempotent action,
+ * run-now, is additionally rate-limited by the agent's own daily cap.
  */
-function verifySignature(_owner, sig) {
-  if (typeof sig !== 'string') return false;
-  if (!/^0x[0-9a-fA-F]+$/.test(sig)) return false;
-  if (sig.length < 10) return false;
-  return true; // TODO: replace with ethers.verifyTypedData once typed-data schema is locked
+async function consumeNonce(kv, nonce) {
+  const key = `nonce:${nonce}`;
+  if (await kv.get(key)) return false;
+  await kv.put(key, '1', { expirationTtl: NONCE_TTL_S });
+  return true;
+}
+
+/**
+ * Verify the AgentRule signature presented at create time. The rule is
+ * re-encoded here from the values we are about to persist, so a caller cannot
+ * sign one rule and store another.
+ */
+function verifyCreateSignature(body) {
+  const { owner, mode, sources, targets, targetChains, params, nonce, expiresAt, signature } = body;
+  if (!isNonce(nonce)) return false;
+  const recovered = recoverTypedDataAddress(AGENT_DOMAIN, AGENT_RULE_TYPE, 'AgentRule', {
+    owner,
+    mode,
+    sources: sources.join(','),
+    targets: targets.join(','),
+    targetChains: Array.isArray(targetChains) ? targetChains.join(',') : '',
+    params: canonicalJson(params),
+    nonce,
+    expiresAt,
+  }, signature);
+  return recovered !== null && recovered === lower(owner);
+}
+
+/**
+ * Gate a mutation on a fresh AgentAction signature from the agent's owner.
+ * Returns null when the caller is authorized, or the Response to send back.
+ */
+async function requireOwnerAction(kv, agent, action, body) {
+  const { signature, nonce, issuedAt } = body || {};
+
+  if (!isNonce(nonce)) return json(401, { error: 'signature_invalid' });
+
+  const ts = Number(issuedAt);
+  if (!Number.isFinite(ts)) return json(401, { error: 'signature_invalid' });
+  if (Math.abs(Date.now() - ts) > ACTION_MAX_AGE_MS)
+    return json(401, { error: 'signature_expired' });
+
+  const recovered = recoverTypedDataAddress(AGENT_DOMAIN, AGENT_ACTION_TYPE, 'AgentAction', {
+    owner: agent.owner,
+    agentId: agent.id,
+    action,
+    nonce,
+    issuedAt: ts,
+  }, signature);
+
+  if (recovered === null || recovered !== lower(agent.owner))
+    return json(401, { error: 'signature_invalid' });
+
+  if (!(await consumeNonce(kv, nonce)))
+    return json(401, { error: 'signature_replayed' });
+
+  return null;
+}
+
+/**
+ * Strip owner-authorization material before an agent record leaves the edge.
+ * Agent reads are unauthenticated, so nothing that could stand in as proof of
+ * ownership may appear in a response.
+ */
+function publicAgent(agent) {
+  if (!agent || typeof agent !== 'object') return agent;
+  const { signature, nonce, ...rest } = agent;
+  return rest;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -402,19 +501,26 @@ async function handleCreate(req, kv, env) {
   let body;
   try { body = await req.json(); } catch { return json(400, { error: 'bad_json' }); }
 
-  const { owner, mode, sources, targets, targetChains, params, signature, expiresAt, nextRun: bodyNextRun } = body || {};
+  const { owner, mode, sources, targets, targetChains, params, signature, nonce, expiresAt, nextRun: bodyNextRun } = body || {};
 
   if (!isValidAddr(owner))          return json(400, { error: 'owner_required' });
   if (mode !== 'topup' && mode !== 'schedule' && mode !== 'buy')
                                     return json(400, { error: 'invalid_mode' });
-  if (!Array.isArray(sources) || !sources.length)
+  if (!Array.isArray(sources) || !sources.length || !sources.every(s => typeof s === 'string'))
                                     return json(400, { error: 'sources_required' });
   if (!Array.isArray(targets) || !targets.length || !targets.every(isValidAddr))
                                     return json(400, { error: 'targets_invalid' });
   if (!params || typeof params !== 'object')
                                     return json(400, { error: 'params_required' });
-  if (!verifySignature(owner, signature))
-                                    return json(400, { error: 'signature_invalid' });
+
+  // The signature covers owner + mode + sources + targets + params + expiry,
+  // so everything persisted below is exactly what the wallet approved.
+  if (!Number.isFinite(Number(expiresAt)))
+                                    return json(400, { error: 'expiresAt_required' });
+  if (!verifyCreateSignature({ owner, mode, sources, targets, targetChains, params, nonce, expiresAt, signature }))
+                                    return json(401, { error: 'signature_invalid' });
+  if (!(await consumeNonce(kv, nonce)))
+                                    return json(401, { error: 'signature_replayed' });
 
   // targetChains is a parallel array — same length as targets — naming the
   // destination chain for each one. Optional for back-compat with older
@@ -610,7 +716,7 @@ async function handleCreate(req, kv, env) {
     await putJSON(kv, `agent:${id}`, agent);
   }
 
-  return json(201, agent);
+  return json(201, publicAgent(agent));
 }
 
 function computeNextRun(mode, params, fromTs) {
@@ -667,13 +773,13 @@ async function handleList(req, kv) {
   const ids = await listOwnerAgentIds(kv, owner);
   const agents = (await Promise.all(ids.map(id => getJSON(kv, `agent:${id}`, null))))
     .filter(Boolean);
-  return json(200, agents);
+  return json(200, agents.map(publicAgent));
 }
 
 async function handleGet(_req, kv, id) {
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  return json(200, agent);
+  return json(200, publicAgent(agent));
 }
 
 async function handlePauseResume(req, kv, id, newState) {
@@ -681,8 +787,8 @@ async function handlePauseResume(req, kv, id, newState) {
   try { body = await req.json(); } catch { body = {}; }
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  if (!verifySignature(agent.owner, body.signature))
-    return json(401, { error: 'signature_invalid' });
+  const denied = await requireOwnerAction(kv, agent, newState === 'paused' ? 'pause' : 'resume', body);
+  if (denied) return denied;
 
   agent.state = newState;
   // Manual resume after auto-pause → clear the auto-pause counter so the
@@ -696,7 +802,7 @@ async function handlePauseResume(req, kv, id, newState) {
   }
   await putJSON(kv, `agent:${id}`, agent);
   await appendExecution(kv, id, { type: newState, detail: `Agent ${newState}` });
-  return json(200, agent);
+  return json(200, publicAgent(agent));
 }
 
 async function handleRevoke(req, kv, id) {
@@ -704,8 +810,8 @@ async function handleRevoke(req, kv, id) {
   try { body = await req.json(); } catch { body = {}; }
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  if (!verifySignature(agent.owner, body.signature))
-    return json(401, { error: 'signature_invalid' });
+  const denied = await requireOwnerAction(kv, agent, 'revoke', body);
+  if (denied) return denied;
 
   // Soft delete: mark revoked, remove from owner index, keep agent record for
   // audit. Could also do a hard delete here if storage limits matter.
@@ -739,8 +845,8 @@ async function handleSubmitPermits(req, kv, env, id) {
   try { body = await req.json(); } catch { return json(400, { error: 'bad_json' }); }
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  if (!verifySignature(agent.owner, body.signature))
-    return json(401, { error: 'signature_invalid' });
+  const denied = await requireOwnerAction(kv, agent, 'permits', body);
+  if (denied) return denied;
   if (!Array.isArray(body.permits) || !body.permits.length)
     return json(400, { error: 'permits_required' });
   if (!agent.circleWallets?.length)
@@ -826,20 +932,21 @@ async function handleSubmitPermits(req, kv, env, id) {
  * user for an additional EIP-2612 signature on those chains.
  */
 async function handleReprovision(req, kv, env, id) {
-  if (!isCircleConfigured(env)) {
-    return json(503, { error: 'circle_not_configured' });
-  }
   let body;
   try { body = await req.json(); } catch { body = {}; }
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  if (!verifySignature(agent.owner, body.signature))
-    return json(401, { error: 'signature_invalid' });
+  // Authorize before reporting anything about our Circle configuration.
+  const denied = await requireOwnerAction(kv, agent, 'reprovision', body);
+  if (denied) return denied;
+  if (!isCircleConfigured(env)) {
+    return json(503, { error: 'circle_not_configured' });
+  }
   if (agent.state === 'revoked') return json(409, { error: 'agent_revoked' });
 
   const failed = Array.isArray(agent.failedChains) ? agent.failedChains : [];
   if (!failed.length) {
-    return json(200, { agentId: id, message: 'no failed chains to retry', agent });
+    return json(200, { agentId: id, message: 'no failed chains to retry', agent: publicAgent(agent) });
   }
 
   let result;
@@ -875,7 +982,7 @@ async function handleReprovision(req, kv, env, id) {
     });
   }
 
-  return json(200, agent);
+  return json(200, publicAgent(agent));
 }
 
 /**
@@ -893,8 +1000,8 @@ async function handleForceCompleteCctp(req, kv, _env, id) {
   try { body = await req.json(); } catch { return json(400, { error: 'bad_json' }); }
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  if (!verifySignature(agent.owner, body.signature))
-    return json(401, { error: 'signature_invalid' });
+  const denied = await requireOwnerAction(kv, agent, 'cctp-force-complete', body);
+  if (denied) return denied;
 
   const idx = Number(body.cctpIndex);
   if (!Number.isInteger(idx) || idx < 0 || idx >= (agent.pendingCctp || []).length) {
@@ -917,7 +1024,7 @@ async function handleForceCompleteCctp(req, kv, _env, id) {
     flow: 'cctp',
     amount: Number(p.amountHuman),
   });
-  return json(200, agent);
+  return json(200, publicAgent(agent));
 }
 
 async function handleRunNow(req, kv, env, id) {
@@ -925,8 +1032,8 @@ async function handleRunNow(req, kv, env, id) {
   try { body = await req.json(); } catch { body = {}; }
   const agent = await getJSON(kv, `agent:${id}`, null);
   if (!agent) return json(404, { error: 'not_found' });
-  if (!verifySignature(agent.owner, body.signature))
-    return json(401, { error: 'signature_invalid' });
+  const denied = await requireOwnerAction(kv, agent, 'run-now', body);
+  if (denied) return denied;
   if (agent.state !== 'active') return json(409, { error: 'agent_not_active' });
 
   // Two execution paths:
