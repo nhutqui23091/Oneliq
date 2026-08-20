@@ -90,3 +90,8 @@ logo-preview.html
 .preview-agent.png
 .preview-balance.png
 .preview-status.png
+
+# contract test artifacts
+contracts/test/node_modules/
+contracts/test/artifacts.json
+contracts/test/package*.json
