@@ -10,6 +10,35 @@
     (ARC.session && ARC.session.headers ? ARC.session.headers(opts) : Promise.resolve({}))
       .catch(() => ({}));
 
+  // Broken-image fallbacks. These used to be onerror="" attributes, which a
+  // Content Security Policy without 'unsafe-inline' refuses to run. `error`
+  // does not bubble, so this listens in the capture phase instead.
+  //
+  //   data-imgfallback="hide"        visibility:hidden
+  //   data-imgfallback="none"        display:none
+  //   data-imgfallback="text"        replace the image with data-fb-text
+  //   data-imgfallback="parent-text" mark the parent .fallback, put text in it
+  //   data-imgfallback="src"         swap in data-fb-src once, then give up
+  document.addEventListener('error', function (e) {
+    const el = e.target;
+    if (!el || el.tagName !== 'IMG') return;
+    const mode = el.getAttribute('data-imgfallback');
+    if (!mode) return;
+    const text = el.getAttribute('data-fb-text') || '';
+    if (mode === 'hide')        el.style.visibility = 'hidden';
+    else if (mode === 'none')   el.style.display = 'none';
+    else if (mode === 'text')   el.replaceWith(document.createTextNode(text));
+    else if (mode === 'parent-text' && el.parentElement) {
+      el.parentElement.classList.add('fallback');
+      el.parentElement.textContent = text;
+    } else if (mode === 'src') {
+      const next = el.getAttribute('data-fb-src');
+      // Clear the marker first so a broken fallback cannot loop.
+      el.removeAttribute('data-imgfallback');
+      if (next) el.src = next;
+    }
+  }, true);
+
   // For any string that came from outside us — a Discord display name, a saved
   // label — before it goes anywhere near innerHTML.
   function escapeHtml(s) {

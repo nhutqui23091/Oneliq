@@ -390,7 +390,7 @@
       <tr>
         <td>
           <div class="db-tok">
-            <img src="${escapeHtml(r.tok.icon)}" alt="" onerror="this.style.visibility='hidden'"/>
+            <img src="${escapeHtml(r.tok.icon)}" alt="" data-imgfallback="hide"/>
             <div><div class="db-tok-sym">${escapeHtml(r.sym)}</div><div class="db-tok-name">${escapeHtml(r.tok.name)}</div></div>
           </div>
         </td>
@@ -476,7 +476,7 @@
         const name = c?.name || c?.short || b.chainKey;
         const pend = (b.pending || 0n) > 0n ? `<div class="db-cc-pend">+${b.pendingDisplay} pending</div>` : '';
         return `<div class="db-cc-row">
-          <img src="${escapeHtml(ARC.chainIcon(b.chainKey))}" alt="" onerror="this.style.visibility='hidden'"/>
+          <img src="${escapeHtml(ARC.chainIcon(b.chainKey))}" alt="" data-imgfallback="hide"/>
           <div><div class="db-cc-name">${escapeHtml(name)}</div>${pend}</div>
           <div class="db-cc-amt">${b.display}</div>
         </div>`;

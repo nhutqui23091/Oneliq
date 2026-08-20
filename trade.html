@@ -1106,7 +1106,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           const filtered = tokens.filter(t => !q || t.symbol.toLowerCase().includes(q.toLowerCase()) || t.name.toLowerCase().includes(q.toLowerCase()) || t.address.toLowerCase() === q.toLowerCase());
           list.innerHTML = filtered.map(t => `
             <div class="token-row" data-addr="${t.address}">
-              <div class="token-ico">${t.icon ? `<img src="${t.icon}" onerror="this.replaceWith(document.createTextNode('${t.symbol[0]}'))"/>` : t.symbol[0]}</div>
+              <div class="token-ico">${t.icon ? `<img src="${t.icon}" data-imgfallback="text" data-fb-text="${t.symbol[0]}"/>` : t.symbol[0]}</div>
               <div class="token-meta"><div class="token-sym">${t.symbol}${t.custom ? '<span class="token-badge unverified">unverified</span>' : ''}</div><div class="token-name">${t.name}</div></div>
               <div class="token-bal" data-bal="${t.address}">-</div>
             </div>`).join('');

@@ -843,7 +843,7 @@ html{scroll-behavior:smooth}
     host.innerHTML = `
       <button class="cs-trigger" type="button" aria-haspopup="listbox">
         <span class="cs-cur">
-          <img class="cs-cur-ico" alt="" onerror="this.style.visibility='hidden'"/>
+          <img class="cs-cur-ico" alt="" data-imgfallback="hide"/>
           <span class="cs-cur-name"></span>
         </span>
         <span class="cs-caret">▾</span>
@@ -851,7 +851,7 @@ html{scroll-behavior:smooth}
       <div class="cs-menu" role="listbox">
         ${keys.map(k => `
           <button class="cs-row" type="button" role="option" data-k="${k}">
-            <img class="cs-row-ico" src="${icoSrc(k)}" alt="" onerror="this.style.visibility='hidden'"/>
+            <img class="cs-row-ico" src="${icoSrc(k)}" alt="" data-imgfallback="hide"/>
             <span class="cs-row-name">${chainName(k)}</span>
             ${opts.note ? `<span class="cs-row-note">${opts.note(k)}</span>` : ''}
           </button>`).join('')}
@@ -966,7 +966,7 @@ html{scroll-behavior:smooth}
       const iconUrl = ARC.chainIcon ? ARC.chainIcon(k) : '';
       const shortLabel = chainShort(k).slice(0, 3);
       const dotHtml = iconUrl
-        ? `<div class="chain-dot"><img src="${iconUrl}" alt="${chainShort(k)}" onerror="this.parentElement.classList.add('fallback');this.parentElement.textContent='${shortLabel}'"/></div>`
+        ? `<div class="chain-dot"><img src="${iconUrl}" alt="${chainShort(k)}" data-imgfallback="parent-text" data-fb-text="${shortLabel}"/></div>`
         : `<div class="chain-dot fallback" style="background:${chainColor(k)}">${shortLabel}</div>`;
       row.dataset.chain = k;
       row.innerHTML = `
@@ -1408,7 +1408,7 @@ html{scroll-behavior:smooth}
         <div style="position:relative;flex:0 0 148px;min-width:0">
           <input class="gw-input bp-amt" type="text" inputmode="decimal" placeholder="0.00" style="width:100%;padding-right:58px">
           <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;pointer-events:none">
-            <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="" style="width:15px;height:15px;border-radius:50%" onerror="this.style.display='none'">
+            <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="" style="width:15px;height:15px;border-radius:50%" data-imgfallback="none">
             <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">USDC</span>
           </span>
         </div>
@@ -2205,7 +2205,7 @@ html{scroll-behavior:smooth}
       // now the click target that lights up and reveals the amount field.
       row.innerHTML = `
         <input type="checkbox" id="${cid}" data-chain="${b.chainKey}" ${usable ? '' : 'disabled'} hidden>
-        <span class="src-ico"><img src="${icon}" alt="" onerror="this.style.visibility='hidden'"/></span>
+        <span class="src-ico"><img src="${icon}" alt="" data-imgfallback="hide"/></span>
         <span class="src-meta">
           <span class="src-name">${chainName(b.chainKey)}</span>
           <span class="src-max">Max ${ARC.formatAmt(burnable, 6, 4)} USDC</span>

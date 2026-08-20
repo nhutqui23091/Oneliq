@@ -665,10 +665,10 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div class="chat-head-t">Oneliq AI</div>
           <div class="chat-head-s">portfolio &amp; automation assistant</div>
         </div>
-        <button class="chat-head-btn" type="button" onclick="toggleConvoPanel()" title="Conversations" aria-label="Conversations">
+        <button class="chat-head-btn" type="button" data-click="toggleConvoPanel" title="Conversations" aria-label="Conversations">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
-        <button class="chat-head-btn" type="button" onclick="newChat()" title="New chat" aria-label="New chat">
+        <button class="chat-head-btn" type="button" data-click="newChat" title="New chat" aria-label="New chat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
@@ -677,28 +677,28 @@ select option:checked{background:#1a2c4a;color:#fff}
       <div class="chat-convos" id="chat-convos" style="display:none">
         <div class="chat-convos-head">
           <span>Conversations</span>
-          <button type="button" onclick="newChat()">+ New chat</button>
+          <button type="button" data-click="newChat">+ New chat</button>
         </div>
         <div class="chat-convos-list" id="chat-convos-list"></div>
       </div>
 
       <div class="chat-scroll" id="chat-scroll"></div>
       <div class="chat-suggest" id="chat-suggest">
-        <button class="chat-chip" type="button" onclick="chatSuggest(this)">Where is my USDC?</button>
-        <button class="chat-chip" type="button" onclick="chatSuggest(this)">Send $25 to a wallet every week</button>
-        <button class="chat-chip" type="button" onclick="chatSuggest(this)">Keep my Base wallet above $50</button>
+        <button class="chat-chip" type="button" data-click="chatSuggest">Where is my USDC?</button>
+        <button class="chat-chip" type="button" data-click="chatSuggest">Send $25 to a wallet every week</button>
+        <button class="chat-chip" type="button" data-click="chatSuggest">Keep my Base wallet above $50</button>
       </div>
       <div class="chat-input-row">
         <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask Oneliq AI anything…"></textarea>
-        <button class="chat-send" id="chat-send" type="button" onclick="chatSend()" aria-label="Send">↑</button>
+        <button class="chat-send" id="chat-send" type="button" data-click="chatSend" aria-label="Send">↑</button>
       </div>
     </div>
 
     <!-- RIGHT: CONFIG (tabbed automation form + agents list) -->
     <div class="config-col" id="config-col">
       <div class="cfg-tabs">
-        <button class="cfg-tab active" type="button" data-cfg="build" onclick="setCfgTab('build')">Build automation</button>
-        <button class="cfg-tab" type="button" data-cfg="agents" onclick="setCfgTab('agents')">Your Agents</button>
+        <button class="cfg-tab active" type="button" data-cfg="build" data-click="setCfgTab" data-a="build">Build automation</button>
+        <button class="cfg-tab" type="button" data-cfg="agents" data-click="setCfgTab" data-a="agents">Your Agents</button>
       </div>
 
       <!-- TAB: BUILD AUTOMATION -->
@@ -719,11 +719,11 @@ select option:checked{background:#1a2c4a;color:#fff}
       <!-- MODE BAR — 2 groups, each with a sub-toggle below.
            Recurring = swap (Buy/Sell) · Send = transfer (Scheduled/Auto top-up). -->
       <div class="mode-bar" id="mode-bar">
-        <button class="mode-pill active" type="button" id="grp-recurring" onclick="setGroup('recurring')">
+        <button class="mode-pill active" type="button" id="grp-recurring" data-click="setGroup" data-a="recurring">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
           Recurring
         </button>
-        <button class="mode-pill" type="button" id="grp-send" onclick="setGroup('send')">
+        <button class="mode-pill" type="button" id="grp-send" data-click="setGroup" data-a="send">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           Send
         </button>
@@ -736,14 +736,14 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="amt-hero-label" id="amt-hero-label">Amount per buy</div>
         <div class="amt-hero-input-row">
           <span class="amt-hero-cur">$</span>
-          <input class="amt-hero-input" id="amt-hero-input" type="number" inputmode="decimal" min="0" step="any" value="100" oninput="onHeroAmount(this.value)" aria-label="Amount"/>
+          <input class="amt-hero-input" id="amt-hero-input" type="number" inputmode="decimal" min="0" step="any" value="100" data-input="onHeroAmount" aria-label="Amount"/>
         </div>
         <div class="amt-hero-suffix">USDC</div>
         <div class="amt-quick">
-          <button type="button" onclick="setHeroAmount(25)">$25</button>
-          <button type="button" onclick="setHeroAmount(50)">$50</button>
-          <button type="button" onclick="setHeroAmount(100)">$100</button>
-          <button type="button" onclick="setHeroAmount(250)">$250</button>
+          <button type="button" data-click="setHeroAmount" data-a="25">$25</button>
+          <button type="button" data-click="setHeroAmount" data-a="50">$50</button>
+          <button type="button" data-click="setHeroAmount" data-a="100">$100</button>
+          <button type="button" data-click="setHeroAmount" data-a="250">$250</button>
         </div>
       </div>
 
@@ -763,7 +763,7 @@ select option:checked{background:#1a2c4a;color:#fff}
           </div>
           <div class="step-hint" id="balances-hint">connect wallet to load balances</div>
         </div>
-        <button class="sel-row" type="button" onclick="openChainModal()">
+        <button class="sel-row" type="button" data-click="openChainModal">
           <div class="sel-row-ico"><img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt=""/></div>
           <div class="sel-row-main">
             <div class="sel-row-k">Source chains</div>
@@ -793,7 +793,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div id="targets-list">
           <!-- target rows injected by JS -->
         </div>
-        <button class="add-target" onclick="addTargetRow('')">+ Add another wallet</button>
+        <button class="add-target" data-click="addTargetRow" data-a="">+ Add another wallet</button>
       </div>
 
       <!-- STEP 3: RULES (mode-dependent) -->
@@ -820,7 +820,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
             <div class="field">
               <span class="field-prefix">$</span>
-              <input class="field-input" id="floor-amt" type="number" placeholder="50" value="50" oninput="updateSummary()"/>
+              <input class="field-input" id="floor-amt" type="number" placeholder="50" value="50" data-input="updateSummary"/>
               <span class="field-suffix">USDC</span>
             </div>
           </div>
@@ -839,7 +839,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
             <div class="field">
               <span class="field-prefix">$</span>
-              <input class="field-input" id="refill-amt" type="number" placeholder="100" value="100" oninput="updateSummary()"/>
+              <input class="field-input" id="refill-amt" type="number" placeholder="100" value="100" data-input="updateSummary"/>
               <span class="field-suffix">USDC</span>
             </div>
           </div>
@@ -858,7 +858,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
             <div class="field">
               <span class="field-prefix">$</span>
-              <input class="field-input" id="cap-amt" type="number" placeholder="500" value="500" oninput="updateSummary()"/>
+              <input class="field-input" id="cap-amt" type="number" placeholder="500" value="500" data-input="updateSummary"/>
               <span class="field-suffix">USDC / day</span>
             </div>
           </div>
@@ -880,7 +880,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
             <div class="field">
               <span class="field-prefix">$</span>
-              <input class="field-input" id="send-amt" type="number" placeholder="100" value="100" oninput="updateSummary()"/>
+              <input class="field-input" id="send-amt" type="number" placeholder="100" value="100" data-input="updateSummary"/>
               <span class="field-suffix">USDC</span>
             </div>
           </div>
@@ -899,8 +899,8 @@ select option:checked{background:#1a2c4a;color:#fff}
               </span>
             </div>
             <div class="seg" id="seg-dist">
-              <button class="seg-btn active" data-val="each" onclick="setDist('each')">Send to each</button>
-              <button class="seg-btn" data-val="split" onclick="setDist('split')">Split between</button>
+              <button class="seg-btn active" data-val="each" data-click="setDist" data-a="each">Send to each</button>
+              <button class="seg-btn" data-val="split" data-click="setDist" data-a="split">Split between</button>
             </div>
           </div>
 
@@ -935,7 +935,7 @@ select option:checked{background:#1a2c4a;color:#fff}
           <div class="field-grid-2">
             <div class="lbl-field" style="margin-bottom:0">
               <div class="lbl-field-label">Frequency</div>
-              <button class="sel-row" type="button" onclick="openFreqModal()">
+              <button class="sel-row" type="button" data-click="openFreqModal">
                 <div class="sel-row-main">
                   <div class="sel-row-k">Repeat</div>
                   <div class="sel-row-v" id="freq-row-v">Every week</div>
@@ -945,7 +945,7 @@ select option:checked{background:#1a2c4a;color:#fff}
             </div>
             <div class="lbl-field" style="margin-bottom:0">
               <div class="lbl-field-label">First run <span id="sched-time-tz" style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· UTC</span></div>
-              <button class="sel-row" type="button" onclick="openCalModal()">
+              <button class="sel-row" type="button" data-click="openCalModal">
                 <div class="sel-row-main">
                   <div class="sel-row-k">Starts</div>
                   <div class="sel-row-v" id="cal-row-v">Next slot</div>
@@ -958,27 +958,27 @@ select option:checked{background:#1a2c4a;color:#fff}
 
         <!-- Hidden data store shared by all modes (deploy/preflight read these). -->
         <div style="display:none" aria-hidden="true">
-          <select id="sched-cadence" onchange="updateSummary()">
+          <select id="sched-cadence" data-change="updateSummary">
             <option value="once">Once · one-time send</option>
             <option value="daily">Every day</option>
             <option value="weekly" selected>Every week</option>
             <option value="monthly">Every month</option>
           </select>
-          <select id="sched-hour" onchange="updateSchedTime()" aria-label="Hour"></select>
-          <select id="sched-min" onchange="updateSchedTime()" aria-label="Minute"></select>
-          <select id="sched-ampm" onchange="updateSchedTime()" aria-label="AM or PM">
+          <select id="sched-hour" data-change="updateSchedTime" aria-label="Hour"></select>
+          <select id="sched-min" data-change="updateSchedTime" aria-label="Minute"></select>
+          <select id="sched-ampm" data-change="updateSchedTime" aria-label="AM or PM">
             <option value="AM">AM</option>
             <option value="PM" selected>PM</option>
           </select>
           <input type="hidden" id="sched-time" value="19:00"/>
-          <input id="sched-start" type="date" oninput="updateSummary()"/>
+          <input id="sched-start" type="date" data-input="updateSummary"/>
           <input type="hidden" id="buy-amt" value="10"/>
         </div>
       </div>
 
       <!-- SUMMARY (collapsible) -->
       <div class="summary">
-        <button class="summary-toggle" type="button" id="summary-toggle" aria-expanded="false" onclick="toggleSummary()">
+        <button class="summary-toggle" type="button" id="summary-toggle" aria-expanded="false" data-click="toggleSummary">
           <span class="summary-h">// What the agent will do</span>
           <span class="summary-caret">▶</span>
         </button>
@@ -991,7 +991,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       <!-- PRE-FLIGHT CHECK - reality-checks the rule against live balances before signing -->
       <div id="preflight" class="preflight" style="display:none"></div>
 
-      <button class="deploy-btn" id="deploy-btn" onclick="deployAgent()">
+      <button class="deploy-btn" id="deploy-btn" data-click="deployAgent">
         Sign &amp; Deploy Agent
       </button>
 
@@ -1074,7 +1074,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="drawer-h-title" id="drawer-title">Agent</div>
         <div class="drawer-h-sub" id="drawer-sub"></div>
       </div>
-      <button class="drawer-close" type="button" onclick="window.closeAgentDrawer()" aria-label="Close">×</button>
+      <button class="drawer-close" type="button" data-click="closeAgentDrawer" aria-label="Close">×</button>
     </div>
     <div class="drawer-body" id="drawer-body"></div>
     <div class="drawer-foot" id="drawer-foot"></div>
@@ -1089,46 +1089,46 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="olq-modal-title">Source chains</div>
         <div class="olq-modal-sub" id="chain-modal-sub">Pick the chains where your USDC lives. The agent pulls from all selected.</div>
       </div>
-      <button class="olq-modal-x" type="button" onclick="closeChainModal()" aria-label="Close">×</button>
+      <button class="olq-modal-x" type="button" data-click="closeChainModal" aria-label="Close">×</button>
     </div>
     <div class="olq-modal-body">
       <div class="chain-list" id="chain-grid">
-        <button class="chain-row selected" type="button" data-chain="base" onclick="toggleChain('base')">
+        <button class="chain-row selected" type="button" data-chain="base" data-click="toggleChain" data-a="base">
           <span class="chain-row-ico"><img src="/assets/logos/chains/base.svg" alt=""/></span>
           <span class="chain-row-name">Base</span>
           <span class="chain-row-bal" data-bal="base">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="arc" onclick="toggleChain('arc')">
+        <button class="chain-row" type="button" data-chain="arc" data-click="toggleChain" data-a="arc">
           <span class="chain-row-ico"><img src="/assets/logos/arc.png" alt=""/></span>
           <span class="chain-row-name">Arc</span>
           <span class="chain-row-bal" data-bal="arc">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="sepolia" onclick="toggleChain('sepolia')">
+        <button class="chain-row" type="button" data-chain="sepolia" data-click="toggleChain" data-a="sepolia">
           <span class="chain-row-ico"><img src="/assets/logos/chains/ethereum.png" alt=""/></span>
           <span class="chain-row-name">Ethereum</span>
           <span class="chain-row-bal" data-bal="sepolia">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="arbitrum" onclick="toggleChain('arbitrum')">
+        <button class="chain-row" type="button" data-chain="arbitrum" data-click="toggleChain" data-a="arbitrum">
           <span class="chain-row-ico"><img src="/assets/logos/chains/arbitrum.png" alt=""/></span>
           <span class="chain-row-name">Arbitrum</span>
           <span class="chain-row-bal" data-bal="arbitrum">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="optimism" onclick="toggleChain('optimism')">
+        <button class="chain-row" type="button" data-chain="optimism" data-click="toggleChain" data-a="optimism">
           <span class="chain-row-ico"><img src="/assets/logos/chains/optimism.png" alt=""/></span>
           <span class="chain-row-name">Optimism</span>
           <span class="chain-row-bal" data-bal="optimism">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="polygon" onclick="toggleChain('polygon')">
+        <button class="chain-row" type="button" data-chain="polygon" data-click="toggleChain" data-a="polygon">
           <span class="chain-row-ico"><img src="/assets/logos/chains/polygon.svg" alt=""/></span>
           <span class="chain-row-name">Polygon</span>
           <span class="chain-row-bal" data-bal="polygon">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="unichain" onclick="toggleChain('unichain')">
+        <button class="chain-row" type="button" data-chain="unichain" data-click="toggleChain" data-a="unichain">
           <span class="chain-row-ico"><img src="/assets/logos/chains/unichain.svg" alt=""/></span>
           <span class="chain-row-name">Unichain</span>
           <span class="chain-row-bal" data-bal="unichain">– USDC</span>
         </button>
-        <button class="chain-row" type="button" data-chain="fuji" onclick="toggleChain('fuji')">
+        <button class="chain-row" type="button" data-chain="fuji" data-click="toggleChain" data-a="fuji">
           <span class="chain-row-ico"><img src="/assets/logos/chains/avalanche.svg" alt=""/></span>
           <span class="chain-row-name">Avalanche</span>
           <span class="chain-row-bal" data-bal="fuji">– USDC</span>
@@ -1136,7 +1136,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       </div>
     </div>
     <div class="olq-modal-foot">
-      <button class="olq-btn primary" type="button" onclick="closeChainModal()">Done</button>
+      <button class="olq-btn primary" type="button" data-click="closeChainModal">Done</button>
     </div>
   </div>
 </div>
@@ -1149,7 +1149,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="olq-modal-title">Deliver on</div>
         <div class="olq-modal-sub">Same-chain lands instantly; a different chain routes via Circle CCTP (~30s).</div>
       </div>
-      <button class="olq-modal-x" type="button" onclick="closeTgtChainModal()" aria-label="Close">×</button>
+      <button class="olq-modal-x" type="button" data-click="closeTgtChainModal" aria-label="Close">×</button>
     </div>
     <div class="olq-modal-body">
       <div class="chain-list" id="tgt-chain-list"></div>
@@ -1165,14 +1165,14 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="olq-modal-title">Pay with</div>
         <div class="olq-modal-sub">You receive the other stablecoin each run. USDC↔EURC only — the live route on Arc.</div>
       </div>
-      <button class="olq-modal-x" type="button" onclick="closeTokModal()" aria-label="Close">×</button>
+      <button class="olq-modal-x" type="button" data-click="closeTokModal" aria-label="Close">×</button>
     </div>
     <div class="olq-modal-body">
-      <button class="freq-opt" type="button" data-tok="USDC" onclick="pickPayTok('USDC')" style="flex-direction:row;align-items:center;gap:12px">
+      <button class="freq-opt" type="button" data-tok="USDC" data-click="pickPayTok" data-a="USDC" style="flex-direction:row;align-items:center;gap:12px">
         <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="" style="width:26px;height:26px;border-radius:50%"/>
         <div><div class="freq-opt-h">USDC</div><div class="freq-opt-d">Pay USDC → receive EURC</div></div>
       </button>
-      <button class="freq-opt" type="button" data-tok="EURC" onclick="pickPayTok('EURC')" style="flex-direction:row;align-items:center;gap:12px;margin-bottom:0">
+      <button class="freq-opt" type="button" data-tok="EURC" data-click="pickPayTok" data-a="EURC" style="flex-direction:row;align-items:center;gap:12px;margin-bottom:0">
         <img src="https://assets.coingecko.com/coins/images/26045/small/euro.png" alt="" style="width:26px;height:26px;border-radius:50%"/>
         <div><div class="freq-opt-h">EURC</div><div class="freq-opt-d">Pay EURC → receive USDC</div></div>
       </button>
@@ -1188,19 +1188,19 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="olq-modal-title">Select frequency</div>
         <div class="olq-modal-sub">How often should this agent run?</div>
       </div>
-      <button class="olq-modal-x" type="button" onclick="closeFreqModal()" aria-label="Close">×</button>
+      <button class="olq-modal-x" type="button" data-click="closeFreqModal" aria-label="Close">×</button>
     </div>
     <div class="olq-modal-body" id="freq-modal-body">
-      <button class="freq-opt" type="button" data-cad="once" onclick="pickFreq('once')">
+      <button class="freq-opt" type="button" data-cad="once" data-click="pickFreq" data-a="once">
         <div class="freq-opt-h">Once</div><div class="freq-opt-d">A single one-time send</div>
       </button>
-      <button class="freq-opt" type="button" data-cad="daily" onclick="pickFreq('daily')">
+      <button class="freq-opt" type="button" data-cad="daily" data-click="pickFreq" data-a="daily">
         <div class="freq-opt-h">Daily</div><div class="freq-opt-d">Every day at the set time</div>
       </button>
-      <button class="freq-opt" type="button" data-cad="weekly" onclick="pickFreq('weekly')">
+      <button class="freq-opt" type="button" data-cad="weekly" data-click="pickFreq" data-a="weekly">
         <div class="freq-opt-h">Weekly</div><div class="freq-opt-d">Every week on this weekday</div>
       </button>
-      <button class="freq-opt" type="button" data-cad="monthly" onclick="pickFreq('monthly')" style="margin-bottom:0">
+      <button class="freq-opt" type="button" data-cad="monthly" data-click="pickFreq" data-a="monthly" style="margin-bottom:0">
         <div class="freq-opt-h">Monthly</div><div class="freq-opt-d">Every month on this date</div>
       </button>
     </div>
@@ -1216,15 +1216,15 @@ select option:checked{background:#1a2c4a;color:#fff}
         <div class="olq-modal-title">Choose first execution time</div>
         <div class="olq-modal-sub" id="cal-modal-sub">Select the first UTC date & time this order should run.</div>
       </div>
-      <button class="olq-modal-x" type="button" onclick="closeCalModal()" aria-label="Close">×</button>
+      <button class="olq-modal-x" type="button" data-click="closeCalModal" aria-label="Close">×</button>
     </div>
     <div class="olq-modal-body">
       <div class="cal-split">
         <div>
           <div class="cal-nav">
-            <button type="button" onclick="calShiftMonth(-1)" aria-label="Previous month">‹</button>
+            <button type="button" data-click="calShiftMonth" data-a="-1" aria-label="Previous month">‹</button>
             <div class="cal-month" id="cal-month">—</div>
-            <button type="button" onclick="calShiftMonth(1)" aria-label="Next month">›</button>
+            <button type="button" data-click="calShiftMonth" data-a="1" aria-label="Next month">›</button>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
         </div>
@@ -1239,9 +1239,9 @@ select option:checked{background:#1a2c4a;color:#fff}
       </div>
     </div>
     <div class="olq-modal-foot">
-      <button class="olq-btn ghost" type="button" onclick="calClear()">Start ASAP</button>
-      <button class="olq-btn" type="button" onclick="closeCalModal()">Cancel</button>
-      <button class="olq-btn primary" type="button" onclick="calSave()">Save UTC Time</button>
+      <button class="olq-btn ghost" type="button" data-click="calClear">Start ASAP</button>
+      <button class="olq-btn" type="button" data-click="closeCalModal">Cancel</button>
+      <button class="olq-btn primary" type="button" data-click="calSave">Save UTC Time</button>
     </div>
   </div>
 </div>
@@ -1258,7 +1258,7 @@ select option:checked{background:#1a2c4a;color:#fff}
       <div class="modal-step" data-step="2"><div class="modal-step-ico">3</div><div class="modal-step-label">Authorize USDC pull</div></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeSignModal()">Cancel</button>
+      <button class="btn-cancel" data-click="closeSignModal">Cancel</button>
     </div>
   </div>
 </div>
@@ -1869,13 +1869,13 @@ select option:checked{background:#1a2c4a;color:#fff}
     const seg = document.getElementById('sub-seg');
     if (g === 'recurring') {
       seg.innerHTML =
-        `<button type="button" data-sub="buy" onclick="setSub('buy')">Buy</button>` +
-        `<button type="button" data-sub="sell" onclick="setSub('sell')">Sell</button>`;
+        `<button type="button" data-sub="buy" data-click="setSub" data-a="buy">Buy</button>` +
+        `<button type="button" data-sub="sell" data-click="setSub" data-a="sell">Sell</button>`;
       setSub(state.dir === 'sell' ? 'sell' : 'buy');
     } else {
       seg.innerHTML =
-        `<button type="button" data-sub="schedule" onclick="setSub('schedule')">Scheduled send</button>` +
-        `<button type="button" data-sub="topup" onclick="setSub('topup')">Auto top-up</button>`;
+        `<button type="button" data-sub="schedule" data-click="setSub" data-a="schedule">Scheduled send</button>` +
+        `<button type="button" data-sub="topup" data-click="setSub" data-a="topup">Auto top-up</button>`;
       setSub(state.mode === 'topup' ? 'topup' : 'schedule');
     }
   }
@@ -2110,14 +2110,14 @@ select option:checked{background:#1a2c4a;color:#fff}
       const past = dUTC < todayUTC;
       const isToday = dUTC === todayUTC;
       const isSel = calSelDate && dUTC === Date.UTC(calSelDate.getUTCFullYear(), calSelDate.getUTCMonth(), calSelDate.getUTCDate());
-      html += `<button type="button" class="cal-day${isSel ? ' sel' : ''}${isToday && !isSel ? ' today' : ''}" ${past ? 'disabled' : ''} onclick="calPickDay(${day})">${day}</button>`;
+      html += `<button type="button" class="cal-day${isSel ? ' sel' : ''}${isToday && !isSel ? ' today' : ''}" ${past ? 'disabled' : ''} data-click="calPickDay" data-a="${day}">${day}</button>`;
     }
     document.getElementById('cal-grid').innerHTML = html;
 
     let th = '';
     for (let h = 0; h < 24; h++) for (const m of [0, 30]) {
       const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      th += `<button type="button" class="cal-time${val === calTimeVal ? ' sel' : ''}" onclick="calPickTime('${val}')">${fmt12(val)} UTC</button>`;
+      th += `<button type="button" class="cal-time${val === calTimeVal ? ' sel' : ''}" data-click="calPickTime" data-a="${val}">${fmt12(val)} UTC</button>`;
     }
     const times = document.getElementById('cal-times');
     times.innerHTML = th;
@@ -2212,7 +2212,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         `<div class="track-line"><span class="k">Per run</span><span class="v">$${total.toFixed(2)} · ${n} wallet${n > 1 ? 's' : ''}</span></div>`;
     }
     card.innerHTML =
-      `<button type="button" class="track-head" onclick="toggleTrack()">` +
+      `<button type="button" class="track-head" data-click="toggleTrack">` +
         `<span class="track-head-l">${iconSvg}${title}</span>` +
         `<span class="track-caret">▾</span>` +
       `</button>` +
@@ -2324,16 +2324,16 @@ select option:checked{background:#1a2c4a;color:#fff}
       <div class="target-row">
         <div class="field">
           <span class="field-prefix">0x</span>
-          <input class="field-input" type="text" placeholder="paste an address" value="${escapeHtml(addr)}" oninput="updateTarget(${i}, this.value)"/>
-          <button class="target-mini" onclick="useMyAddress(${i})">USE MINE</button>
+          <input class="field-input" type="text" placeholder="paste an address" value="${escapeHtml(addr)}" data-input="updateTarget" data-a="${i}"/>
+          <button class="target-mini" data-click="useMyAddress" data-a="${i}">USE MINE</button>
         </div>
-        <button class="tgt-chain-btn" type="button" onclick="openTgtChainModal(${i})" title="Chain this wallet receives USDC on">
+        <button class="tgt-chain-btn" type="button" data-click="openTgtChainModal" data-a="${i}" title="Chain this wallet receives USDC on">
           <img src="${chainLogo(tc)}" alt=""/>
           <span class="nm">${CHAIN_SHORT[tc] || tc}</span>
           <span class="tgt-caret">▾</span>
         </button>
         ${state.targets.length > 1
-          ? `<button class="target-remove" title="Remove" onclick="removeTarget(${i})">×</button>`
+          ? `<button class="target-remove" title="Remove" data-click="removeTarget" data-a="${i}">×</button>`
           : ''}
       </div>`;
     }).join('');
@@ -2352,7 +2352,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     const ordered = [...ALL_CCTP_CHAINS.filter(c => state.sources.has(c)),
                      ...ALL_CCTP_CHAINS.filter(c => !state.sources.has(c))];
     document.getElementById('tgt-chain-list').innerHTML = ordered.map(c => `
-      <button class="chain-row${c === cur ? ' selected' : ''}" type="button" onclick="pickTgtChain('${c}')">
+      <button class="chain-row${c === cur ? ' selected' : ''}" type="button" data-click="pickTgtChain" data-a="${c}">
         <span class="chain-row-ico"><img src="${chainLogo(c)}" alt=""/></span>
         <span class="chain-row-name">${CHAIN_LABELS[c] || c}</span>
         ${state.sources.has(c) ? '<span class="chain-row-bal" style="color:var(--arc4)">same-chain</span>' : '<span class="chain-row-bal">via CCTP</span>'}
@@ -3389,7 +3389,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         : '';
 
       return `
-        <button class="agent-row-compact" type="button" onclick="window.openAgentDrawer('${a.id}')">
+        <button class="agent-row-compact" type="button" data-click="openAgentDrawer" data-a="${a.id}">
           <div class="arc-row-left">
             <div class="arc-row-h">
               <span class="arc-row-name">${title}</span>
@@ -3469,9 +3469,9 @@ select option:checked{background:#1a2c4a;color:#fff}
 
     // ── FOOT (action buttons) ───────────────────────────────────────
     document.getElementById('drawer-foot').innerHTML = `
-      <button onclick="window.toggleAgent('${a.id}')">${a.state === 'paused' ? 'Resume' : 'Pause'}</button>
-      <button class="primary" onclick="window.runOnce('${a.id}')">Run now</button>
-      <button class="danger" onclick="window.revokeAgent('${a.id}')">Revoke</button>`;
+      <button data-click="toggleAgent" data-a="${a.id}">${a.state === 'paused' ? 'Resume' : 'Pause'}</button>
+      <button class="primary" data-click="runOnce" data-a="${a.id}">Run now</button>
+      <button class="danger" data-click="revokeAgent" data-a="${a.id}">Revoke</button>`;
   }
 
   /**
@@ -3621,7 +3621,7 @@ select option:checked{background:#1a2c4a;color:#fff}
           : '';
         const helpBadge = helpBits.length
           ? `<span title="${escapeHtml(helpAttr)}"
-                   onclick="ArcUI.toast('info', 'How this permission works', ${JSON.stringify(helpToastBody)})"
+                   data-click="permHelp" data-a="${escapeHtml(helpToastBody)}"
                    style="cursor:help;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(108,63,255,.12);border:1px solid rgba(108,63,255,.32);color:var(--c-violet-soft);font-size:9.5px;font-weight:700;line-height:1;user-select:none">?</span>`
           : '';
 
@@ -3663,8 +3663,8 @@ select option:checked{background:#1a2c4a;color:#fff}
               <div style="display:flex;align-items:center;padding:4px 0;font-size:11px;font-family:var(--mono);gap:6px">
                 <span style="color:var(--muted);min-width:84px;flex-shrink:0">${CHAIN_LABELS[w.source] || w.source}</span>
                 ${stateLabel}
-                <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" title="${w.address} (click to copy)" onclick="window.copyAddr('${w.address}')">${shortAddr}</span>
-                <button onclick="window.copyAddr('${w.address}')" title="Copy address" style="width:24px;height:24px;border-radius:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">⎘</button>
+                <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" title="${w.address} (click to copy)" data-click="copyAddr" data-a="${w.address}">${shortAddr}</span>
+                <button data-click="copyAddr" data-a="${w.address}" title="Copy address" style="width:24px;height:24px;border-radius:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">⎘</button>
                 <a href="${explorerBase}${w.address}" target="_blank" rel="noopener" title="View on explorer" style="width:24px;height:24px;border-radius:6px;background:rgba(var(--tint),.04);border:1px solid var(--border);color:var(--muted);text-decoration:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">↗</a>
               </div>`;
             }).join('')}
@@ -3687,7 +3687,7 @@ select option:checked{background:#1a2c4a;color:#fff}
                 <span style="font-size:10.5px;color:var(--c-pink);line-height:1.4;flex:1">
                   ⚠ <strong>Provisioning failed</strong> on ${a.failedChains.length} chain${a.failedChains.length > 1 ? 's' : ''}. Sends to ${a.failedChains.length > 1 ? 'these chains' : 'this chain'} will fail loudly (no silent rerouting). Retry, or revoke and recreate without ${a.failedChains.length > 1 ? 'them' : 'it'}.
                 </span>
-                <button onclick="window.retryProvision('${a.id}')" style="padding:5px 10px;border-radius:6px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:10.5px;font-family:var(--mono);font-weight:600;letter-spacing:.04em;cursor:pointer;flex-shrink:0">Retry</button>
+                <button data-click="retryProvision" data-a="${a.id}" style="padding:5px 10px;border-radius:6px;background:rgba(77,214,219,.10);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:10.5px;font-family:var(--mono);font-weight:600;letter-spacing:.04em;cursor:pointer;flex-shrink:0">Retry</button>
               </div>` : ''}
           </div>`;
       } else if (a.provisioning === 'failed') {
@@ -3730,7 +3730,7 @@ select option:checked{background:#1a2c4a;color:#fff}
         // Heuristic CTA picker.
         const ctas = [];
         if (reasonLower.includes('no circle wallet for chain') || reasonLower.includes('provisioning may have failed')) {
-          ctas.push(`<button onclick="window.retryProvision('${a.id}')" style="padding:6px 12px;border-radius:6px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.36);color:var(--arc1);font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.04em;cursor:pointer">↻ Retry Circle wallet provisioning</button>`);
+          ctas.push(`<button data-click="retryProvision" data-a="${a.id}" style="padding:6px 12px;border-radius:6px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.36);color:var(--arc1);font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.04em;cursor:pointer">↻ Retry Circle wallet provisioning</button>`);
         }
         if (reasonLower.includes('insufficient token balance') || reasonLower.includes('asset amount owned by the wallet is insufficient')) {
           ctas.push(`<div style="padding:6px 10px;border-radius:6px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.30);color:var(--c-gold-soft);font-size:10.5px;font-family:var(--mono);font-weight:600">→ Fund the agent's source wallet with USDC (see Permission section below)</div>`);
@@ -3818,7 +3818,7 @@ select option:checked{background:#1a2c4a;color:#fff}
                   // etc.) but IRIS hasn't reported complete to us.
                   const isStuck = p.state !== 'done' && p.state !== 'failed' && ageSinceCreate > 5 * 60 * 1000;
                   const forceBtn = isStuck
-                    ? `<button onclick="window.forceCompleteCctp('${a.id}', ${realIdx})" title="Mark this transfer as done - use only after verifying USDC actually landed on dest chain" style="padding:3px 8px;border-radius:5px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);color:var(--c-gold-soft);font-size:9.5px;font-family:var(--mono);font-weight:600;cursor:pointer;margin-left:6px">Force done</button>`
+                    ? `<button data-click="forceCompleteCctp" data-a="${a.id}" data-b="${realIdx}" title="Mark this transfer as done - use only after verifying USDC actually landed on dest chain" style="padding:3px 8px;border-radius:5px;background:rgba(255,184,0,.10);border:1px solid rgba(255,184,0,.32);color:var(--c-gold-soft);font-size:9.5px;font-family:var(--mono);font-weight:600;cursor:pointer;margin-left:6px">Force done</button>`
                     : '';
                   // Burn explorer link - once we have the on-chain txHash,
                   // surface it so the user can verify the burn really
@@ -4230,12 +4230,12 @@ select option:checked{background:#1a2c4a;color:#fff}
     list.innerHTML = convos.map(c => {
       const d = new Date(c.updatedAt || c.createdAt);
       const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return `<div class="convo-item${c.id === activeConvoId ? ' active' : ''}" onclick="loadConvo('${c.id}')">
+      return `<div class="convo-item${c.id === activeConvoId ? ' active' : ''}" data-click="loadConvo" data-a="${c.id}">
         <div class="convo-item-main">
           <div class="convo-item-title">${escapeHtml(c.title || 'Untitled')}</div>
           <div class="convo-item-date">${dateStr}</div>
         </div>
-        <button type="button" class="convo-del" title="Delete" onclick="deleteConvo('${c.id}', event)">×</button>
+        <button type="button" class="convo-del" title="Delete" data-click="deleteConvo" data-a="${c.id}">×</button>
       </div>`;
     }).join('');
   }
@@ -4710,6 +4710,82 @@ select option:checked{background:#1a2c4a;color:#fff}
     const c = convos.find(x => x.id === activeConvoId);
     if (c) chatMessages = (c.messages || []).slice(); else activeConvoId = null;
   }
+  /* ============================================================
+     ACTION DISPATCH
+     The page carries no inline on*= handlers, so the Content Security
+     Policy can refuse inline script outright and anything injected into
+     the DOM stays inert. Every control names an action instead, and the
+     arguments ride along in data-a / data-b / data-c.
+       <button data-click="pickFreq" data-a="daily">
+     Only names in this table can be reached, and the table is the one
+     place that knows which arguments are numbers.
+  ============================================================ */
+  function permHelp(text) {
+    ArcUI.toast('info', 'How this permission works', text);
+  }
+
+  const ACTIONS = {
+    addTargetRow:          (el, ev) => addTargetRow(el.dataset.a),
+    calClear:              (el, ev) => calClear(),
+    calPickDay:            (el, ev) => calPickDay(Number(el.dataset.a)),
+    calPickTime:           (el, ev) => calPickTime(el.dataset.a),
+    calSave:               (el, ev) => calSave(),
+    calShiftMonth:         (el, ev) => calShiftMonth(Number(el.dataset.a)),
+    chatSend:              (el, ev) => chatSend(),
+    chatSuggest:           (el, ev) => chatSuggest(el),
+    closeAgentDrawer:      (el, ev) => closeAgentDrawer(),
+    closeCalModal:         (el, ev) => closeCalModal(),
+    closeChainModal:       (el, ev) => closeChainModal(),
+    closeFreqModal:        (el, ev) => closeFreqModal(),
+    closeSignModal:        (el, ev) => closeSignModal(),
+    closeTgtChainModal:    (el, ev) => closeTgtChainModal(),
+    closeTokModal:         (el, ev) => closeTokModal(),
+    copyAddr:              (el, ev) => copyAddr(el.dataset.a),
+    deleteConvo:           (el, ev) => deleteConvo(el.dataset.a, ev),
+    deployAgent:           (el, ev) => deployAgent(),
+    forceCompleteCctp:     (el, ev) => forceCompleteCctp(el.dataset.a, Number(el.dataset.b)),
+    loadConvo:             (el, ev) => loadConvo(el.dataset.a),
+    newChat:               (el, ev) => newChat(),
+    onHeroAmount:          (el, ev) => onHeroAmount(el.value),
+    openAgentDrawer:       (el, ev) => openAgentDrawer(el.dataset.a),
+    openCalModal:          (el, ev) => openCalModal(),
+    openChainModal:        (el, ev) => openChainModal(),
+    openFreqModal:         (el, ev) => openFreqModal(),
+    openTgtChainModal:     (el, ev) => openTgtChainModal(Number(el.dataset.a)),
+    permHelp:              (el, ev) => permHelp(el.dataset.a),
+    pickFreq:              (el, ev) => pickFreq(el.dataset.a),
+    pickPayTok:            (el, ev) => pickPayTok(el.dataset.a),
+    pickTgtChain:          (el, ev) => pickTgtChain(el.dataset.a),
+    removeTarget:          (el, ev) => removeTarget(Number(el.dataset.a)),
+    retryProvision:        (el, ev) => retryProvision(el.dataset.a),
+    revokeAgent:           (el, ev) => revokeAgent(el.dataset.a),
+    runOnce:               (el, ev) => runOnce(el.dataset.a),
+    setCfgTab:             (el, ev) => setCfgTab(el.dataset.a),
+    setDist:               (el, ev) => setDist(el.dataset.a),
+    setGroup:              (el, ev) => setGroup(el.dataset.a),
+    setHeroAmount:         (el, ev) => setHeroAmount(Number(el.dataset.a)),
+    setSub:                (el, ev) => setSub(el.dataset.a),
+    toggleAgent:           (el, ev) => toggleAgent(el.dataset.a),
+    toggleChain:           (el, ev) => toggleChain(el.dataset.a),
+    toggleConvoPanel:      (el, ev) => toggleConvoPanel(),
+    toggleSummary:         (el, ev) => toggleSummary(),
+    toggleTrack:           (el, ev) => toggleTrack(),
+    updateSchedTime:       (el, ev) => updateSchedTime(),
+    updateSummary:         (el, ev) => updateSummary(),
+    updateTarget:          (el, ev) => updateTarget(Number(el.dataset.a), el.value),
+    useMyAddress:          (el, ev) => useMyAddress(Number(el.dataset.a)),
+  };
+
+  function dispatch(ev) {
+    const el = ev.target.closest('[data-' + ev.type + ']');
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute('data-' + ev.type)];
+    if (typeof fn === 'function') fn(el, ev);
+  }
+  for (const type of ['click', 'input', 'change']) {
+    document.addEventListener(type, dispatch);
+  }
+
   renderConversation();
   renderConvoList();
 })();

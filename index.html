@@ -526,8 +526,8 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
   </div>
   <div class="nav-right">
     <a class="btn-ghost" href="/docs" style="text-decoration:none">Docs</a>
-    <button class="btn-primary" onclick="window.location.href='/trade'">Launch App ↗</button>
-    <button class="nav-burger" id="nav-burger" aria-label="Open menu" aria-expanded="false" onclick="toggleMobileMenu()">☰</button>
+    <button class="btn-primary" data-nav="/trade">Launch App ↗</button>
+    <button class="nav-burger" id="nav-burger" aria-label="Open menu" aria-expanded="false" data-click="toggleMobileMenu">☰</button>
   </div>
 </nav>
 
@@ -681,7 +681,7 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
           <div class="af-item"><div class="af-dot"></div>⤵ Consolidate - sweep every chain into one</div>
           <div class="af-item"><div class="af-dot"></div>Gasless mint on the destination · non-custodial</div>
         </div>
-        <button class="btn-launch" style="width:fit-content" onclick="window.location.href='/balance'">
+        <button class="btn-launch" style="width:fit-content" data-nav="/balance">
           Open Balance ↗
         </button>
       </div>
@@ -707,9 +707,9 @@ footer{position:relative;z-index:1;padding:80px 0 40px;border-top:1px solid var(
             <div class="ub-cap">Spendable on any chain · 8 chains, one number</div>
           </div>
           <div class="ub-modes">
-            <button class="ub-mode active" onclick="ubMode(this)">⚡ Auto</button>
-            <button class="ub-mode" onclick="ubMode(this)">Single</button>
-            <button class="ub-mode" onclick="ubMode(this)">Manual</button>
+            <button class="ub-mode active" data-click="ubMode">⚡ Auto</button>
+            <button class="ub-mode" data-click="ubMode">Single</button>
+            <button class="ub-mode" data-click="ubMode">Manual</button>
           </div>
           <div class="sw-details" style="border-top:none;margin-top:0;padding-top:4px">
             <div class="sw-row"><span class="sw-row-label">To</span><span class="sw-row-val">Base Sepolia</span></div>
@@ -834,10 +834,10 @@ HIDDEN_END -->
       <h2 class="cta-title">One USDC.<br>One Balance.<br><span class="grad">Everywhere on Arc.</span></h2>
       <p class="cta-sub">Oneliq is a unified stablecoin platform built for Arc. Connect any wallet, see your USDC on every supported chain as one spendable balance, and spend, batch pay, or consolidate with a single signature. Currently live on Arc Testnet - now with Oneliq AI in preview: describe what you want in chat, review, and sign.</p>
       <div class="cta-btns">
-        <button class="btn-launch" onclick="window.location.href='/balance'">
+        <button class="btn-launch" data-nav="/balance">
           Spend Anywhere ↗
         </button>
-        <button class="btn-secondary" onclick="window.open('https://docs.arc.network','_blank','noopener,noreferrer')">Read Arc Docs</button>
+        <button class="btn-secondary" data-nav-blank="https://docs.arc.network">Read Arc Docs</button>
       </div>
     </div>
   </div>
@@ -1017,6 +1017,24 @@ function toggleMobileMenu(){
   b.setAttribute('aria-expanded',open?'true':'false');
   b.textContent=open?'✕':'☰';
 }
+// ACTION DISPATCH - the page carries no inline handlers, so the Content
+// Security Policy can refuse inline script outright. Every clickable marks
+// itself with data-click / data-nav and this listener does the wiring.
+const ACTIONS = {
+  ubMode:           el => ubMode(el),
+  toggleMobileMenu: ()  => toggleMobileMenu(),
+};
+document.addEventListener('click', e => {
+  const nav = e.target.closest('[data-nav]');
+  if (nav) { window.location.href = nav.dataset.nav; return; }
+  const blank = e.target.closest('[data-nav-blank]');
+  if (blank) { window.open(blank.dataset.navBlank, '_blank', 'noopener,noreferrer'); return; }
+  const el = e.target.closest('[data-click]');
+  if (!el) return;
+  const fn = ACTIONS[el.dataset.click];
+  if (fn) fn(el, e);
+});
+
 document.querySelectorAll('#mobile-menu a').forEach(a=>a.addEventListener('click',()=>{
   document.getElementById('mobile-menu').classList.remove('open');
   const b=document.getElementById('nav-burger');

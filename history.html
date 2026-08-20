@@ -399,7 +399,7 @@
       : (src ? chainTagHtml(t.srcChain) : '');
 
     const hashLink = (t.hash && t.srcChain)
-      ? `<a href="${explorerTx(t.srcChain, t.hash)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${shortHash(t.hash)} ↗</a>`
+      ? `<a href="${explorerTx(t.srcChain, t.hash)}" target="_blank" rel="noopener" data-click="stopProp">${shortHash(t.hash)} ↗</a>`
       : '';
 
     const subParts = [route, hashLink, fmtRelTime(t.ts)].filter(Boolean);
@@ -469,6 +469,8 @@
 
     feed.innerHTML = rows.map(rowHtml).join('');
     feed.querySelectorAll('.hist-row').forEach(el => {
+      // (the explorer link inside a row stops the row's own click — see the
+      //  capture listener at the bottom of this script)
       el.addEventListener('click', () => {
         const href = el.getAttribute('data-href');
         if (href) window.open(href, '_blank', 'noopener');
@@ -510,6 +512,15 @@
     state.txs = merged;
     render();
   }, 8000);
+
+// The explorer link inside a row used to carry onclick="event.stopPropagation()",
+// which a CSP without 'unsafe-inline' refuses to run. This has to listen in the
+// capture phase: the row's own click listener sits between the link and the
+// document, so a bubble-phase listener would arrive too late to stop it.
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-click="stopProp"]');
+  if (el) ev.stopPropagation();
+}, true);
 
 })().catch(err => console.error('[history] fatal:', err));
 </script>

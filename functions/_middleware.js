@@ -19,6 +19,78 @@
 
 const REALM = 'Oneliq — Private';
 
+/* ────────────────────────────────────────────────────────────
+   Content Security Policy: inline script by nonce, not by trust
+
+   The policy in _headers used to allow 'unsafe-inline' for scripts, which
+   means the browser will run ANY inline script it finds in the page —
+   including one an attacker managed to get into the DOM. That single keyword
+   is what turns a stray unescaped string into code execution.
+
+   Every page now carries its behaviour in data-* markers instead of on*=
+   attributes, so inline handlers are no longer needed at all. What remains is
+   the one big <script> block per page, and each of those gets a fresh random
+   nonce here on every response. An injected script has no nonce, so it does
+   not run — and the nonce cannot be predicted or reused, since it changes per
+   request.
+
+   The allowlists themselves still live in _headers. This only rewrites the
+   script-src directive, so there is one place to edit when a host changes.
+   If anything here throws, the original response goes out untouched: a
+   working page under the old policy beats a blank one.
+   ──────────────────────────────────────────────────────────── */
+
+function newNonce() {
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  let s = '';
+  for (const x of b) s += String.fromCharCode(x);
+  return btoa(s).replace(/=+$/, '');
+}
+
+function cspWithNonce(csp, nonce) {
+  const src = `'nonce-${nonce}'`;
+  if (/script-src[^;]*'unsafe-inline'/.test(csp)) {
+    return csp.replace(/script-src([^;]*)/, (m, rest) =>
+      'script-src' + rest.replace(/'unsafe-inline'/g, src));
+  }
+  if (/script-src/.test(csp)) {
+    return csp.replace(/script-src/, `script-src ${src}`);
+  }
+  return csp;
+}
+
+async function withCsp(context, response) {
+  try {
+    const type = response.headers.get('Content-Type') || '';
+    if (!type.includes('text/html')) return response;
+
+    const csp = response.headers.get('Content-Security-Policy');
+    if (!csp) return response;
+
+    const nonce = newNonce();
+    const rewritten = new HTMLRewriter()
+      .on('script', {
+        element(el) {
+          // External scripts are already constrained by host; only inline
+          // blocks need to prove they were in the page we served.
+          if (!el.hasAttribute('src')) el.setAttribute('nonce', nonce);
+        },
+      })
+      .transform(response);
+
+    const out = new Response(rewritten.body, {
+      status: rewritten.status,
+      statusText: rewritten.statusText,
+      headers: new Headers(rewritten.headers),
+    });
+    out.headers.set('Content-Security-Policy', cspWithNonce(csp, nonce));
+    return out;
+  } catch (err) {
+    console.error('[csp] nonce injection failed:', err && err.message);
+    return response;
+  }
+}
+
 function isProtected(pathname) {
   return (
     pathname === '/ops' ||
@@ -76,7 +148,7 @@ export async function onRequest(context) {
 
   // Anything outside the protected path passes straight through.
   if (!isProtected(url.pathname)) {
-    return context.next();
+    return withCsp(context, await context.next());
   }
 
   const user = context.env.POOL_AUTH_USER;
@@ -122,5 +194,5 @@ export async function onRequest(context) {
     return unauthorized();
   }
 
-  return context.next();
+  return withCsp(context, await context.next());
 }
