@@ -3,6 +3,18 @@
 # Headers below CANNOT be set via <meta> and MUST come from the host.
 
 /*
+  # NOTE ON script-src: 'unsafe-inline' below is NOT what browsers end up with.
+  # functions/_middleware.js rewrites this header on every HTML response,
+  # swapping 'unsafe-inline' for a fresh per-request 'nonce-...' and stamping
+  # that nonce on the page's own inline <script>. Injected script has no nonce
+  # and does not run. The keyword stays here only as the fallback if nonce
+  # injection ever throws — a working page under the old policy beats a blank
+  # one. Everything else in this policy is the single source of truth; the
+  # middleware touches the script-src directive and nothing else.
+  #
+  # style-src keeps 'unsafe-inline' on purpose: inline style cannot execute,
+  # and the pages are built on inline style attributes throughout.
+  #
   # Defense-in-depth CSP (matches the meta tag, plus frame-ancestors which meta cannot set).
   # script-src includes esm.sh for Circle App Kit ESM modules (swap, bridge, send).
   # connect-src includes Circle's App Kit API endpoints for swap routing/quotes.
