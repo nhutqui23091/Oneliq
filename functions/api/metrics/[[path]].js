@@ -95,15 +95,24 @@ const USDC_BY_CHAIN = {
   arc:             '0x3600000000000000000000000000000000000000',
 };
 
+// Addresses verified live on Arc (eth_getCode + selector probe) rather than
+// copied from notes — an earlier revision of this list carried a mistyped
+// router that has no contract at all, which silently rejected every real swap.
 const ONELIQ_CONTRACTS = new Set([
-  '0x48a9bd1644ac67fbef4183261c466bea3eb333fc', // OneliqRouter (Arc swaps)
-  '0xb508cc1e3a7f3ad1f8b1e0cba1e0b1e0cba1e1f7', // OneliqRouter (fee-taking, 0.3%)
+  '0xb508f475230e4ab876258b7dcafbc182d806e1f7', // OneliqRouter — the live fee router (feeBps 30)
+  '0x48a9bd1644ac67fbef4183261c466bea3eb333fc', // legacy router, kept so historical swaps still attribute
   '0x368a0e854ec69ec10b50d20fcafc1baf8b7eff10', // OneliqCheckIn (portal)
+  '0x2d84d79c852f6842abe0304b70bbaa1506add457', // Curve USDC/EURC pool the router forwards to
   '0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa', // CCTP TokenMessengerV2
   '0xe737e5cebeeba77efe34d4aa090756590b1ce275', // CCTP MessageTransmitterV2
   '0x0077777d7eba4688bdef3e311b846f25870a19b9', // Circle Gateway wallet
   '0x0022222abe238cc2c7bb1f21003f0a260052475b', // Circle Gateway minter
 ]);
+
+// How stale a transaction may be and still count as "this just happened".
+// The client reports immediately after tx.wait(), so a real event is seconds
+// old. Anything older is someone replaying hashes off a block explorer.
+const TX_MAX_AGE_S = 30 * 60;
 
 function touchesOneliq(chainKey, to) {
   if (!to) return false;                       // contract creation
@@ -111,21 +120,38 @@ function touchesOneliq(chainKey, to) {
   return ONELIQ_CONTRACTS.has(t) || USDC_BY_CHAIN[chainKey] === t;
 }
 
+async function rpcCall(rpcUrl, method, params) {
+  const res = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    signal: AbortSignal.timeout(3000),
+  });
+  if (!res.ok) return null;
+  return (await res.json())?.result ?? null;
+}
+
 async function verifyTxSender(env, chainKey, txHash, address) {
   const rpcUrl = getRpcUrl(env, chainKey);
   if (!rpcUrl) return 'unknown';
   try {
-    const res = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getTransactionByHash', params: [txHash] }),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) return 'unknown';
-    const tx = (await res.json())?.result;
+    const tx = await rpcCall(rpcUrl, 'eth_getTransactionByHash', [txHash]);
     if (!tx || !tx.from) return 'unknown';
     if (tx.from.toLowerCase() !== address.toLowerCase()) return 'mismatch';
-    return touchesOneliq(chainKey, tx.to) ? 'verified' : 'unrelated';
+    if (!touchesOneliq(chainKey, tx.to)) return 'unrelated';
+
+    // Age check. USDC has to be on the contract list because a plain transfer
+    // is how Trade moves funds, which would otherwise let anyone replay any
+    // USDC transfer on a supported chain. Requiring the transaction to be
+    // minutes old turns that from "scrape the explorer" into "watch the chain
+    // live and race us", and the single-use check below caps each hash at one.
+    if (!tx.blockNumber) return 'unknown';                 // still pending
+    const block = await rpcCall(rpcUrl, 'eth_getBlockByNumber', [tx.blockNumber, false]);
+    if (!block || !block.timestamp) return 'unknown';
+    const ageS = Math.floor(Date.now() / 1000) - Number(BigInt(block.timestamp));
+    if (ageS > TX_MAX_AGE_S) return 'stale';
+
+    return 'verified';
   } catch {
     return 'unknown';
   }
@@ -605,10 +631,20 @@ export async function onRequest(context) {
     // counters stay useful — but never touches the distinct-wallet registry.
     let attribution = 'none';
     if (claimedAddr && txHash) {
+      // One transaction is one event, for good. Without this a single valid
+      // hash could be resubmitted forever, and it also collapses client
+      // retries that would otherwise double-count a real action.
+      if (await kv.get(`metric:txseen:${txHash.toLowerCase()}`)) {
+        return new Response(null, { status: 204, headers: cors(origin) });
+      }
       const verdict = await verifyTxSender(env, chain, txHash, claimedAddr);
       if (verdict === 'mismatch')  return bad('tx_sender_mismatch', origin, 400);
       if (verdict === 'unrelated') return bad('tx_not_a_oneliq_action', origin, 400);
+      if (verdict === 'stale')     return bad('tx_too_old', origin, 400);
       attribution = verdict === 'verified' ? 'onchain' : 'none';
+      if (attribution === 'onchain') {
+        await kv.put(`metric:txseen:${txHash.toLowerCase()}`, '1', { expirationTtl: 400 * 24 * 60 * 60 });
+      }
     } else if (claimedAddr) {
       // Events with no transaction of their own (agent-create, agent-exec,
       // failure). Fall back to the session token so they are not lost.
