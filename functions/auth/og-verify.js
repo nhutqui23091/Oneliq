@@ -11,6 +11,8 @@
  * User must have Discord linked (profile:${address} must contain discord_id).
  */
 
+import { underRateLimit } from '../_session.js';
+
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method === 'OPTIONS') return corsOk();
@@ -18,6 +20,12 @@ export async function onRequest(context) {
 
   const kv = env.PROFILE_KV;
   if (!kv) return jsonRes({ error: 'KV not configured' }, 503);
+
+  // Every call spends a Discord API request against our bot token. Unmetered,
+  // a stranger with a loop gets the bot rate-limited and nobody can verify.
+  if (!(await underRateLimit(env.AGENT_KV, request, 'ogverify', 10, 60))) {
+    return jsonRes({ error: 'Too many attempts. Wait a minute and try again.' }, 429);
+  }
 
   let body;
   try { body = await request.json(); }

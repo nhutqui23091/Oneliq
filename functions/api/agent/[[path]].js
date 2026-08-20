@@ -52,6 +52,7 @@ import {
   AGENT_RULE_TYPE,
   AGENT_ACTION_TYPE,
 } from './_verify.js';
+import { timingSafeEqual } from '../../_session.js';
 
 const HEADERS_JSON = { 'Content-Type': 'application/json' };
 
@@ -1240,7 +1241,7 @@ async function handleDebugFailures(req, kv, env) {
   //   3. Delete DEBUG_KEY env var — endpoint goes back to 503
   const provided = req.headers.get('X-Debug-Key') || '';
   if (!env.DEBUG_KEY) return json(503, { error: 'debug_disabled', message: 'Set DEBUG_KEY env var on Cloudflare Pages to enable this endpoint (delete after use).' });
-  if (provided !== env.DEBUG_KEY) return json(401, { error: 'unauthorized' });
+  if (!timingSafeEqual(provided, env.DEBUG_KEY)) return json(401, { error: 'unauthorized' });
 
   const url = new URL(req.url);
   const lookbackHours = Math.min(168, Math.max(1, parseInt(url.searchParams.get('hours') || '24', 10)));

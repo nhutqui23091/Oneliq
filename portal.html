@@ -635,17 +635,31 @@
   // Start the Discord OAuth link flow and return to the Portal. Linking the
   // account is what completes the "Join Oneliq Discord" task; once back, we
   // open the server invite so they can actually join + say GM.
-  function connectDiscord() {
+  async function connectDiscord() {
     const a = addr();
     if (!a) { ArcUI.toast('', 'Connect wallet', 'Connect your wallet first.'); return; }
     const clientId = document.querySelector('meta[name="oneliq-discord-client-id"]')?.content || '';
     if (!clientId) { window.open(DISCORD_INVITE, '_blank', 'noopener'); return; }
-    const redirectUri = document.querySelector('meta[name="oneliq-discord-redirect"]')?.content
-      || (location.origin + '/auth/discord/callback');
     try { localStorage.setItem('oneliq_join_server_after', '1'); } catch {}
-    location.href = 'https://discord.com/oauth2/authorize?client_id=' + encodeURIComponent(clientId)
-      + '&redirect_uri=' + encodeURIComponent(redirectUri)
-      + '&response_type=code&scope=identify&state=' + encodeURIComponent(a + '|portal');
+    // The Discord URL is minted server-side against a one-time state bound to
+    // this wallet — the address never travels through the query string where
+    // anyone could swap it for someone else's.
+    try {
+      const auth = await gmAuth(true);
+      const r = await fetch('/auth/discord/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth },
+        body: JSON.stringify({ address: a, returnTo: 'portal' }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.url) {
+        ArcUI.toast('error', 'Could not start', data.error || 'Try again in a moment.');
+        return;
+      }
+      location.href = data.url;
+    } catch {
+      ArcUI.toast('error', 'Could not start', 'Try again in a moment.');
+    }
   }
 
   // -- Dashboard --
@@ -891,7 +905,9 @@
     if (!a) return;
     const xHandle = (localStorage.getItem('oneliq_profile_x_' + a) || '');
     const xDone   = gmState?.x_follow_done;
-    const dcDone  = !!(discState?.discord_username);
+    // `linked` is what the profile endpoint returns to a caller who has not
+    // signed in; the username itself is only sent to the wallet that owns it.
+    const dcDone  = !!(discState?.discord_username || discState?.linked);
 
     // Discord task
     const tdCard = document.getElementById('td');
@@ -901,7 +917,7 @@
     if (dcDone) {
       tdCard.classList.add('done'); tdIco.classList.add('done');
       tdIco.textContent = '✓';
-      tdSub.textContent = discState.discord_username;
+      tdSub.textContent = discState.discord_username || 'Linked';
       tdSub.classList.add('ok');
       tdActs.innerHTML  = '';
     } else {
@@ -1357,9 +1373,12 @@
       return;
     }
     try {
+      // Non-interactive: a page load must never pop the wallet. Without a
+      // token the profile endpoint still says whether Discord is linked.
+      const pauth = await gmAuth(false);
       const [gr, dr] = await Promise.all([
         fetch('/auth/gm?address=' + a),
-        fetch('/auth/profile/' + a),
+        fetch('/auth/profile/' + a, { headers: pauth }),
       ]);
       gmState   = gr.ok  ? await gr.json() : null;
       discState = dr.ok  ? await dr.json() : null;

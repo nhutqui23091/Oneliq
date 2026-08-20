@@ -4,6 +4,13 @@
   if (!global.ARC) { console.error('[arc-ui] ARC core not loaded'); return; }
   const ARC = global.ARC;
 
+  // For any string that came from outside us — a Discord display name, a saved
+  // label — before it goes anywhere near innerHTML.
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   // ── NAVBAR ─────────────────────────────────────────────
   // Two chrome variants:
   //   1. boot()    - classic top nav. Marketing/landing pages (/, /blog).
@@ -169,14 +176,33 @@
         function dcWire() {
           const btn = document.getElementById('pm-dc-btn');
           if (!btn) return;
-          btn.onclick = () => {
+          btn.onclick = async () => {
             if (!clientId) {
               toast('warn', 'Not configured', 'Add DISCORD_CLIENT_ID to Cloudflare Pages environment variables to enable Discord.');
               return;
             }
-            window.location.href = 'https://discord.com/oauth2/authorize?client_id=' + encodeURIComponent(clientId)
-              + '&redirect_uri=' + encodeURIComponent(redirectUri)
-              + '&response_type=code&scope=identify&state=' + encodeURIComponent(addr.toLowerCase());
+            // The server builds the Discord URL now. It hands back a one-time
+            // state value bound to this wallet, so the link cannot be pointed
+            // at somebody else's address on the way back.
+            btn.disabled = true;
+            try {
+              const auth = await ARC.session.headers({ interactive: true, address: addr });
+              const r = await fetch('/auth/discord/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...auth },
+                body: JSON.stringify({ address: addr.toLowerCase(), returnTo: 'balance' }),
+              });
+              const data = await r.json().catch(() => ({}));
+              if (!r.ok || !data.url) {
+                toast('error', 'Could not start', data.error || 'Try again in a moment.');
+                btn.disabled = false;
+                return;
+              }
+              window.location.href = data.url;
+            } catch {
+              toast('error', 'Could not start', 'Try again in a moment.');
+              btn.disabled = false;
+            }
           };
         }
         // Streak row (async, non-blocking)
@@ -192,13 +218,22 @@
             }
           })
           .catch(() => {});
-        fetch('/auth/profile/' + addr.toLowerCase())
+        ARC.session.headers({ interactive: false, address: addr })
+          .catch(() => ({}))
+          .then(auth => fetch('/auth/profile/' + addr.toLowerCase(), { headers: auth || {} }))
           .then(r => r.ok ? r.json() : null)
           .then(profile => {
-            if (profile && profile.discord_username) {
-              discordEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px"><span style="font-family:var(--mono);font-size:13px;color:var(--text)">' + (profile.discord_global_name || profile.discord_username) + '</span><button id="pm-dc-unlink" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font);padding:2px 6px">Unlink</button></div>';
-              document.getElementById('pm-dc-unlink').onclick = () => {
-                fetch('/auth/profile/' + addr.toLowerCase(), { method: 'DELETE' }).catch(() => {});
+            if (profile && (profile.discord_username || profile.linked)) {
+              // A Discord display name is chosen by its owner and arrives from
+              // Discord's API, so it is never inlined raw.
+              const shown = profile.discord_global_name || profile.discord_username || 'Discord linked';
+              discordEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px"><span style="font-family:var(--mono);font-size:13px;color:var(--text)">' + escapeHtml(shown) + '</span><button id="pm-dc-unlink" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font);padding:2px 6px">Unlink</button></div>';
+              document.getElementById('pm-dc-unlink').onclick = async () => {
+                const a = await ARC.session.headers({ interactive: true, address: addr }).catch(() => ({}));
+                const r = await fetch('/auth/profile/' + addr.toLowerCase(), {
+                  method: 'DELETE', headers: a || {},
+                }).catch(() => null);
+                if (!r || !r.ok) { toast('error', 'Could not unlink', 'Sign in with this wallet and try again.'); return; }
                 toast('', 'Discord unlinked');
                 discordEl.innerHTML = dcBtn();
                 dcWire();

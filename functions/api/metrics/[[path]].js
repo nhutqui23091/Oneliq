@@ -53,7 +53,7 @@
  * contended) fixes any drift within 24h.
  */
 
-import { underRateLimit, sessionAddress } from '../../_session.js';
+import { underRateLimit, sessionAddress, timingSafeEqual } from '../../_session.js';
 import { getRpcUrl } from '../agent/_balance.js';
 
 /**
@@ -865,7 +865,7 @@ export async function onRequest(context) {
   // Auth: X-Debug-Key header must equal env.DEBUG_KEY (same gate as admin tools).
   if (route === 'reconcile-users') {
     if (!env.DEBUG_KEY) return bad('disabled: set DEBUG_KEY env var to enable', origin, 503);
-    if ((request.headers.get('X-Debug-Key') || '') !== env.DEBUG_KEY) return bad('unauthorized', origin, 401);
+    if (!timingSafeEqual(request.headers.get('X-Debug-Key') || '', env.DEBUG_KEY)) return bad('unauthorized', origin, 401);
 
     const ROUTER = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
     const SWAP_SELECTOR = '0xfe029156'; // swap(address,address,uint256,uint256)

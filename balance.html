@@ -1759,9 +1759,13 @@ html{scroll-behavior:smooth}
     if (!wrap || !box) return;
     if (!bpBook.length) { wrap.style.display = 'none'; box.innerHTML = ''; return; }
     wrap.style.display = 'block';
+    // Labels are free text that came back from storage. Only this wallet can
+    // write its own book, but a label still never reaches innerHTML raw.
+    const bpEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     box.innerHTML = bpBook.map((r, i) => `
       <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 8px 5px 10px;border:1px solid var(--border);border-radius:100px;background:var(--surface);font-size:11.5px">
-        <button type="button" data-book-add="${i}" title="Add as a row" style="border:none;background:none;padding:0;cursor:pointer;color:var(--text);font-family:var(--mono);font-size:11.5px">${r.label ? r.label + ' · ' : ''}${bpShort(r.addr)} <span style="color:var(--muted)">${chainName(r.chain) || r.chain}</span></button>
+        <button type="button" data-book-add="${i}" title="Add as a row" style="border:none;background:none;padding:0;cursor:pointer;color:var(--text);font-family:var(--mono);font-size:11.5px">${r.label ? bpEsc(r.label) + ' · ' : ''}${bpEsc(bpShort(r.addr))} <span style="color:var(--muted)">${bpEsc(chainName(r.chain) || r.chain)}</span></button>
         <button type="button" data-book-del="${i}" title="Forget this recipient" style="border:none;background:none;padding:0 0 0 2px;cursor:pointer;color:var(--muted);font-size:13px;line-height:1">×</button>
       </span>`).join('');
     box.querySelectorAll('[data-book-add]').forEach(b => b.onclick = () => {

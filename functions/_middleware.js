@@ -28,6 +28,38 @@ function isProtected(pathname) {
   );
 }
 
+/**
+ * Compare two strings without letting the time taken reveal how much of the
+ * prefix matched. Over the public internet the signal is buried in jitter, but
+ * a password check is the last place to leave one on the floor.
+ */
+function timingSafeEqual(a, b) {
+  const x = String(a), y = String(b);
+  let diff = x.length ^ y.length;
+  const n = Math.max(x.length, y.length);
+  for (let i = 0; i < n; i++) {
+    diff |= (x.charCodeAt(i) || 0) ^ (y.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
+/**
+ * Basic Auth has no lockout of its own, so a wrong password can be retried as
+ * fast as the network allows. Fixed window per IP, best effort — KV is
+ * eventually consistent, and this is a speed bump, not a quota.
+ */
+async function tooManyAttempts(kv, request) {
+  if (!kv) return false;
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const key = `rl:opsauth:${ip}:${Math.floor(Date.now() / 300000)}`;   // 5 min
+  try {
+    const n = parseInt((await kv.get(key)) || '0', 10) || 0;
+    if (n >= 20) return true;
+    await kv.put(key, String(n + 1), { expirationTtl: 600 });
+  } catch { /* storage trouble must not lock the operator out */ }
+  return false;
+}
+
 function unauthorized() {
   return new Response('Authentication required.', {
     status: 401,
@@ -57,6 +89,13 @@ export async function onRequest(context) {
     );
   }
 
+  if (await tooManyAttempts(context.env.AGENT_KV, context.request)) {
+    return new Response('Too many attempts. Try again in a few minutes.', {
+      status: 429,
+      headers: { 'Retry-After': '300', 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
   const header = context.request.headers.get('Authorization') || '';
   if (!header.startsWith('Basic ')) {
     return unauthorized();
@@ -75,7 +114,11 @@ export async function onRequest(context) {
   const gotUser = decoded.slice(0, idx);
   const gotPass = decoded.slice(idx + 1);
 
-  if (gotUser !== user || gotPass !== pass) {
+  // Both halves always compared, so a right username and a wrong one cost the
+  // same.
+  const okUser = timingSafeEqual(gotUser, user);
+  const okPass = timingSafeEqual(gotPass, pass);
+  if (!okUser || !okPass) {
     return unauthorized();
   }
 

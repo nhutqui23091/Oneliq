@@ -24,6 +24,7 @@
 
 import { computeStars } from '../_stars.js';
 import { REFERRAL_GOAL } from '../_referral.js';
+import { timingSafeEqual } from '../../_session.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -32,7 +33,7 @@ export async function onRequest(context) {
 
   const provided = request.headers.get('X-Debug-Key') || '';
   if (!env.DEBUG_KEY) return json(503, { error: 'disabled', message: 'Set DEBUG_KEY env var on Cloudflare Pages to enable this endpoint (delete after use).' });
-  if (provided !== env.DEBUG_KEY) return json(401, { error: 'unauthorized' });
+  if (!timingSafeEqual(provided, env.DEBUG_KEY)) return json(401, { error: 'unauthorized' });
 
   const kv = env.PROFILE_KV;
   if (!kv) return json(503, { error: 'KV not configured' });

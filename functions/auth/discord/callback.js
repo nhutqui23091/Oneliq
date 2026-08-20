@@ -30,11 +30,29 @@ export async function onRequestGet(context) {
   if (!code)  return errPage('Missing OAuth code from Discord. Please try connecting again.', 400);
   if (!state) return errPage('Missing state parameter. Please try connecting again.', 400);
 
-  // state is the wallet address, optionally with a return-page hint after "|"
-  // (e.g. "0xabc...|portal"). Default return is /balance for back-compat.
-  const [stateAddr, returnTo] = String(state).split('|');
-  const walletAddr = (stateAddr || '').toLowerCase();
-  const destPath = returnTo === 'portal' ? '/portal' : '/balance';
+  // `state` used to BE the wallet address. It comes back from Discord exactly
+  // as it was sent, with nothing vouching for it, so anyone could run this flow
+  // carrying someone else's address and have us write their Discord identity
+  // onto that wallet. It is now an opaque handle minted by /auth/discord/start
+  // only after the caller proved control of the wallet — the address is read
+  // from our own storage, never from the query string.
+  if (!env.PROFILE_KV) return errPage('Profile storage is not configured on this server.', 503);
+
+  const stateKey = 'dcstate:' + String(state);
+  let pending = null;
+  try { pending = JSON.parse((await env.PROFILE_KV.get(stateKey)) || 'null'); } catch {}
+  if (!pending || !/^0x[0-9a-f]{40}$/.test(pending.addr || '')) {
+    return errPage(
+      'This Discord link request has expired or was not started from Oneliq. ' +
+      'Open the Profile menu and press Connect Discord again.',
+      400
+    );
+  }
+  // Spend it — one code, one link.
+  try { await env.PROFILE_KV.delete(stateKey); } catch {}
+
+  const walletAddr = pending.addr;
+  const destPath = pending.returnTo === 'portal' ? '/portal' : '/balance';
 
   const clientId     = env.DISCORD_CLIENT_ID;
   const clientSecret = env.DISCORD_CLIENT_SECRET;
@@ -113,27 +131,37 @@ export async function onRequestGet(context) {
       return errPage('Discord returned unexpected user data. Please try again.', 502);
     }
 
-    console.log('[discord-cb] linked Discord user', user.username, 'to wallet', state.slice(0, 10) + '...');
+    console.log('[discord-cb] linked Discord account to wallet', walletAddr.slice(0, 10) + '...');
+
+    // One Discord account, one wallet. Without this, a single account could be
+    // linked to any number of wallets and collect the Discord star bonus and
+    // the OG badge on all of them.
+    const ownerKey = 'dcuser:' + user.id;
+    let boundTo = null;
+    try { boundTo = await env.PROFILE_KV.get(ownerKey); } catch {}
+    if (boundTo && boundTo !== walletAddr) {
+      return errPage(
+        'This Discord account is already linked to a different wallet. ' +
+        'Unlink it there first, then try again.',
+        409
+      );
+    }
 
     // Store wallet <-> Discord mapping in KV. Preserve any existing profile
     // fields (e.g. said_gm) by merging rather than overwriting.
-    if (env.PROFILE_KV) {
-      let prev = {};
-      try { const r = await env.PROFILE_KV.get('profile:' + walletAddr); if (r) prev = JSON.parse(r); } catch {}
-      await env.PROFILE_KV.put(
-        'profile:' + walletAddr,
-        JSON.stringify({
-          ...prev,
-          discord_id:          user.id,
-          discord_username:    user.username,
-          discord_global_name: user.global_name || user.username,
-          linked_at:           new Date().toISOString(),
-        })
-      );
-    } else {
-      console.warn('[discord-cb] PROFILE_KV binding not found - profile was NOT saved. ' +
-        'Add a KV namespace binding named PROFILE_KV in Cloudflare Pages > Settings > Functions.');
-    }
+    let prev = {};
+    try { const r = await env.PROFILE_KV.get('profile:' + walletAddr); if (r) prev = JSON.parse(r); } catch {}
+    await env.PROFILE_KV.put(
+      'profile:' + walletAddr,
+      JSON.stringify({
+        ...prev,
+        discord_id:          user.id,
+        discord_username:    user.username,
+        discord_global_name: user.global_name || user.username,
+        linked_at:           new Date().toISOString(),
+      })
+    );
+    await env.PROFILE_KV.put(ownerKey, walletAddr);
 
     // Redirect back to the page the user started from, with a success flag.
     const origin = new URL(request.url).origin;
@@ -141,8 +169,15 @@ export async function onRequestGet(context) {
 
   } catch (err) {
     console.error('[discord-cb] unexpected error:', err && err.message, err && err.stack);
-    return errPage('An unexpected error occurred: ' + (err && err.message ? err.message : String(err)), 500);
+    // The detail goes to the server log, not to the page — an error string can
+    // carry values we never meant to show a visitor.
+    return errPage('An unexpected error occurred. Please try connecting Discord again.', 500);
   }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 /**
@@ -167,9 +202,9 @@ function errPage(message, status) {
       'border:1px solid rgba(77,214,219,.35);color:#4DD6DB;text-decoration:none;font-size:13px;font-weight:600}' +
     '</style></head><body>' +
     '<div class="box">' +
-    '<div class="status">HTTP ' + status + ' - Discord OAuth Callback</div>' +
+    '<div class="status">HTTP ' + Number(status) + ' - Discord OAuth Callback</div>' +
     '<h1>Discord connection failed</h1>' +
-    '<p>' + message + '</p>' +
+    '<p>' + escapeHtml(message) + '</p>' +
     '<a href="/balance">Return to Balance</a>' +
     '</div></body></html>';
   return new Response(html, {
