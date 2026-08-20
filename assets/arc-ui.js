@@ -4,6 +4,12 @@
   if (!global.ARC) { console.error('[arc-ui] ARC core not loaded'); return; }
   const ARC = global.ARC;
 
+  // Session headers, or nothing at all on a page that never loaded the core
+  // session helper — the server decides what an unauthenticated call may do.
+  const sessionHeaders = (opts) =>
+    (ARC.session && ARC.session.headers ? ARC.session.headers(opts) : Promise.resolve({}))
+      .catch(() => ({}));
+
   // For any string that came from outside us — a Discord display name, a saved
   // label — before it goes anywhere near innerHTML.
   function escapeHtml(s) {
@@ -186,7 +192,7 @@
             // at somebody else's address on the way back.
             btn.disabled = true;
             try {
-              const auth = await ARC.session.headers({ interactive: true, address: addr });
+              const auth = await sessionHeaders({ interactive: true, address: addr });
               const r = await fetch('/auth/discord/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...auth },
@@ -218,7 +224,7 @@
             }
           })
           .catch(() => {});
-        ARC.session.headers({ interactive: false, address: addr })
+        sessionHeaders({ interactive: false, address: addr })
           .catch(() => ({}))
           .then(auth => fetch('/auth/profile/' + addr.toLowerCase(), { headers: auth || {} }))
           .then(r => r.ok ? r.json() : null)
@@ -229,7 +235,7 @@
               const shown = profile.discord_global_name || profile.discord_username || 'Discord linked';
               discordEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px"><span style="font-family:var(--mono);font-size:13px;color:var(--text)">' + escapeHtml(shown) + '</span><button id="pm-dc-unlink" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font);padding:2px 6px">Unlink</button></div>';
               document.getElementById('pm-dc-unlink').onclick = async () => {
-                const a = await ARC.session.headers({ interactive: true, address: addr }).catch(() => ({}));
+                const a = await sessionHeaders({ interactive: true, address: addr }).catch(() => ({}));
                 const r = await fetch('/auth/profile/' + addr.toLowerCase(), {
                   method: 'DELETE', headers: a || {},
                 }).catch(() => null);
