@@ -99,7 +99,8 @@ const USDC_BY_CHAIN = {
 // copied from notes — an earlier revision of this list carried a mistyped
 // router that has no contract at all, which silently rejected every real swap.
 const ONELIQ_CONTRACTS = new Set([
-  '0xb508f475230e4ab876258b7dcafbc182d806e1f7', // OneliqRouter — the live fee router (feeBps 30)
+  '0x607c2a739fcded84f0350ac43118d85f4398872b', // OneliqRouterV2 — the live fee router (feeBps 30)
+  '0xb508f475230e4ab876258b7dcafbc182d806e1f7', // OneliqRouter V1, kept so historical swaps still attribute
   '0x48a9bd1644ac67fbef4183261c466bea3eb333fc', // legacy router, kept so historical swaps still attribute
   '0x368a0e854ec69ec10b50d20fcafc1baf8b7eff10', // OneliqCheckIn (portal)
   '0x2d84d79c852f6842abe0304b70bbaa1506add457', // Curve USDC/EURC pool the router forwards to
@@ -867,8 +868,19 @@ export async function onRequest(context) {
     if (!env.DEBUG_KEY) return bad('disabled: set DEBUG_KEY env var to enable', origin, 503);
     if (!timingSafeEqual(request.headers.get('X-Debug-Key') || '', env.DEBUG_KEY)) return bad('unauthorized', origin, 401);
 
-    const ROUTER = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
-    const SWAP_SELECTOR = '0xfe029156'; // swap(address,address,uint256,uint256)
+    // Both routers. V2 is live; V1 stays in the scan because the wallets that
+    // swapped through it are real users and must not drop out of the count.
+    // The selectors differ — V2's swap() carries a fifth argument, deadline.
+    const ROUTERS = [
+      '0x607C2a739FCdEd84f0350AC43118d85F4398872b', // OneliqRouterV2 (live)
+      '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7', // OneliqRouter V1 (historical)
+    ];
+    const SWAP_SELECTORS = [
+      '0x7a950f99', // swap(address,address,uint256,uint256,uint256)  V2
+      '0xfe029156', // swap(address,address,uint256,uint256)          V1
+    ];
+    const isSwap = (input) => typeof input === 'string'
+      && SWAP_SELECTORS.some(sel => input.toLowerCase().startsWith(sel));
     const ARCSCAN = 'https://testnet.arcscan.app/api';
     const apply = request.method === 'POST';
 
@@ -876,20 +888,22 @@ export async function onRequest(context) {
     const swappers = new Set();
     let scanned = 0;
     try {
-      for (let page = 1; page <= 30; page++) {
-        const u = `${ARCSCAN}?module=account&action=txlist&address=${ROUTER}&page=${page}&offset=1000&sort=asc`;
-        const res = await fetch(u, { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) break;
-        const data = await res.json();
-        if (!Array.isArray(data.result) || data.result.length === 0) break;
-        for (const tx of data.result) {
-          scanned++;
-          if (typeof tx.input === 'string' && tx.input.toLowerCase().startsWith(SWAP_SELECTOR)
-              && String(tx.isError) === '0' && /^0x[0-9a-fA-F]{40}$/.test(tx.from || '')) {
-            swappers.add(tx.from.toLowerCase());
+      for (const router of ROUTERS) {
+        for (let page = 1; page <= 30; page++) {
+          const u = `${ARCSCAN}?module=account&action=txlist&address=${router}&page=${page}&offset=1000&sort=asc`;
+          const res = await fetch(u, { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) break;
+          const data = await res.json();
+          if (!Array.isArray(data.result) || data.result.length === 0) break;
+          for (const tx of data.result) {
+            scanned++;
+            if (isSwap(tx.input)
+                && String(tx.isError) === '0' && /^0x[0-9a-fA-F]{40}$/.test(tx.from || '')) {
+              swappers.add(tx.from.toLowerCase());
+            }
           }
+          if (data.result.length < 1000) break;
         }
-        if (data.result.length < 1000) break;
       }
     } catch (e) {
       return bad('explorer_scan_failed: ' + (e?.message || 'unknown'), origin, 502);
@@ -909,7 +923,7 @@ export async function onRequest(context) {
 
     return new Response(JSON.stringify({
       mode: apply ? 'apply' : 'dry-run',
-      router: ROUTER,
+      routers: ROUTERS,
       txs_scanned: scanned,
       distinct_swappers_onchain: swappers.size,
       seen_keys_before: existing.size,
@@ -947,9 +961,13 @@ export async function onRequest(context) {
     }
 
     const ARC_RPC = 'https://rpc.testnet.arc.network';
-    const ROUTER  = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
+    const ROUTERS = [
+      { label: 'OneliqRouterV2', address: '0x607C2a739FCdEd84f0350AC43118d85F4398872b' },
+      { label: 'OneliqRouter',   address: '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7' },
+    ];
     const CHECKIN = '0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10';
-    const SWAP_SELECTOR = '0xfe029156';
+    // V2's swap() takes a deadline, so it hashes to a different selector than V1's.
+    const SWAP_SELECTORS = ['0x7a950f99', '0xfe029156'];
     const ARCSCAN = 'https://testnet.arcscan.app/api';
 
     const ethCallUint = async (to, data) => {
@@ -970,31 +988,47 @@ export async function onRequest(context) {
       ethCallUint(CHECKIN, '0x40aeff0e'), // uniqueUsers()
     ]);
 
-    // OneliqRouter swaps from the explorer (paged).
+    // Router swaps from the explorer (paged). Both routers count: V1's swaps
+    // happened and stay in the totals, they just can't grow any more.
     let routerTxs = 0, routerSwapsOk = 0;
     const swappers = new Set();
-    try {
-      for (let page = 1; page <= 30; page++) {
-        const u = `${ARCSCAN}?module=account&action=txlist&address=${ROUTER}&page=${page}&offset=1000&sort=asc`;
-        const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) break;
-        const d = await r.json();
-        if (!Array.isArray(d.result) || d.result.length === 0) break;
-        for (const tx of d.result) {
-          routerTxs++;
-          if (typeof tx.input === 'string' && tx.input.toLowerCase().startsWith(SWAP_SELECTOR) && String(tx.isError) === '0') {
-            routerSwapsOk++;
-            if (/^0x[0-9a-fA-F]{40}$/.test(tx.from || '')) swappers.add(tx.from.toLowerCase());
+    const perRouter = [];
+    for (const { label, address } of ROUTERS) {
+      let txs = 0, ok = 0;
+      try {
+        for (let page = 1; page <= 30; page++) {
+          const u = `${ARCSCAN}?module=account&action=txlist&address=${address}&page=${page}&offset=1000&sort=asc`;
+          const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
+          if (!r.ok) break;
+          const d = await r.json();
+          if (!Array.isArray(d.result) || d.result.length === 0) break;
+          for (const tx of d.result) {
+            txs++;
+            if (typeof tx.input === 'string'
+                && SWAP_SELECTORS.some(sel => tx.input.toLowerCase().startsWith(sel))
+                && String(tx.isError) === '0') {
+              ok++;
+              if (/^0x[0-9a-fA-F]{40}$/.test(tx.from || '')) swappers.add(tx.from.toLowerCase());
+            }
           }
+          if (d.result.length < 1000) break;
         }
-        if (d.result.length < 1000) break;
-      }
-    } catch {}
+      } catch {}
+      perRouter.push({ label, address, total_txs: txs, successful_swaps: ok });
+      routerTxs += txs;
+      routerSwapsOk += ok;
+    }
 
     const payload = {
       computedAt: new Date().toISOString(),
       verified_onchain_txs: routerSwapsOk + checkinTotal, // headline: provable Oneliq txs
-      router: { address: ROUTER, total_txs: routerTxs, successful_swaps: routerSwapsOk, distinct_swappers: swappers.size },
+      router: {
+        address: ROUTERS[0].address,          // the live one
+        total_txs: routerTxs,                 // summed across V1 + V2
+        successful_swaps: routerSwapsOk,
+        distinct_swappers: swappers.size,     // deduped across both
+        breakdown: perRouter,
+      },
       checkin: { address: CHECKIN, total_checkins: checkinTotal, unique_users: checkinUsers },
       network: 'Arc Testnet (chainId 5042002)',
       explorer: 'https://testnet.arcscan.app',

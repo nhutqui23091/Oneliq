@@ -120,3 +120,58 @@ misbehaving pool can do — it cannot overstate output, cannot exceed the exact
 allowance, cannot reenter, and can be cut off with `pause()` — but it cannot
 make a bad pool give good prices. A paid audit before mainnet is still the
 right call; this file is the starting point for one, not a substitute.
+
+---
+
+## Deployed (Arc Testnet)
+
+| | |
+|---|---|
+| **OneliqRouterV2** | `0x607C2a739FCdEd84f0350AC43118d85F4398872b` |
+| Creation tx | `0xde0f579b334f76b08c86074e417baf7c1bcb87cd650d67335e146643af723330` |
+| Block | 60053709 |
+| Deployer / owner | `0x738722f22Ef4fB6ABC3ac69bbc30F77B2B6bC762` (EOA — see below) |
+| Compiler | solc 0.8.24, optimizer 200 runs |
+| Runtime size | 5,677 bytes |
+
+https://testnet.arcscan.app/address/0x607C2a739FCdEd84f0350AC43118d85F4398872b
+
+Constructor arguments went in as intended — read back from the deployed
+contract, not from the deploy form: `POOL` `0x2D84…D457`, `TOKEN0` `0x3600…0000`
+(USDC), `TOKEN1` `0x89B5…D72a` (EURC), `feeBps` 30, `MAX_FEE_BPS` 100,
+`pendingOwner` zero, `paused` false. `pool.coins(0)` was checked against
+`TOKEN0` before deploying, so the index mapping is not reversed.
+
+The deployed runtime code was diffed against the locally compiled artifact —
+the one the test suite runs. With the three immutables masked (`POOL` appears 5
+times in the runtime code, `TOKEN0` and `TOKEN1` twice each) the executable
+bytes are identical; the only remaining difference is the 32-byte IPFS metadata
+hash in the CBOR trailer, which encodes the source path rather than behaviour.
+Both trailers end `64736f6c6343 000818 0033` — solc 0.8.24 on each side.
+
+### First live swap
+
+1 USDC → EURC, the first real trade through V2 against the actual Curve pool:
+`0x9ab8dec8ed0e844ef8321ebb296f72150b1e062fccbb4034060bc384040d1af1`
+
+The token trace is the whole design in four lines: user → router 1 USDC, router
+→ pool 0.997, pool → router 0.783879 EURC, router → user 0.783879 EURC. State
+afterwards, read on-chain:
+
+| Check | Value | |
+|---|---|---|
+| `accruedFees[USDC]` | 3000 | exactly 0.30% of 1 USDC |
+| `accruedFees[EURC]` | 0 | output leg takes no fee |
+| Router USDC balance | 3000 | equals the ledger — nothing leaked |
+| Router EURC balance | 0 | the whole output was forwarded |
+| `allowance(router → pool)` | 0 (both tokens) | granted per-swap, revoked in the same tx |
+
+That last row is the V1 finding closed on a live pool rather than a mock: V1
+left an unlimited approval standing between swaps.
+
+### Still outstanding before mainnet
+
+`owner` is a plain EOA, so one key holds every admin function and the entire fee
+balance. Fine for testnet; mainnet wants a multisig, handed over with
+`transferOwnership` + `acceptOwnership`. Sweeping fees on a schedule (point 3
+above) is not set up yet either.

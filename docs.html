@@ -979,11 +979,13 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <tr><td>MessageTransmitterV2</td><td><code>0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275</code></td></tr>
     </table>
 
-    <h3 class="docs-h3">OneliqRouter (Oneliq swap router → Circle Curve pool)</h3>
-    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Used by Trade for same-chain USDC ⇄ EURC swaps. Forwards into Circle's Curve StableSwap pool and takes a 0.30% on-chain protocol fee (capped at 1%). Sourcify-verified.</p>
+    <h3 class="docs-h3">OneliqRouterV2 (Oneliq swap router → Circle Curve pool)</h3>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Used by Trade and the Agent for same-chain USDC ⇄ EURC swaps. Forwards into Circle's Curve StableSwap pool and takes a 0.30% on-chain protocol fee (capped at 1%). Source-verified on Arcscan, solc 0.8.24.</p>
+    <p class="docs-p" style="font-size:13px;color:var(--muted)">V2 supersedes V1. It measures the pool's actual output instead of trusting the number the pool reports, keeps a fee ledger that a withdrawal can never exceed, grants the pool an allowance for exactly one swap and revokes it in the same transaction, and adds a <code>deadline</code>, a reentrancy guard and a pause switch. V1 is left deployed so its swaps stay verifiable, but nothing routes to it.</p>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
-      <tr><td>OneliqRouter</td><td><code>0xb508F475230E4Ab876258B7DCaFbc182d806e1F7</code></td></tr>
+      <tr><td>OneliqRouterV2 <em>(live)</em></td><td><code>0x607C2a739FCdEd84f0350AC43118d85F4398872b</code></td></tr>
+      <tr><td>OneliqRouter <em>(V1, superseded)</em></td><td><code>0xb508F475230E4Ab876258B7DCaFbc182d806e1F7</code></td></tr>
       <tr><td>Curve StableSwap pool</td><td><code>0x2d84d79c852f6842abe0304b70bbaa1506add457</code></td></tr>
     </table>
 

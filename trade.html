@@ -1641,13 +1641,18 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   ];
   // Oneliq fee-router sitting in front of the Curve pool. Every Arc USDC/EURC
   // swap is forwarded through here so the protocol fee is taken on-chain and the
-  // trade is recorded as a call to OneliqRouter. quote() returns the output
+  // trade is recorded as a call to OneliqRouterV2. quote() returns the output
   // already net of the live fee (set on-chain via setFee), so the front-end never
-  // hardcodes the fee. See contracts/OneliqRouter.sol.
-  const ARC_ROUTER = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
+  // hardcodes the fee. See contracts/OneliqRouterV2.sol.
+  //
+  // V2 replaced V1 (0xb508F475230E4Ab876258B7DCaFbc182d806e1F7) on Arc Testnet.
+  // quote() is unchanged; swap() takes a fifth argument, `deadline`, and reverts
+  // with DeadlinePassed once the chain is past it. A call missing it fails on the
+  // selector rather than silently doing something else.
+  const ARC_ROUTER = '0x607C2a739FCdEd84f0350AC43118d85F4398872b';
   const ROUTER_ABI = [
     'function quote(address tokenIn, address tokenOut, uint256 amountIn) view returns (uint256 amountOut, uint256 fee)',
-    'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut) returns (uint256)',
+    'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut, uint256 deadline) returns (uint256)',
   ];
   const arcCurvePair = (a, b) => ARC_CURVE_IDX[a] !== undefined && ARC_CURVE_IDX[b] !== undefined;
   // App models Arc USDC at 18 decimals (native gas token); the 0x3600 ERC-20 and the
@@ -1683,6 +1688,21 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   // through a wallet provider), so on Arc's sub-second blocks it adds ~30s of dead
   // time. Poll the read RPC directly every 400ms instead.
   const MAX_UINT256 = (1n << 256n) - 1n;
+
+  // Deadline for the router's swap(). Derived from the chain's clock, not the
+  // browser's: a machine whose clock lags would otherwise send an already-expired
+  // deadline and have every swap revert with DeadlinePassed. Falls back to local
+  // time if the block read fails, and never picks the earlier of the two.
+  const SWAP_TTL_S = 1200;
+  async function arcSwapDeadline() {
+    let now = Math.floor(Date.now() / 1000);
+    try {
+      const b = await rpcProvider('arc').getBlock('latest');
+      if (b && Number(b.timestamp) > now) now = Number(b.timestamp);
+    } catch {}
+    return BigInt(now + SWAP_TTL_S);
+  }
+
   async function waitArcReceipt(hash, timeoutMs = 30000) {
     const prov = rpcProvider('arc');
     const start = Date.now();
@@ -1733,7 +1753,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     }
     modal.set(stepId, 'active', `Swapping ${tInSym} → ${tOutSym} via Oneliq router…`);
     const router = new Contract(ARC_ROUTER, ROUTER_ABI, wallet.signer);
-    const tx = await router.swap(tInTok.address, tOutTok.address, dx, minDy);
+    const tx = await router.swap(tInTok.address, tOutTok.address, dx, minDy, await arcSwapDeadline());
     modal.set(stepId, 'active', `Tx ${shortAddr(tx.hash)} - waiting…`);
     await waitArcReceipt(tx.hash);
     return tx.hash;

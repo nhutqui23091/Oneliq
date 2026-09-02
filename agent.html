@@ -4299,15 +4299,27 @@ select option:checked{background:#1a2c4a;color:#fff}
      The USER signs (approve + swap) in their own wallet; the agent has
      no autonomous authority. Mirrors the Trade page's execArcCurveSwap.
   ============================================================ */
-  const CHAT_ROUTER = '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7';
+  const CHAT_ROUTER = '0x607C2a739FCdEd84f0350AC43118d85F4398872b';
   const CHAT_ROUTER_ABI = [
     'function quote(address tokenIn, address tokenOut, uint256 amountIn) view returns (uint256 amountOut, uint256 fee)',
-    'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut) returns (uint256)',
+    'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut, uint256 deadline) returns (uint256)',
   ];
   const CHAT_ERC20_ABI = [
     'function allowance(address owner, address spender) view returns (uint256)',
     'function approve(address spender, uint256 value) returns (bool)',
   ];
+  // Same deadline rule as the Trade page: take it from the chain's clock so a
+  // skewed browser clock can't send an already-expired swap. See trade.html.
+  const CHAT_SWAP_TTL_S = 1200;
+  async function chatSwapDeadline() {
+    let now = Math.floor(Date.now() / 1000);
+    try {
+      const b = await ARC.rpcProvider('arc').getBlock('latest');
+      if (b && Number(b.timestamp) > now) now = Number(b.timestamp);
+    } catch {}
+    return BigInt(now + CHAT_SWAP_TTL_S);
+  }
+
   // Arc pool works in 6-dec units; the app models Arc USDC at 18-dec, so scale.
   const toPool6Chat = (amtApp, tok) => amtApp / (10n ** BigInt(tok.decimals - 6));
   const fromPool6Chat = (amt6, tok) => amt6 * (10n ** BigInt(tok.decimals - 6));
@@ -4343,7 +4355,7 @@ select option:checked{background:#1a2c4a;color:#fff}
     }
     if (onStatus) onStatus(`Swapping ${fromSym} → ${toSym}…`);
     const tx = await new ethers.Contract(CHAT_ROUTER, CHAT_ROUTER_ABI, ARC.wallet.signer)
-      .swap(tIn.address, tOut.address, dx, minDy);
+      .swap(tIn.address, tOut.address, dx, minDy, await chatSwapDeadline());
     if (onStatus) onStatus('Confirming on Arc…');
     await tx.wait();
     return tx.hash;

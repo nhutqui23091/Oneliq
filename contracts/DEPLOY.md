@@ -41,8 +41,11 @@ On `testnet.arcscan.app`, open the contract address → if Arcscan supports sour
 ## Deployed addresses (Arc Testnet)
 - **OneliqCheckIn**: `0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10` — Sourcify verified
   https://testnet.arcscan.app/address/0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10
-- **OneliqRouter**: `0xb508F475230E4Ab876258B7DCaFbc182d806e1F7`
+- **OneliqRouter (V1 — superseded)**: `0xb508F475230E4Ab876258B7DCaFbc182d806e1F7`
   https://testnet.arcscan.app/address/0xb508F475230E4Ab876258B7DCaFbc182d806e1F7
+  Still deployed so its swaps stay verifiable, but the app no longer routes to it.
+  The live router is **OneliqRouterV2** `0x607C2a739FCdEd84f0350AC43118d85F4398872b`
+  — see [DEPLOY-V2.md](DEPLOY-V2.md) for what changed and why.
 
 ---
 
