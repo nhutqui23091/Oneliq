@@ -1951,28 +1951,59 @@ html{scroll-behavior:smooth}
     document.getElementById('deposit-walbal').textContent = (wal !== undefined) ? human(wal, tok.decimals) + ' USDC' : '-';
     document.getElementById('deposit-gwbal').textContent = (bal ? bal.display : '0') + ' USDC';
 
-    // Route hint + escape-hatch visibility
+    // Route hint — ALWAYS shown so the user can see which routing mode is
+    // active. Three variants:
+    //   1. slow src → we route via Fuji hub (Fast Route)
+    //   2. slow src + user opted out → direct (~15min wait)
+    //   3. fast src (Fuji/Arc/Polygon) → direct is already fast (~10s), no routing
     const hintEl = document.getElementById('deposit-route-hint');
     const toggleEl = document.getElementById('deposit-direct-toggle');
     const useFast = shouldUseFastRoute(k);
+    const isNativeFast = !ARC.gateway.isSlowFinality(k);
     const goBtn = document.getElementById('deposit-go');
+    hintEl.style.display = 'block';
     if (useFast) {
+      // Slow source, fast route active
       const hubKey = ARC.gateway.pickFastHub(k);
       const hubName = ARC.CHAINS[hubKey]?.short || hubKey;
-      hintEl.style.display = 'block';
+      hintEl.style.background = 'rgba(255,180,84,.06)';
+      hintEl.style.borderColor = 'rgba(255,180,84,.28)';
       hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--arc1)">⚡ FAST ROUTE</span>
+        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#FFB454">⚡ FAST ROUTE</span>
         <span style="color:var(--text);font-weight:600">~60s credit</span>
         <span style="color:var(--muted)">·</span>
         <span style="color:var(--muted)">vs ~15min direct</span>
       </div>
-      <div>${chainName(k)} finalizes in ~13-19min, so we CCTP-bridge to <strong style="color:var(--text)">${hubName}</strong> (~8s finality) and deposit there. You'll sign 4 tx (burn, mint, approve, deposit) and pay a small CCTP fee (~0.01%). One button, ~60s total.</div>`;
+      <div>${chainName(k)} finalizes in ~13-19min, so we CCTP-bridge to <strong style="color:var(--text)">${hubName}</strong> (~8s finality) and deposit there. Signs 4 tx (burn · mint · approve · deposit) with a tiny CCTP fee (~0.01%). One button, ~60s total.</div>`;
       toggleEl.style.display = 'block';
       goBtn.textContent = '⚡ Fast Deposit';
-    } else {
-      hintEl.style.display = 'none';
+    } else if (isNativeFast) {
+      // Source is Fuji/Arc/Polygon — already fast, no routing needed
+      hintEl.style.background = 'rgba(77,214,219,.06)';
+      hintEl.style.borderColor = 'rgba(77,214,219,.22)';
+      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--arc1)">⚡ INSTANT</span>
+        <span style="color:var(--text);font-weight:600">~10s credit</span>
+      </div>
+      <div>${chainName(k)} has native fast finality — depositing directly here is already the fastest path. First deposit signs 2 tx (approve + deposit); subsequent deposits use the cached allowance so you'll only sign the deposit tx.</div>`;
       toggleEl.style.display = 'none';
       goBtn.textContent = 'Deposit';
+    } else {
+      // Slow source but user picked "Skip fast route"
+      hintEl.style.background = 'rgba(140,160,189,.06)';
+      hintEl.style.borderColor = 'rgba(140,160,189,.22)';
+      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--muted)">🐢 DIRECT DEPOSIT</span>
+        <span style="color:var(--text);font-weight:600">~13-19min credit</span>
+      </div>
+      <div>You picked direct deposit on ${chainName(k)}. Circle's operator waits for source-block finality (~65 blocks) before crediting Unified Balance. Zero CCTP fee, but ~15min wait. <a href="#" id="deposit-force-fast" style="color:var(--arc1);text-decoration:underline">Switch back to fast route</a>.</div>`;
+      toggleEl.style.display = 'none';
+      goBtn.textContent = 'Deposit';
+      // Wire the "switch back" link created inside the hint
+      setTimeout(() => {
+        const el = document.getElementById('deposit-force-fast');
+        if (el) el.onclick = (e) => { e.preventDefault(); depositForceDirect = false; syncDepositInfo(); };
+      }, 0);
     }
   }
   document.getElementById('deposit-chain').onchange = syncDepositInfo;
