@@ -354,6 +354,9 @@
 
   async function pollAttestationForFastDeposit(srcDomain, txHash, onStep) {
     const maxTries = 160; // ~8min at 3s per try — Circle Fast typically ≤30s
+    // Show elapsed time (feels closer to reality than "attempt N/160" which
+    // reads like a debug counter to end-users).
+    const started = Date.now();
     for (let i = 0; i < maxTries; i++) {
       try {
         const data = await ARC.irisMessages(srcDomain, txHash);
@@ -362,7 +365,8 @@
           return { message: msg.message, attestation: msg.attestation };
         }
       } catch { /* keep polling — testnet IRIS occasionally 5xx */ }
-      onStep?.(`Waiting for Circle attestation… (${i + 1}/${maxTries})`);
+      const secs = Math.round((Date.now() - started) / 1000);
+      onStep?.(`Waiting for Circle attestation… ${secs}s`);
       await new Promise(r => setTimeout(r, 3000));
     }
     throw new Error('Attestation timeout — CCTP burn confirmed but mint step failed. Retry via /trade Bridge.');

@@ -647,7 +647,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.14.0"></script>
+<script src="/assets/arc-gateway.js?v=9.14.1"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1978,16 +1978,38 @@ html{scroll-behavior:smooth}
       toggleEl.style.display = 'block';
       goBtn.textContent = '⚡ Fast Deposit';
     } else if (isNativeFast) {
-      // Source is Fuji/Arc/Polygon — already fast, no routing needed
+      // Source is Fuji/Arc/Polygon — already fast, no routing needed.
+      // Render optimistic hint immediately, then refine with actual allowance
+      // state so users know EXACTLY whether this deposit will be 1 or 2 sigs.
       hintEl.style.background = 'rgba(77,214,219,.06)';
       hintEl.style.borderColor = 'rgba(77,214,219,.22)';
-      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--arc1)">⚡ INSTANT</span>
-        <span style="color:var(--text);font-weight:600">~10s credit</span>
-      </div>
-      <div>${chainName(k)} has native fast finality — depositing directly here is already the fastest path. First deposit signs 2 tx (approve + deposit); subsequent deposits use the cached allowance so you'll only sign the deposit tx.</div>`;
+      const renderInstant = (sigNote) => {
+        hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--arc1)">⚡ INSTANT</span>
+          <span style="color:var(--text);font-weight:600">~10s credit</span>
+          <span style="color:var(--muted)">·</span>
+          <span style="color:var(--muted)">${sigNote}</span>
+        </div>
+        <div>${chainName(k)} has native fast finality — depositing here is already the fastest path. Approve is a <strong style="color:var(--text)">one-time</strong> setup per chain: once granted, every future deposit is a single tx.</div>`;
+      };
+      renderInstant('checking allowance…');
       toggleEl.style.display = 'none';
       goBtn.textContent = 'Deposit';
+      // Async: query on-chain allowance so we can promise "1 sig" or "2 sigs".
+      if (state.addr) {
+        (async () => {
+          try {
+            const c = ARC.CHAINS[k];
+            const tok = ARC.TOKENS[k].USDC;
+            const have = await ARC.allowance(k, tok, state.addr, c.contracts.gatewayWallet);
+            // Treat any allowance ≥ 1M USDC (10^12 in 6-decimal) as effectively MAX
+            const cachedMax = have >= (10n ** 12n);
+            // Bail if the user switched chains before this resolved
+            if (document.getElementById('deposit-chain').value !== k) return;
+            renderInstant(cachedMax ? '1 sig (allowance cached)' : '2 sigs first time (approve + deposit)');
+          } catch { /* fallback: keep generic hint */ }
+        })();
+      }
     } else {
       // Slow source but user picked "Skip fast route"
       hintEl.style.background = 'rgba(140,160,189,.06)';
