@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -438,12 +438,21 @@ html{scroll-behavior:smooth}
     </div>
     <div class="gw-label">Source chain</div>
     <div id="deposit-chain" class="cs"></div>
+    <!-- Route hint: filled by syncDepositInfo() — shows "Direct (~10s)" for
+         fast-finality chains and "Fast route via Fuji (~60s vs ~15min direct)"
+         for slow-finality ones. -->
+    <div id="deposit-route-hint" style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(77,214,219,.06);border:1px solid rgba(77,214,219,.22);font-size:12.5px;color:var(--muted);line-height:1.55;display:none"></div>
     <div class="gw-label" style="display:flex;justify-content:space-between;align-items:center">Amount<button id="deposit-max" class="max-btn" type="button">Max</button></div>
     <input id="deposit-amount" class="gw-input amount" type="text" inputmode="decimal" placeholder="0.00"/>
     <div class="gw-row"><span>Wallet balance</span><strong id="deposit-walbal">-</strong></div>
     <div class="gw-row"><span>Currently in Gateway</span><strong id="deposit-gwbal">-</strong></div>
     <button id="deposit-go" class="gw-action" type="button">Deposit</button>
     <div id="deposit-status" class="gw-status"></div>
+    <!-- Escape hatch for power users on slow chains — direct deposit avoids the
+         extra CCTP fee (~0.01%) + gas on the hub, at the cost of ~15min wait. -->
+    <div id="deposit-direct-toggle" style="margin-top:10px;font-size:11.5px;color:var(--muted);text-align:right;display:none">
+      Prefer direct deposit? <a href="#" id="deposit-force-direct" style="color:var(--arc1);text-decoration:underline">Skip fast route</a>
+    </div>
   </div>
 </div>
 
@@ -638,7 +647,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.13.1"></script>
+<script src="/assets/arc-gateway.js?v=9.14.0"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1912,6 +1921,10 @@ html{scroll-behavior:smooth}
   // Default chain: if user clicked from a per-chain row use that. Otherwise
   // default to Avalanche Fuji - fastest finality (~30s) so the user's first
   // deposit credits in seconds instead of waiting 12-15min on Sepolia/L2.
+  // forceDirect: user-visible escape hatch. When true, we always use the direct
+  // `deposit()` path even if the source chain is slow-finality — trading ~15min
+  // wait for zero CCTP fee + single-chain gas. Reset whenever the modal reopens.
+  let depositForceDirect = false;
   function openDepositModal(chainKey) {
     if (!state.addr) { alert('Connect wallet first'); return; }
     // Never land on a chain that can't actually deposit (e.g. Arc native USDC).
@@ -1919,8 +1932,16 @@ html{scroll-behavior:smooth}
     document.getElementById('deposit-chain').value = safeKey;
     document.getElementById('deposit-amount').value = '';
     clearStatus('deposit-status');
+    depositForceDirect = false;
     syncDepositInfo();
     openModal('modal-deposit');
+  }
+  // Chains where we route via Fuji hub instead of depositing directly (Circle's
+  // operator waits ~13-19min for slow-finality blocks on these chains before
+  // crediting Unified Balance). Mirror of arc-gateway's isSlowFinality helper.
+  function shouldUseFastRoute(chainKey) {
+    if (depositForceDirect) return false;
+    return ARC.gateway?.isSlowFinality?.(chainKey) ?? false;
   }
   function syncDepositInfo() {
     const k = document.getElementById('deposit-chain').value;
@@ -1929,8 +1950,38 @@ html{scroll-behavior:smooth}
     const bal = state.balances.find(b => b.chainKey === k);
     document.getElementById('deposit-walbal').textContent = (wal !== undefined) ? human(wal, tok.decimals) + ' USDC' : '-';
     document.getElementById('deposit-gwbal').textContent = (bal ? bal.display : '0') + ' USDC';
+
+    // Route hint + escape-hatch visibility
+    const hintEl = document.getElementById('deposit-route-hint');
+    const toggleEl = document.getElementById('deposit-direct-toggle');
+    const useFast = shouldUseFastRoute(k);
+    const goBtn = document.getElementById('deposit-go');
+    if (useFast) {
+      const hubKey = ARC.gateway.pickFastHub(k);
+      const hubName = ARC.CHAINS[hubKey]?.short || hubKey;
+      hintEl.style.display = 'block';
+      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--arc1)">⚡ FAST ROUTE</span>
+        <span style="color:var(--text);font-weight:600">~60s credit</span>
+        <span style="color:var(--muted)">·</span>
+        <span style="color:var(--muted)">vs ~15min direct</span>
+      </div>
+      <div>${chainName(k)} finalizes in ~13-19min, so we CCTP-bridge to <strong style="color:var(--text)">${hubName}</strong> (~8s finality) and deposit there. You'll sign 4 tx (burn, mint, approve, deposit) and pay a small CCTP fee (~0.01%). One button, ~60s total.</div>`;
+      toggleEl.style.display = 'block';
+      goBtn.textContent = '⚡ Fast Deposit';
+    } else {
+      hintEl.style.display = 'none';
+      toggleEl.style.display = 'none';
+      goBtn.textContent = 'Deposit';
+    }
   }
   document.getElementById('deposit-chain').onchange = syncDepositInfo;
+  document.getElementById('deposit-force-direct').onclick = (e) => {
+    e.preventDefault();
+    depositForceDirect = true;
+    syncDepositInfo();
+    setStatus('deposit-status', '', 'Direct deposit selected — expect ~13-19min for the operator to credit Unified Balance after your tx confirms.');
+  };
   document.getElementById('deposit-go').onclick = async () => {
     const k = document.getElementById('deposit-chain').value;
     const amtStr = document.getElementById('deposit-amount').value.trim();
@@ -1938,6 +1989,7 @@ html{scroll-behavior:smooth}
     const tok = ARC.TOKENS[k].USDC;
     const value = ARC.parseAmt(amtStr, tok.decimals);
     if (value <= 0n) { setStatus('deposit-status', 'err', 'Invalid amount'); return; }
+    const useFast = shouldUseFastRoute(k);
     const btn = document.getElementById('deposit-go');
     btn.disabled = true; btn.textContent = 'Working…';
     // No optimistic "deposit pending" marker is created here. It used to be
@@ -1946,33 +1998,53 @@ html{scroll-behavior:smooth}
     // Circle's REST `pending` balance (shown after refreshAll) is the reliable
     // signal instead.
     const statusEl = document.getElementById('deposit-status');
-    const explTx = (h) => (h && ARC.CHAINS[k].explorerTx) ? ARC.CHAINS[k].explorerTx(h) : null;
+    const explTx = (chain, h) => (h && ARC.CHAINS[chain]?.explorerTx) ? ARC.CHAINS[chain].explorerTx(h) : null;
     const txLink = (url, label) => url ? ` · <a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">${label}</a>` : '';
     try {
-      const result = await ARC.gateway.deposit(k, value, {
-        onStep: (m) => setStatus('deposit-status', '', m),
-        // Show a clickable explorer link the moment the tx is submitted, so the
-        // user can watch confirmation (slow on some chains) instead of just waiting.
-        onSubmitted: (hash) => {
-          const url = explTx(hash);
-          statusEl.className = 'gw-status show';
-          statusEl.innerHTML = `⏳ Submitted — waiting for confirmation on ${chainName(k)}…` + txLink(url, 'View ↗');
-        },
-      });
-      // Keep the modal OPEN on success and show the confirmed tx link (the modal
-      // used to auto-close after 1.2s, hiding the result).
-      const url = explTx(result?.tx?.hash);
-      statusEl.className = 'gw-status show ok';
-      statusEl.innerHTML = '✅ Deposit confirmed' + txLink(url, 'View tx ↗');
-      pushToHistory('bridge', k, result?.tx?.hash || null, `Deposit ${amtStr} USDC on ${chainName(k)}`);
-      // Real-metrics telemetry - pass tx hash so the status page can deep-link
-      // to the source chain's explorer ("view ↗" in Latest Activity).
-      try { ARC.track('deposit', k, Number(amtStr), result?.tx?.hash || null, 'balance', state.addr ? { address: state.addr } : null); } catch {}
+      if (useFast) {
+        // Fast route: CCTP burn on src → mint on hub → deposit on hub. Each
+        // sub-tx surfaces a live explorer link so users can watch progress.
+        const seen = { burn: null, mint: null, deposit: null };
+        const result = await ARC.gateway.fastDeposit(k, value, {
+          onStep: (m) => setStatus('deposit-status', '', m),
+          onSubmitted: ({ stage, hash, chainKey }) => {
+            seen[stage] = { hash, chainKey };
+            const parts = [];
+            if (seen.burn)    { const u = explTx(seen.burn.chainKey, seen.burn.hash);       parts.push(`Burn${u ? ` · <a href="${u}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1)">${seen.burn.hash.slice(0,8)}…</a>` : ''}`); }
+            if (seen.mint)    { const u = explTx(seen.mint.chainKey, seen.mint.hash);       parts.push(`Mint${u ? ` · <a href="${u}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1)">${seen.mint.hash.slice(0,8)}…</a>` : ''}`); }
+            if (seen.deposit) { const u = explTx(seen.deposit.chainKey, seen.deposit.hash); parts.push(`Deposit${u ? ` · <a href="${u}" target="_blank" rel="noopener noreferrer" style="color:var(--arc1)">${seen.deposit.hash.slice(0,8)}…</a>` : ''}`); }
+            statusEl.className = 'gw-status show';
+            statusEl.innerHTML = `⏳ ${parts.join(' → ')}`;
+          },
+        });
+        const url = explTx(result.hubChain, result.depositTx?.hash);
+        statusEl.className = 'gw-status show ok';
+        statusEl.innerHTML = `✅ Fast Deposit confirmed on ${chainName(result.hubChain)}` + txLink(url, 'View deposit tx ↗');
+        pushToHistory('bridge', k, result.burnTx?.hash || null, `Fast Deposit ${amtStr} USDC · ${chainName(k)} → ${chainName(result.hubChain)}`);
+        try { ARC.track('deposit', result.hubChain, Number(amtStr), result.depositTx?.hash || null, 'balance-fast', state.addr ? { address: state.addr } : null); } catch {}
+      } else {
+        // Direct deposit — used when src is already fast-finality (Fuji/Arc/
+        // Polygon) or the user picked "Skip fast route".
+        const result = await ARC.gateway.deposit(k, value, {
+          onStep: (m) => setStatus('deposit-status', '', m),
+          onSubmitted: (hash) => {
+            const url = explTx(k, hash);
+            statusEl.className = 'gw-status show';
+            statusEl.innerHTML = `⏳ Submitted — waiting for confirmation on ${chainName(k)}…` + txLink(url, 'View ↗');
+          },
+        });
+        const url = explTx(k, result?.tx?.hash);
+        statusEl.className = 'gw-status show ok';
+        statusEl.innerHTML = '✅ Deposit confirmed' + txLink(url, 'View tx ↗');
+        pushToHistory('bridge', k, result?.tx?.hash || null, `Deposit ${amtStr} USDC on ${chainName(k)}`);
+        try { ARC.track('deposit', k, Number(amtStr), result?.tx?.hash || null, 'balance', state.addr ? { address: state.addr } : null); } catch {}
+      }
       refreshAll();
     } catch (e) {
       console.error(e); setStatus('deposit-status', 'err', '❌ ' + ARC.explainError(e));
     } finally {
-      btn.disabled = false; btn.textContent = 'Deposit';
+      btn.disabled = false;
+      btn.textContent = shouldUseFastRoute(k) ? '⚡ Fast Deposit' : 'Deposit';
     }
   };
 

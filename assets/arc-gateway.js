@@ -325,6 +325,137 @@
     return { tx, receipt };
   }
 
+  // ───────── FAST DEPOSIT (CCTP hop → Gateway deposit on fast-finality chain) ──
+  //
+  // Circle's block-finality wait dominates deposit latency: ~13-19 min on
+  // Sepolia/L2 chains, but only ~8s on Avalanche Fuji or Polygon Amoy (~0.5s
+  // on Arc). Rather than depositing directly on a slow chain, we route USDC
+  // through a fast-finality "hub" chain in one workflow:
+  //   1. CCTP Fast Transfer src → hub  (~30s including IRIS attestation)
+  //   2. Gateway deposit on hub        (~8s until credit)
+  // Total: ~40-60s to Unified Balance vs ~15 min direct. Matches the Arc
+  // "Gateway Fast Deposit" pattern (announced 2026-09-08) but implemented on
+  // the raw Gateway/CCTP protocol layer instead of the Unified Balance Kit SDK.
+  //
+  // We prefer Fuji as hub (native USDC on Fuji is standard 6-decimal ERC-20 —
+  // matches CCTP mint output cleanly), with Polygon Amoy as fallback. Both
+  // have ~8s finality per Circle's supported-blockchains table.
+  const FAST_HUB_DEFAULT = 'avalancheFuji';
+  const FAST_HUB_FALLBACK = 'polygonAmoy';
+  // Chains where direct deposit already finalizes fast (< 30s) — no need to route.
+  const FAST_FINALITY_CHAINS = new Set(['arc', 'avalancheFuji', 'polygonAmoy']);
+  function isSlowFinality(chainKey) { return !FAST_FINALITY_CHAINS.has(chainKey); }
+  function pickFastHub(srcChainKey) {
+    // If user is depositing FROM the default hub itself, use the fallback so we
+    // don't route funds to the same chain they already sit on.
+    if (srcChainKey === FAST_HUB_DEFAULT) return FAST_HUB_FALLBACK;
+    return FAST_HUB_DEFAULT;
+  }
+
+  async function pollAttestationForFastDeposit(srcDomain, txHash, onStep) {
+    const maxTries = 160; // ~8min at 3s per try — Circle Fast typically ≤30s
+    for (let i = 0; i < maxTries; i++) {
+      try {
+        const data = await ARC.irisMessages(srcDomain, txHash);
+        const msg = (data.messages || [])[0];
+        if (msg && msg.status === 'complete' && msg.attestation && msg.attestation !== 'PENDING') {
+          return { message: msg.message, attestation: msg.attestation };
+        }
+      } catch { /* keep polling — testnet IRIS occasionally 5xx */ }
+      onStep?.(`Waiting for Circle attestation… (${i + 1}/${maxTries})`);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    throw new Error('Attestation timeout — CCTP burn confirmed but mint step failed. Retry via /trade Bridge.');
+  }
+
+  /**
+   * Fast Deposit: burn USDC on `srcChainKey` via CCTP Fast Transfer → mint on
+   * fast-finality hub → deposit into GatewayWallet on hub → operator credits
+   * Unified Balance within ~30s (vs 15min for direct slow-chain deposit).
+   *
+   * `value` is in SOURCE chain's USDC decimals. Function returns:
+   *   { burnTx, mintTx, depositTx, hubChain, amountCanonical, amountHub }
+   *
+   * Halt-safe: each step is atomic. If mint succeeds but deposit fails, user
+   * has USDC on hub wallet and can retry deposit manually. `onStep` fires with
+   * user-facing messages for every state transition.
+   */
+  async function fastDeposit(srcChainKey, value, opts = {}) {
+    if (!ARC.wallet.address) throw new Error('Connect wallet first');
+    const hubChainKey = opts.hubChainKey || pickFastHub(srcChainKey);
+    if (srcChainKey === hubChainKey) throw new Error('Source and hub chain must differ — use direct deposit for same-chain');
+    const src = ARC.CHAINS[srcChainKey];
+    const hub = ARC.CHAINS[hubChainKey];
+    if (!src?.contracts?.tokenMessengerV2) throw new Error(`No CCTP source on ${srcChainKey}`);
+    if (!hub?.contracts?.messageTransmitterV2) throw new Error(`No CCTP destination on ${hubChainKey}`);
+    if (!hub?.contracts?.gatewayWallet) throw new Error(`No GatewayWallet on hub ${hubChainKey}`);
+
+    const srcTok = usdcOnChain(srcChainKey);
+    const hubTok = usdcOnChain(hubChainKey);
+    const onStep = opts.onStep || (() => {});
+    const recipient = ARC.wallet.address; // Fast-deposit always mints to self on hub
+
+    // ── STEP 1: switch to source & approve TokenMessenger ─────────
+    onStep(`Switching wallet to ${src.short || srcChainKey}…`);
+    await ARC.wallet.ensureChain(srcChainKey);
+    onStep(`Approving USDC on ${src.short || srcChainKey}…`);
+    await ARC.ensureAllowance(srcChainKey, srcTok, src.contracts.tokenMessengerV2, value, m => onStep(m));
+
+    // ── STEP 2: CCTP Fast burn ─────────────────────────────────────
+    onStep(`Signing burn on ${src.short || srcChainKey}…`);
+    const cctpAmt = ARC.toCctpAmount(value, srcTok);
+    // Fast mode: maxFee ≥ 0.01% + 1 wei; finality threshold < 2000 = fast attestation
+    const maxFee = (cctpAmt / 10000n) + 1n;
+    const minFinality = 1000;
+    const tm = new Contract(src.contracts.tokenMessengerV2, ARC.ABIS.tokenMessengerV2, ARC.wallet.signer);
+    const mintRecipient32 = ARC.addrToBytes32(recipient);
+    const destCaller32 = '0x' + '00'.repeat(32);
+    const burnOv = await ARC.gasOverrides(srcChainKey, src.contracts.tokenMessengerV2, ARC.ABIS.tokenMessengerV2, 'depositForBurn', [cctpAmt, hub.cctpDomain, mintRecipient32, srcTok.address, destCaller32, maxFee, minFinality], 300_000n);
+    const burnTx = await tm.depositForBurn(cctpAmt, hub.cctpDomain, mintRecipient32, srcTok.address, destCaller32, maxFee, minFinality, burnOv);
+    opts.onSubmitted?.({ stage: 'burn', hash: burnTx.hash, chainKey: srcChainKey });
+    onStep(`Burn tx ${burnTx.hash.slice(0, 10)}… waiting for receipt`);
+    await burnTx.wait();
+
+    // ── STEP 3: poll Circle IRIS for attestation ───────────────────
+    const att = await pollAttestationForFastDeposit(src.cctpDomain, burnTx.hash, onStep);
+
+    // ── STEP 4: switch to hub & mint (USDC lands in user's wallet) ─
+    onStep(`Switching wallet to ${hub.short || hubChainKey}…`);
+    await ARC.wallet.ensureChain(hubChainKey);
+    onStep(`Minting USDC on ${hub.short || hubChainKey}…`);
+    const mt = new Contract(hub.contracts.messageTransmitterV2, ARC.ABIS.messageTransmitterV2, ARC.wallet.signer);
+    const mintOv = await ARC.gasOverrides(hubChainKey, hub.contracts.messageTransmitterV2, ARC.ABIS.messageTransmitterV2, 'receiveMessage', [att.message, att.attestation], 300_000n);
+    const mintTx = await mt.receiveMessage(att.message, att.attestation, mintOv);
+    opts.onSubmitted?.({ stage: 'mint', hash: mintTx.hash, chainKey: hubChainKey });
+    onStep(`Mint tx ${mintTx.hash.slice(0, 10)}… waiting for receipt`);
+    await mintTx.wait();
+
+    // amountHub is the amount that actually arrived on hub (net of CCTP fee).
+    // maxFee cap: (cctpAmt / 10000n) + 1n → real fee ≤ that; treat as upper bound.
+    const feeCanonical = (cctpAmt / 10000n) + 1n;
+    const receivedCanonical = cctpAmt - feeCanonical;
+    const amountHub = ARC.fromCctpAmount(receivedCanonical, hubTok);
+
+    // ── STEP 5: approve GatewayWallet on hub & deposit ────────────
+    onStep(`Approving USDC to GatewayWallet on ${hub.short || hubChainKey}…`);
+    await ARC.ensureAllowance(hubChainKey, hubTok, hub.contracts.gatewayWallet, amountHub, m => onStep(m));
+    onStep(`Depositing to Gateway on ${hub.short || hubChainKey}…`);
+    const gw = new Contract(hub.contracts.gatewayWallet, ARC.ABIS.gatewayWallet, ARC.wallet.signer);
+    const depOv = await ARC.gasOverrides(hubChainKey, hub.contracts.gatewayWallet, ARC.ABIS.gatewayWallet, 'deposit', [hubTok.address, amountHub], 300_000n);
+    const depositTx = await gw.deposit(hubTok.address, amountHub, depOv);
+    opts.onSubmitted?.({ stage: 'deposit', hash: depositTx.hash, chainKey: hubChainKey });
+    onStep(`Deposit tx ${depositTx.hash.slice(0, 10)}… waiting for confirmation`);
+    await depositTx.wait();
+
+    onStep(`Complete — operator credits Unified Balance within ~10s`);
+    return {
+      burnTx, mintTx, depositTx,
+      hubChain: hubChainKey,
+      amountCanonical: receivedCanonical,
+      amountHub,
+    };
+  }
+
   /**
    * 2-step withdraw: initiate → wait `withdrawalDelay()` → withdraw.
    * Returns the tx + receipt of the initiation. Caller polls `getWithdrawals()`.
@@ -1023,7 +1154,9 @@
     gatewayChains, chainByDomain, usdcOnChain,
     canonicalToTokenRaw,
     readBalances, readBalanceOnChain,
-    deposit, initiateWithdrawal, finalizeWithdrawal,
+    deposit, fastDeposit, isSlowFinality, pickFastHub,
+    FAST_HUB_DEFAULT, FAST_HUB_FALLBACK, FAST_FINALITY_CHAINS,
+    initiateWithdrawal, finalizeWithdrawal,
     getWithdrawalInfo, withdrawalDelay,
     buildBurnIntent, signAndSubmitBurnIntent, gatewayMint, spend,
     pickSources, multiSpend, batchSpend, pollTransfer,
