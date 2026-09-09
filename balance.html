@@ -647,7 +647,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.14.1"></script>
+<script src="/assets/arc-gateway.js?v=9.14.2"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1968,6 +1968,7 @@ html{scroll-behavior:smooth}
       const hubName = ARC.CHAINS[hubKey]?.short || hubKey;
       hintEl.style.background = 'rgba(255,180,84,.06)';
       hintEl.style.borderColor = 'rgba(255,180,84,.28)';
+      hintEl.style.padding = '10px 12px';
       hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#FFB454">⚡ FAST ROUTE</span>
         <span style="color:var(--text);font-weight:600">~60s credit</span>
@@ -1979,20 +1980,18 @@ html{scroll-behavior:smooth}
       goBtn.textContent = '⚡ Fast Deposit';
     } else if (isNativeFast) {
       // Source is Fuji/Arc/Polygon — already fast, no routing needed.
-      // Render optimistic hint immediately, then refine with actual allowance
-      // state so users know EXACTLY whether this deposit will be 1 or 2 sigs.
-      hintEl.style.background = 'rgba(77,214,219,.06)';
-      hintEl.style.borderColor = 'rgba(77,214,219,.22)';
+      // Compact one-line pill (no verbose paragraph) — hover/click the ⓘ for detail.
+      hintEl.style.background = 'transparent';
+      hintEl.style.borderColor = 'transparent';
+      hintEl.style.padding = '2px 0';
       const renderInstant = (sigNote) => {
-        hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--arc1)">⚡ INSTANT</span>
-          <span style="color:var(--text);font-weight:600">~10s credit</span>
-          <span style="color:var(--muted)">·</span>
-          <span style="color:var(--muted)">${sigNote}</span>
-        </div>
-        <div>${chainName(k)} has native fast finality — depositing here is already the fastest path. Approve is a <strong style="color:var(--text)">one-time</strong> setup per chain: once granted, every future deposit is a single tx.</div>`;
+        hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--arc1);padding:2px 7px;border-radius:5px;background:rgba(77,214,219,.1)">⚡ INSTANT</span>
+          <span style="color:var(--muted)">~10s credit · ${sigNote}</span>
+          <span class="deposit-hint-help" title="${chainName(k)} has native fast finality (~8s). Depositing directly is already optimal. Approve is a one-time setup per chain — once granted, every future deposit is a single tx." style="margin-left:auto;color:var(--muted);cursor:help;font-size:11px;border:1px solid var(--border);border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;line-height:1">?</span>
+        </div>`;
       };
-      renderInstant('checking allowance…');
+      renderInstant('checking…');
       toggleEl.style.display = 'none';
       goBtn.textContent = 'Deposit';
       // Async: query on-chain allowance so we can promise "1 sig" or "2 sigs".
@@ -2006,7 +2005,7 @@ html{scroll-behavior:smooth}
             const cachedMax = have >= (10n ** 12n);
             // Bail if the user switched chains before this resolved
             if (document.getElementById('deposit-chain').value !== k) return;
-            renderInstant(cachedMax ? '1 sig (allowance cached)' : '2 sigs first time (approve + deposit)');
+            renderInstant(cachedMax ? '1 sig' : '2 sigs (approve is one-time)');
           } catch { /* fallback: keep generic hint */ }
         })();
       }
@@ -2014,6 +2013,7 @@ html{scroll-behavior:smooth}
       // Slow source but user picked "Skip fast route"
       hintEl.style.background = 'rgba(140,160,189,.06)';
       hintEl.style.borderColor = 'rgba(140,160,189,.22)';
+      hintEl.style.padding = '10px 12px';
       hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--muted)">🐢 DIRECT DEPOSIT</span>
         <span style="color:var(--text);font-weight:600">~13-19min credit</span>
@@ -2042,6 +2042,15 @@ html{scroll-behavior:smooth}
     const tok = ARC.TOKENS[k].USDC;
     const value = ARC.parseAmt(amtStr, tok.decimals);
     if (value <= 0n) { setStatus('deposit-status', 'err', 'Invalid amount'); return; }
+    // Block submit when amount > wallet balance. Wallet would sim-revert (USDC
+    // transferFrom fails on insufficient balance) and MetaMask silently greys
+    // out the Confirm button — user sees "Working…" forever with no reason.
+    const walletBal = state.walletBals[k];
+    if (walletBal !== undefined && value > walletBal) {
+      const have = ARC.formatAmt(walletBal, tok.decimals);
+      setStatus('deposit-status', 'err', `Insufficient balance — you have ${have} USDC on ${chainName(k)}, tried to deposit ${amtStr}. Get USDC from a faucet first.`);
+      return;
+    }
     const useFast = shouldUseFastRoute(k);
     const btn = document.getElementById('deposit-go');
     btn.disabled = true; btn.textContent = 'Working…';

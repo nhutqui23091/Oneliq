@@ -353,9 +353,10 @@
   }
 
   async function pollAttestationForFastDeposit(srcDomain, txHash, onStep) {
-    const maxTries = 160; // ~8min at 3s per try — Circle Fast typically ≤30s
-    // Show elapsed time (feels closer to reality than "attempt N/160" which
-    // reads like a debug counter to end-users).
+    // 20 min hard cap. Fast attestation is usually ≤30s on Fuji/Polygon and
+    // ≤2min on Sepolia, but testnet IRIS occasionally spikes to 10-15min
+    // under load — the old 8-min cap tripped users mid-deposit.
+    const maxTries = 400;
     const started = Date.now();
     for (let i = 0; i < maxTries; i++) {
       try {
@@ -366,10 +367,19 @@
         }
       } catch { /* keep polling — testnet IRIS occasionally 5xx */ }
       const secs = Math.round((Date.now() - started) / 1000);
-      onStep?.(`Waiting for Circle attestation… ${secs}s`);
+      // Give context beyond ~2min so slow-testnet users don't panic
+      let hint = '';
+      if (secs > 300)      hint = ' (unusually slow, still waiting)';
+      else if (secs > 120) hint = ' (testnet IRIS can take 2-5min)';
+      onStep?.(`Waiting for Circle attestation… ${secs}s${hint}`);
       await new Promise(r => setTimeout(r, 3000));
     }
-    throw new Error('Attestation timeout — CCTP burn confirmed but mint step failed. Retry via /trade Bridge.');
+    // Persist enough context for a manual resume — the burn is on-chain, so
+    // the user can complete the bridge from /trade if they save the tx hash.
+    const err = new Error(`Attestation timeout after ~20min — CCTP burn tx ${txHash.slice(0, 12)}… is confirmed on-chain. You can finish the bridge later from /trade Bridge (paste this burn hash) once IRIS is caught up.`);
+    err.burnTxHash = txHash;
+    err.srcDomain = srcDomain;
+    throw err;
   }
 
   /**
