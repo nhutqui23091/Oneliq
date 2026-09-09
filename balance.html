@@ -645,7 +645,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.14.5"></script>
+<script src="/assets/arc-gateway.js?v=9.14.6"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -2102,7 +2102,15 @@ html{scroll-behavior:smooth}
         });
         const url = explTx(k, result?.tx?.hash);
         statusEl.className = 'gw-status show ok';
-        statusEl.innerHTML = '✅ Deposit confirmed' + txLink(url, 'View tx ↗');
+        // On slow-finality chains the on-chain tx confirms fast (Arb has ~2s
+        // blocks) but Circle's operator still waits for source-block finality
+        // before crediting Unified Balance. Say that plainly so the user
+        // doesn't think their "Currently in Gateway" is broken.
+        const slowSrc = ARC.gateway?.isSlowFinality?.(k);
+        const tail = slowSrc
+          ? ` · <span style="color:var(--muted)">Unified Balance credits in ~13-19min (walk away — no more action needed).</span>`
+          : '';
+        statusEl.innerHTML = `✅ Tx confirmed on ${chainName(k)}` + txLink(url, 'View tx ↗') + tail;
         pushToHistory('bridge', k, result?.tx?.hash || null, `Deposit ${amtStr} USDC on ${chainName(k)}`);
         try { ARC.track('deposit', k, Number(amtStr), result?.tx?.hash || null, 'balance', state.addr ? { address: state.addr } : null); } catch {}
       }
