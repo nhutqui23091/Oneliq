@@ -448,11 +448,9 @@ html{scroll-behavior:smooth}
     <div class="gw-row"><span>Currently in Gateway</span><strong id="deposit-gwbal">-</strong></div>
     <button id="deposit-go" class="gw-action" type="button">Deposit</button>
     <div id="deposit-status" class="gw-status"></div>
-    <!-- Escape hatch for power users on slow chains — direct deposit avoids the
-         extra CCTP fee (~0.01%) + gas on the hub, at the cost of ~15min wait. -->
-    <div id="deposit-direct-toggle" style="margin-top:10px;font-size:11.5px;color:var(--muted);text-align:right;display:none">
-      Prefer direct deposit? <a href="#" id="deposit-force-direct" style="color:var(--arc1);text-decoration:underline">Skip fast route</a>
-    </div>
+    <!-- Kept as a no-op placeholder so syncDepositInfo()'s toggleEl.style.display
+         write doesn't throw. All routing-mode links are now inline in the hint. -->
+    <div id="deposit-direct-toggle" style="display:none"></div>
   </div>
 </div>
 
@@ -647,7 +645,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.14.4"></script>
+<script src="/assets/arc-gateway.js?v=9.14.5"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1921,10 +1919,12 @@ html{scroll-behavior:smooth}
   // Default chain: if user clicked from a per-chain row use that. Otherwise
   // default to Avalanche Fuji - fastest finality (~30s) so the user's first
   // deposit credits in seconds instead of waiting 12-15min on Sepolia/L2.
-  // forceDirect: user-visible escape hatch. When true, we always use the direct
-  // `deposit()` path even if the source chain is slow-finality — trading ~15min
-  // wait for zero CCTP fee + single-chain gas. Reset whenever the modal reopens.
-  let depositForceDirect = false;
+  // Default is DIRECT deposit (1-2 sigs, walk away, ~13-19min operator credit).
+  // Fast Route is an OPT-IN for users who want sync UX and accept 4-5 sigs +
+  // the wait for CCTP attestation. Was default-on briefly, but on Arb/OP
+  // Sepolia CCTP Fast attestation is 2-10min on testnet — that erased any
+  // speed win over Direct and forced users to babysit the browser for sigs.
+  let depositOptInFast = false;
   function openDepositModal(chainKey) {
     if (!state.addr) { alert('Connect wallet first'); return; }
     // Never land on a chain that can't actually deposit (e.g. Arc native USDC).
@@ -1932,16 +1932,18 @@ html{scroll-behavior:smooth}
     document.getElementById('deposit-chain').value = safeKey;
     document.getElementById('deposit-amount').value = '';
     clearStatus('deposit-status');
-    depositForceDirect = false;
+    depositOptInFast = false;
     syncDepositInfo();
     openModal('modal-deposit');
   }
-  // Chains where we route via Fuji hub instead of depositing directly (Circle's
-  // operator waits ~13-19min for slow-finality blocks on these chains before
-  // crediting Unified Balance). Mirror of arc-gateway's isSlowFinality helper.
+  // Fast Route (CCTP-bridge slow src → Fuji hub → deposit there) is OPT-IN.
+  // On testnet Arb/OP Sepolia the CCTP Fast attestation is 2-10min anyway,
+  // so it saves nothing over direct deposit and forces the user to sit on
+  // the browser for a second signature after attestation lands. Direct is
+  // the friendlier default: click, walk away, operator credits ~13-19min.
   function shouldUseFastRoute(chainKey) {
-    if (depositForceDirect) return false;
-    return ARC.gateway?.isSlowFinality?.(chainKey) ?? false;
+    if (!(ARC.gateway?.isSlowFinality?.(chainKey))) return false;
+    return depositOptInFast;
   }
   function syncDepositInfo() {
     const k = document.getElementById('deposit-chain').value;
@@ -1953,26 +1955,32 @@ html{scroll-behavior:smooth}
 
     // Route hint — ALWAYS shown so the user can see which routing mode is
     // active. Three variants:
-    //   1. slow src → we route via Fuji hub (Fast Route)
-    //   2. slow src + user opted out → direct (~15min wait)
+    //   1. slow src (default) → DIRECT deposit (~13-19min operator credit, walk away)
+    //   2. slow src + user opted in → FAST ROUTE (sync, 4-5 sigs, needs babysitting)
     //   3. fast src (Fuji/Arc/Polygon) → direct is already fast (~10s), no routing
     const hintEl = document.getElementById('deposit-route-hint');
     const toggleEl = document.getElementById('deposit-direct-toggle');
+    toggleEl.style.display = 'none'; // opt-in link is inline in the hint now
     const useFast = shouldUseFastRoute(k);
     const isNativeFast = !ARC.gateway.isSlowFinality(k);
     const goBtn = document.getElementById('deposit-go');
     hintEl.style.display = 'block';
     if (useFast) {
-      // Slow source, fast route active — compact 1-liner, detail in ⓘ tooltip.
+      // Slow source + user opted in — sync UX, 4-5 sigs, ⓘ tooltip has detail.
       const hubKey = ARC.gateway.pickFastHub(k);
       const hubName = ARC.CHAINS[hubKey]?.short || hubKey;
       hintEl.style.background = 'transparent';
       hintEl.style.borderColor = 'transparent';
       hintEl.style.padding = '2px 0';
-      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap">
         <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;color:#FFB454;padding:2px 7px;border-radius:5px;background:rgba(255,180,84,.1)">⚡ FAST ROUTE</span>
+        <span style="color:var(--muted);font-size:11.5px">via ${hubName} · needs 4-5 sigs · stay on page</span>
+        <a href="#" id="deposit-back-direct" style="color:var(--arc1);text-decoration:underline;font-size:11.5px;margin-left:auto">Back to direct</a>
       </div>`;
-      toggleEl.style.display = 'block';
+      setTimeout(() => {
+        const el = document.getElementById('deposit-back-direct');
+        if (el) el.onclick = (e) => { e.preventDefault(); depositOptInFast = false; syncDepositInfo(); };
+      }, 0);
       goBtn.textContent = '⚡ Fast Deposit';
     } else if (isNativeFast) {
       // Source is Fuji/Arc/Polygon — already fast, no routing needed.
@@ -2006,31 +2014,31 @@ html{scroll-behavior:smooth}
         })();
       }
     } else {
-      // Slow source but user picked "Skip fast route"
-      hintEl.style.background = 'rgba(140,160,189,.06)';
-      hintEl.style.borderColor = 'rgba(140,160,189,.22)';
-      hintEl.style.padding = '10px 12px';
-      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--muted)">🐢 DIRECT DEPOSIT</span>
-        <span style="color:var(--text);font-weight:600">~13-19min credit</span>
-      </div>
-      <div>You picked direct deposit on ${chainName(k)}. Circle's operator waits for source-block finality (~65 blocks) before crediting Unified Balance. Zero CCTP fee, but ~15min wait. <a href="#" id="deposit-force-fast" style="color:var(--arc1);text-decoration:underline">Switch back to fast route</a>.</div>`;
-      toggleEl.style.display = 'none';
-      goBtn.textContent = 'Deposit';
-      // Wire the "switch back" link created inside the hint
+      // Slow source, default (opt-in fast not chosen). Compact single-line
+      // hint so the modal stays clean; ⓘ tooltip carries the "why" for anyone
+      // who wants it, and the opt-in link is right there for power users.
+      hintEl.style.background = 'transparent';
+      hintEl.style.borderColor = 'transparent';
+      hintEl.style.padding = '2px 0';
+      hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--muted);padding:2px 7px;border-radius:5px;background:rgba(140,160,189,.1)">🐢 DIRECT</span>
+        <span style="color:var(--muted);font-size:11.5px">~13-19min · 1-2 sigs · walk away</span>
+        <span title="${chainName(k)} finalizes in ~13-19min. Sign the deposit tx, close the tab if you want — Circle's operator watches finality and credits Unified Balance in the background. Zero CCTP fee." style="color:var(--muted);cursor:help;font-size:11px;border:1px solid var(--border);border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;line-height:1">?</span>
+        <a href="#" id="deposit-try-fast" style="color:var(--arc1);text-decoration:underline;font-size:11.5px;margin-left:auto">Try fast route</a>
+      </div>`;
       setTimeout(() => {
-        const el = document.getElementById('deposit-force-fast');
-        if (el) el.onclick = (e) => { e.preventDefault(); depositForceDirect = false; syncDepositInfo(); };
+        const el = document.getElementById('deposit-try-fast');
+        if (el) el.onclick = (e) => {
+          e.preventDefault();
+          depositOptInFast = true;
+          syncDepositInfo();
+          setStatus('deposit-status', '', 'Fast Route selected — you\'ll sign 4-5 txs and stay on this page through CCTP attestation (usually 30s-2min, up to 10min on Arb/OP Sepolia testnet).');
+        };
       }, 0);
+      goBtn.textContent = 'Deposit';
     }
   }
   document.getElementById('deposit-chain').onchange = syncDepositInfo;
-  document.getElementById('deposit-force-direct').onclick = (e) => {
-    e.preventDefault();
-    depositForceDirect = true;
-    syncDepositInfo();
-    setStatus('deposit-status', '', 'Direct deposit selected — expect ~13-19min for the operator to credit Unified Balance after your tx confirms.');
-  };
   document.getElementById('deposit-go').onclick = async () => {
     const k = document.getElementById('deposit-chain').value;
     const amtStr = document.getElementById('deposit-amount').value.trim();
@@ -2081,8 +2089,9 @@ html{scroll-behavior:smooth}
         pushToHistory('bridge', k, result.burnTx?.hash || null, `Fast Deposit ${amtStr} USDC · ${chainName(k)} → ${chainName(result.hubChain)}`);
         try { ARC.track('deposit', result.hubChain, Number(amtStr), result.depositTx?.hash || null, 'balance-fast', state.addr ? { address: state.addr } : null); } catch {}
       } else {
-        // Direct deposit — used when src is already fast-finality (Fuji/Arc/
-        // Polygon) or the user picked "Skip fast route".
+        // Direct deposit — the default for slow-finality src (user opted out
+        // of Fast Route) and the only mode for fast-finality src (Fuji/Arc/
+        // Polygon), where routing via a hub would add no benefit.
         const result = await ARC.gateway.deposit(k, value, {
           onStep: (m) => setStatus('deposit-status', '', m),
           onSubmitted: (hash) => {
