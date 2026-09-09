@@ -647,7 +647,7 @@ html{scroll-behavior:smooth}
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-gateway.js?v=9.14.3"></script>
+<script src="/assets/arc-gateway.js?v=9.14.4"></script>
 <script src="/assets/arc-ui.js?v=9.11.4"></script>
 <script>
 (async () => {
@@ -1971,8 +1971,6 @@ html{scroll-behavior:smooth}
       hintEl.style.padding = '2px 0';
       hintEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
         <span style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;color:#FFB454;padding:2px 7px;border-radius:5px;background:rgba(255,180,84,.1)">⚡ FAST ROUTE</span>
-        <span style="color:var(--muted)">~60s · via ${hubName} · 4 sigs</span>
-        <span title="${chainName(k)} finalizes in ~13-19min, so we CCTP-bridge to ${hubName} (~8s finality) and deposit there. Signs 4 tx (burn · mint · approve · deposit) with a tiny CCTP fee (~0.01%). One button, ~60s total." style="margin-left:auto;color:var(--muted);cursor:help;font-size:11px;border:1px solid var(--border);border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;line-height:1">?</span>
       </div>`;
       toggleEl.style.display = 'block';
       goBtn.textContent = '⚡ Fast Deposit';

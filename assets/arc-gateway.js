@@ -392,13 +392,15 @@
         }
       } catch { /* keep polling — testnet IRIS occasionally 5xx */ }
       const secs = Math.round((Date.now() - started) / 1000);
-      // Escalating context so users understand it's not our code hanging
+      // Escalating context so users understand it's not our code hanging.
+      // Arb/OP Sepolia Fast attestation is chronically slow on testnet, so
+      // surface that up front (from 45s) instead of making users wonder for 2min.
       let hint = '';
       if (secs > 600)      hint = ' — Circle Fast Transfer service backlog. Your burn is on-chain, safe.';
       else if (secs > 300) hint = ' — Circle IRIS is unusually slow. Still waiting.';
-      else if (secs > 120) hint = isKnownSlow
-        ? ' — Arb/OP Sepolia Fast can spike to 10-15min on testnet (Circle-side).'
-        : ' — testnet IRIS can take 2-5min.';
+      else if (secs > 120) hint = ' — testnet IRIS can take 2-5min.';
+      else if (isKnownSlow && secs > 45)
+                           hint = ' — Arb/OP Sepolia Fast is Circle-side and often takes 2-10min on testnet.';
       onStep?.(`Waiting for Circle attestation… ${secs}s${hint}`);
       await new Promise(r => setTimeout(r, 3000));
     }
