@@ -303,6 +303,24 @@
    * Switches network if needed, approves, deposits.
    * `value` is in chain-native token decimals (6 normally, 18 on Arc).
    */
+  // Fast receipt polling — ethers v6 defaults to 4s pollingInterval which
+  // makes even Fuji (2s blocks) feel sluggish. Poll every 1s so users see
+  // "✅ confirmed" within ~2-3s of the block being mined on fast chains.
+  async function fastWaitReceipt(provider, hash, opts = {}) {
+    const start = Date.now();
+    const timeoutMs = opts.timeoutMs || 120_000;
+    const intervalMs = opts.intervalMs || 1000;
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const r = await provider.getTransactionReceipt(hash);
+        if (r) return r;
+      } catch { /* transient RPC hiccup — keep polling */ }
+      opts.onTick?.(Math.round((Date.now() - start) / 1000));
+      await new Promise(res => setTimeout(res, intervalMs));
+    }
+    throw new Error(`Receipt not found after ${Math.round(timeoutMs / 1000)}s — tx ${hash.slice(0,12)}… may still confirm; check the explorer.`);
+  }
+
   async function deposit(chainKey, value, opts = {}) {
     if (!ARC.wallet.address) throw new Error('Connect wallet first');
     await ARC.wallet.ensureChain(chainKey);
@@ -318,10 +336,13 @@
     const ov = await ARC.gasOverrides(chainKey, c.contracts.gatewayWallet, ARC.ABIS.gatewayWallet, 'deposit', [tok.address, value], 300_000n);
     const tx = await wallet.deposit(tok.address, value, ov);
     // Surface the full hash immediately so the UI can show an explorer link while
-    // tx.wait() blocks — confirmation can be slow on some testnets (Sepolia L1).
+    // we wait for confirmation. Fast poll (1s vs ethers' 4s default) makes the
+    // gap between "Submitted" and "Confirmed" feel much tighter on 2s-block chains.
     opts.onSubmitted?.(tx.hash);
     onStep(`Submitted ${tx.hash.slice(0, 10)}… waiting for confirmation on ${c.short || chainKey}`);
-    const receipt = await tx.wait();
+    const receipt = await fastWaitReceipt(ARC.wallet.signer.provider, tx.hash, {
+      onTick: (secs) => onStep(`Submitted ${tx.hash.slice(0, 10)}… confirming on ${c.short || chainKey} (${secs}s)`),
+    });
     return { tx, receipt };
   }
 
@@ -355,9 +376,13 @@
   async function pollAttestationForFastDeposit(srcDomain, txHash, onStep) {
     // 20 min hard cap. Fast attestation is usually ≤30s on Fuji/Polygon and
     // ≤2min on Sepolia, but testnet IRIS occasionally spikes to 10-15min
-    // under load — the old 8-min cap tripped users mid-deposit.
+    // for Arb Sepolia specifically under load — the old 8-min cap tripped
+    // users mid-deposit.
     const maxTries = 400;
     const started = Date.now();
+    // Arb Sepolia and OP Sepolia Fast attestation are notably slower on
+    // testnet — surface that specifically so users don't blame our code.
+    const isKnownSlow = srcDomain === 3 || srcDomain === 2; // Arb / OP Sepolia
     for (let i = 0; i < maxTries; i++) {
       try {
         const data = await ARC.irisMessages(srcDomain, txHash);
@@ -367,10 +392,13 @@
         }
       } catch { /* keep polling — testnet IRIS occasionally 5xx */ }
       const secs = Math.round((Date.now() - started) / 1000);
-      // Give context beyond ~2min so slow-testnet users don't panic
+      // Escalating context so users understand it's not our code hanging
       let hint = '';
-      if (secs > 300)      hint = ' (unusually slow, still waiting)';
-      else if (secs > 120) hint = ' (testnet IRIS can take 2-5min)';
+      if (secs > 600)      hint = ' — Circle Fast Transfer service backlog. Your burn is on-chain, safe.';
+      else if (secs > 300) hint = ' — Circle IRIS is unusually slow. Still waiting.';
+      else if (secs > 120) hint = isKnownSlow
+        ? ' — Arb/OP Sepolia Fast can spike to 10-15min on testnet (Circle-side).'
+        : ' — testnet IRIS can take 2-5min.';
       onStep?.(`Waiting for Circle attestation… ${secs}s${hint}`);
       await new Promise(r => setTimeout(r, 3000));
     }
@@ -428,7 +456,9 @@
     const burnTx = await tm.depositForBurn(cctpAmt, hub.cctpDomain, mintRecipient32, srcTok.address, destCaller32, maxFee, minFinality, burnOv);
     opts.onSubmitted?.({ stage: 'burn', hash: burnTx.hash, chainKey: srcChainKey });
     onStep(`Burn tx ${burnTx.hash.slice(0, 10)}… waiting for receipt`);
-    await burnTx.wait();
+    await fastWaitReceipt(ARC.wallet.signer.provider, burnTx.hash, {
+      onTick: (secs) => onStep(`Burn tx ${burnTx.hash.slice(0, 10)}… confirming on ${src.short || srcChainKey} (${secs}s)`),
+    });
 
     // ── STEP 3: poll Circle IRIS for attestation ───────────────────
     const att = await pollAttestationForFastDeposit(src.cctpDomain, burnTx.hash, onStep);
@@ -442,7 +472,9 @@
     const mintTx = await mt.receiveMessage(att.message, att.attestation, mintOv);
     opts.onSubmitted?.({ stage: 'mint', hash: mintTx.hash, chainKey: hubChainKey });
     onStep(`Mint tx ${mintTx.hash.slice(0, 10)}… waiting for receipt`);
-    await mintTx.wait();
+    await fastWaitReceipt(ARC.wallet.signer.provider, mintTx.hash, {
+      onTick: (secs) => onStep(`Mint tx ${mintTx.hash.slice(0, 10)}… confirming on ${hub.short || hubChainKey} (${secs}s)`),
+    });
 
     // amountHub is the amount that actually arrived on hub (net of CCTP fee).
     // maxFee cap: (cctpAmt / 10000n) + 1n → real fee ≤ that; treat as upper bound.
@@ -459,7 +491,9 @@
     const depositTx = await gw.deposit(hubTok.address, amountHub, depOv);
     opts.onSubmitted?.({ stage: 'deposit', hash: depositTx.hash, chainKey: hubChainKey });
     onStep(`Deposit tx ${depositTx.hash.slice(0, 10)}… waiting for confirmation`);
-    await depositTx.wait();
+    await fastWaitReceipt(ARC.wallet.signer.provider, depositTx.hash, {
+      onTick: (secs) => onStep(`Deposit tx ${depositTx.hash.slice(0, 10)}… confirming on ${hub.short || hubChainKey} (${secs}s)`),
+    });
 
     onStep(`Complete — operator credits Unified Balance within ~10s`);
     return {
