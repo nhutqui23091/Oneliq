@@ -553,7 +553,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 <script src="/assets/arc-core-v2.js?v=10.0.3"></script>
 <script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
-<script src="/assets/arc-uniswap-v4.js?v=1.2.0"></script>
+<script src="/assets/arc-uniswap-v4.js?v=1.2.1"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -1167,7 +1167,18 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   //   - wallet → on-chain ERC20 balance (or eth_getBalance for gas tokens)
   //   - gateway → Circle Gateway availableBalance via REST cache (state.sources)
   // For "to" side: always on-chain balance of toToken on dst.chainKey
-  async function updateBalances() {
+  //
+  // Debounced: AppKit fires several wallet events during connect
+  // (setConnectorId, syncProvider, setChainNetworkData, setChainAccountData…)
+  // each of which triggers ARC.wallet.on → updateBalances. Without the
+  // debounce we hammer Arc's public RPC with 40+ balanceOf calls in a
+  // couple of seconds and eat HTTP 429s.
+  let _updateBalTimer = null;
+  function updateBalances() {
+    clearTimeout(_updateBalTimer);
+    _updateBalTimer = setTimeout(_updateBalances, 250);
+  }
+  async function _updateBalances() {
     const addr = wallet.address;
     const fromBal = document.getElementById('from-bal');
     const toBal = document.getElementById('to-bal');

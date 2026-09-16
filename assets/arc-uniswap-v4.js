@@ -234,7 +234,16 @@
       }
     }
     if (!candidates.length) return null;
-    candidates.sort((a, b) => (b.amountOut > a.amountOut ? 1 : -1));
+    // Prefer NO-HOOK pools first (open to anyone), then by output size.
+    // Hook-gated pools frequently reject external routers with revert(),
+    // so trying a permissionless pool first avoids the confusing failure.
+    const ZERO_HOOKS = '0x0000000000000000000000000000000000000000';
+    candidates.sort((a, b) => {
+      const aHook = a.poolKey.hooks.toLowerCase() !== ZERO_HOOKS ? 1 : 0;
+      const bHook = b.poolKey.hooks.toLowerCase() !== ZERO_HOOKS ? 1 : 0;
+      if (aHook !== bHook) return aHook - bHook; // no-hook first
+      return b.amountOut > a.amountOut ? 1 : -1;
+    });
     console.debug('[arc-univ4] pool candidates (' + candidates.length + '):',
       candidates.map(c => ({ fee: c.poolKey.fee, tickSpacing: c.poolKey.tickSpacing, hooks: c.poolKey.hooks, liq: c.liquidity.toString(), out: c.amountOut.toString() })));
     const best = candidates[0];
@@ -436,13 +445,17 @@
         rawDirectErr: directErr,
       });
 
+      const hookHex = (poolKey.hooks || '0x0000000000000000000000000000000000000000').toLowerCase();
+      const hasHook = hookHex !== '0x0000000000000000000000000000000000000000';
       const hint = !xferOk
         ? ` (ERC-20 transferFrom on ${tokenIn.slice(0,6)}… also reverts → wrapper doesn't accept normal transfers)`
         : directOk
         ? ' (Universal Router direct call would succeed → issue is OneliqRouter Permit2 flow)'
         : directSel
         ? ` (direct-call selector ${directSel} = ${directDecoded})`
-        : ' (direct call also gave no revert data → likely a hook rejecting with revert())';
+        : hasHook
+        ? ` — pool is hook-gated (${poolKey.hooks.slice(0,10)}…). This pool's hook contract rejects swaps from external routers. Try a different pool or token pair.`
+        : ' (direct call also gave no revert data → likely low liquidity or a hook rejecting with revert())';
       const err = new Error(`Simulation reverted — ${decoded}${hint}`);
       err.cause = simErr;
       err.selector = shortSel;
