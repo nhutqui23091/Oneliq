@@ -426,7 +426,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         </div>
         <div class="src-picker" id="from-source-wrap">
           <button class="src-trigger" id="from-source-btn" type="button">
-            <span class="src-current" id="from-source-current">Connect wallet…</span>
+            <span class="src-current" id="from-source-current">Loading…</span>
             <span class="src-trigger-caret">▾</span>
           </button>
           <div class="src-panel" id="from-source-panel"></div>
@@ -438,8 +438,8 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
             <div class="amt-usd" id="from-usd">≈ $0.00</div>
           </div>
           <button class="pick-btn" id="from-pick">
-            <div class="token-ico" id="from-ico">?</div>
-            <span id="from-sym">Select</span>
+            <div class="token-ico" id="from-ico"><img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>
+            <span id="from-sym">USDC</span>
             <span class="caret">▾</span>
           </button>
         </div>
@@ -459,7 +459,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         </div>
         <button class="dst-trigger" id="to-dest-btn" type="button" aria-label="Destination chain">
           <span class="dst-trigger-cur">
-            <img class="dst-trigger-ico" id="to-dest-ico" alt=""/>
+            <img class="dst-trigger-ico" id="to-dest-ico" src="/assets/logos/arc.png" alt=""/>
             <span class="dst-trigger-name" id="to-dest-current">Arc</span>
           </span>
           <span class="dst-trigger-caret">▾</span>
@@ -471,8 +471,8 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
             <div class="amt-usd" id="to-usd">≈ $0.00</div>
           </div>
           <button class="pick-btn" id="to-pick">
-            <div class="token-ico" id="to-ico">?</div>
-            <span id="to-sym">Select</span>
+            <div class="token-ico" id="to-ico"><img src="https://assets.coingecko.com/coins/images/26045/small/euro.png" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/></div>
+            <span id="to-sym">EURC</span>
             <span class="caret">▾</span>
           </button>
         </div>
