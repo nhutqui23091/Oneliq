@@ -604,9 +604,11 @@
         <nav class="arc-side-nav">${sectionsHtml}</nav>
         <div class="arc-side-foot">
           ${window.ArcTheme ? ArcTheme.buttonHtml() : ''}
-          <div class="arc-side-chain" title="Arc Testnet"><span class="dot"></span><span class="arc-side-chain-label">Arc Testnet</span></div>
+          ${networkSwitcherHtml()}
           <button id="arc-wallet-btn" class="wallet-btn disconnected" title="Connect Wallet">Connect Wallet</button>
         </div>`;
+      // Wire the sidebar network switcher (same handler as top-nav variant).
+      wireNetworkSwitcher();
 
       // Mobile close button
       const closeBtn = side.querySelector('.arc-side-close');

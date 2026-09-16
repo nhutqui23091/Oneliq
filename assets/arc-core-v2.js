@@ -369,7 +369,9 @@
   // testnet chain keys ('sepolia', 'baseSepolia', 'avalancheFuji', etc.). In
   // mainnet mode we alias those to the equivalent mainnet chain so lookups
   // like CHAINS.sepolia?.cctpDomain keep resolving without editing every
-  // consumer. New code should prefer the semantic keys (ethereum, base, …).
+  // consumer. Aliases are non-enumerable so Object.keys / for-in / Object.entries
+  // do NOT surface them — otherwise the Balance modal would render every chain
+  // twice (once under the mainnet key, once under the legacy testnet key).
   if (IS_MAINNET) {
     const alias = {
       sepolia: 'ethereum',
@@ -381,7 +383,14 @@
       unichainSepolia: 'unichain',
     };
     for (const [oldKey, newKey] of Object.entries(alias)) {
-      if (CHAINS[newKey] && !CHAINS[oldKey]) CHAINS[oldKey] = CHAINS[newKey];
+      if (CHAINS[newKey] && !(oldKey in CHAINS)) {
+        Object.defineProperty(CHAINS, oldKey, {
+          value: CHAINS[newKey],
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
     }
   }
 
@@ -511,6 +520,7 @@
   const TOKENS = IS_MAINNET ? _MAINNET_TOKENS : _TESTNET_TOKENS;
 
   // Same alias trick for TOKENS so `TOKENS.sepolia?.USDC` works in mainnet mode.
+  // Non-enumerable so iterations don't see duplicates.
   if (IS_MAINNET) {
     const alias = {
       sepolia: 'ethereum',
@@ -522,7 +532,14 @@
       unichainSepolia: 'unichain',
     };
     for (const [oldKey, newKey] of Object.entries(alias)) {
-      if (TOKENS[newKey] && !TOKENS[oldKey]) TOKENS[oldKey] = TOKENS[newKey];
+      if (TOKENS[newKey] && !(oldKey in TOKENS)) {
+        Object.defineProperty(TOKENS, oldKey, {
+          value: TOKENS[newKey],
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
     }
   }
 
