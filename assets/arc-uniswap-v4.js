@@ -313,8 +313,44 @@
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 min
 
-    onStep?.('Submitting swap...');
+    // Simulate first so any revert surfaces a decoded reason instead of a
+    // bare "execution reverted" from the wallet popup.
+    onStep?.('Simulating…');
     const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
+    try {
+      await router.swap.staticCall(
+        tokenIn,
+        BigInt(amountIn),
+        tokenOut,
+        minOut,
+        deadline,
+        commands,
+        inputs
+      );
+    } catch (simErr) {
+      // ethers v6 surfaces revert data at .data when it can extract it.
+      const raw = simErr?.data || simErr?.info?.error?.data || simErr?.error?.data || '';
+      const rawStr = typeof raw === 'string' ? raw : (raw?.data || '');
+      const shortSel = rawStr && rawStr.length >= 10 ? rawStr.slice(0, 10) : '';
+      // Known error selectors we can decode inline
+      const KNOWN_ERRORS = {
+        '0xd93c0665': 'IsPaused()',
+        '0x2c5211c6': 'InsufficientOutput()',
+        '0x7c9c6e8f': 'DeadlinePassed()',
+        // Uniswap V4Router: emitted when pool returns less than SETTLE_ALL max
+        '0x8b063d73': 'V4Router: TooMuchRequested (pool refused settle)',
+        // Uniswap V4Router: TooLittle on TAKE_ALL
+        '0x39d35496': 'V4Router: TooLittle (pool paid less than minOut)',
+      };
+      const decoded = KNOWN_ERRORS[shortSel] || (shortSel ? `revert selector ${shortSel}` : (simErr?.shortMessage || simErr?.message || 'unknown'));
+      const err = new Error(`Simulation reverted — ${decoded}`);
+      err.cause = simErr;
+      err.selector = shortSel;
+      err.poolKey = poolKey;
+      throw err;
+    }
+
+    onStep?.('Submitting swap...');
     const tx = await router.swap(
       tokenIn,
       BigInt(amountIn),
