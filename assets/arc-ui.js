@@ -77,7 +77,7 @@
         <button id="arc-net-btn" class="nav-pill" style="cursor:pointer;border:none;background:transparent;font:inherit;color:inherit;padding:0" title="Switch network">
           <span class="dot" style="background:${dotColor}"></span>${label} <span style="opacity:.55;margin-left:2px">▾</span>
         </button>
-        <div id="arc-net-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.28);z-index:1000">
+        <div id="arc-net-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:220px;padding:6px;background:#0B1636;border:1px solid var(--border-strong,var(--border));border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,.55);z-index:99999">
           <button data-net="mainnet" class="arc-net-opt" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer;text-align:left;border-radius:8px">
             <span style="width:8px;height:8px;border-radius:50%;background:#00E5A0"></span>
             <span style="flex:1">Arc Mainnet</span>
@@ -96,13 +96,41 @@
     const btn = document.getElementById('arc-net-btn');
     const menu = document.getElementById('arc-net-menu');
     if (!btn || !menu) return;
-    const close = () => { menu.style.display = 'none'; document.removeEventListener('click', onDoc); };
+
+    // Escape the sidebar's overflow:hidden by portalling the menu to body
+    // and positioning it fixed relative to the trigger button's viewport
+    // rect. Otherwise the sidebar clips the dropdown behind the nav.
+    if (menu.parentNode !== document.body) document.body.appendChild(menu);
+    menu.style.position = 'fixed';
+    menu.style.top = 'auto';
+    menu.style.right = 'auto';
+
+    const position = () => {
+      const r = btn.getBoundingClientRect();
+      menu.style.left = r.left + 'px';
+      menu.style.top  = (r.bottom + 6) + 'px';
+      menu.style.minWidth = Math.max(220, r.width) + 'px';
+    };
+
+    const close = () => {
+      menu.style.display = 'none';
+      document.removeEventListener('click', onDoc);
+      window.removeEventListener('resize', position);
+      window.removeEventListener('scroll', position, true);
+    };
     const onDoc = (e) => { if (!menu.contains(e.target) && e.target !== btn) close(); };
+
     btn.onclick = (e) => {
       e.stopPropagation();
-      const open = menu.style.display === 'block';
-      menu.style.display = open ? 'none' : 'block';
-      if (!open) setTimeout(() => document.addEventListener('click', onDoc), 0);
+      const isOpen = menu.style.display === 'block';
+      if (isOpen) { close(); return; }
+      position();
+      menu.style.display = 'block';
+      setTimeout(() => {
+        document.addEventListener('click', onDoc);
+        window.addEventListener('resize', position);
+        window.addEventListener('scroll', position, true);
+      }, 0);
     };
     menu.querySelectorAll('.arc-net-opt').forEach(opt => {
       opt.onmouseenter = () => { opt.style.background = 'var(--border)'; };

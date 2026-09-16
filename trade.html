@@ -551,7 +551,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=10.0.2"></script>
-<script src="/assets/arc-ui.js?v=10.0.2"></script>
+<script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
 <script src="/assets/arc-uniswap-v4.js?v=1.0.0"></script>
 
@@ -592,11 +592,10 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     card.id = 'mainnet-swap-card';
     card.style.cssText = 'max-width:560px;margin:24px auto;padding:20px 22px;background:var(--surface);border:1px solid var(--border);border-radius:16px;color:var(--text);font-family:var(--font)';
     card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-        <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.15em;color:#00E5A0">// MAINNET · UNISWAP v4</div>
-        <div style="flex:1"></div>
-        <div style="font-size:11px;color:var(--muted)">Router <a href="https://explorer.arc.io/address/${routerAddr}" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline">${routerAddr.slice(0,6)}…${routerAddr.slice(-4)}</a></div>
-      </div>
+      <style>
+        #mainnet-swap-card select { padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font) }
+        #mainnet-swap-card select option { background:#0B1636;color:#FFFFFF;padding:6px }
+      </style>
 
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase">
@@ -605,7 +604,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         </div>
         <div style="display:flex;gap:10px;align-items:center">
           <input id="mn-amount-in" placeholder="0.0" inputmode="decimal" autocomplete="off" style="flex:1;background:transparent;border:none;outline:none;font-size:26px;font-weight:600;color:var(--text);font-family:var(--font)"/>
-          <select id="mn-token-in" style="padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">
+          <select id="mn-token-in">
             <option value="USDC">USDC</option>
             <option value="EURC">EURC</option>
             <option value="__custom__">Custom…</option>
@@ -625,7 +624,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         </div>
         <div style="display:flex;gap:10px;align-items:center">
           <input id="mn-amount-out" placeholder="0.0" readonly style="flex:1;background:transparent;border:none;outline:none;font-size:26px;font-weight:600;color:var(--text);font-family:var(--font)"/>
-          <select id="mn-token-out" style="padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">
+          <select id="mn-token-out">
             <option value="EURC">EURC</option>
             <option value="USDC">USDC</option>
             <option value="__custom__">Custom…</option>
