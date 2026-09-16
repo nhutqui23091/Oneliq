@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/assets/arc-ui.css?v=9.11.4"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=10.0.0"/>
 <style>
 main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:80px 20px}
 .trade-col{width:100%;max-width:560px}
@@ -551,8 +551,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
 <script src="/assets/arc-core-v2.js?v=10.0.2"></script>
-<script src="/assets/arc-ui.js?v=10.0.1"></script>
+<script src="/assets/arc-ui.js?v=10.0.2"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
+<script src="/assets/arc-uniswap-v4.js?v=1.0.0"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -564,25 +565,262 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 
   await ArcUI.bootApp('trade');
 
-  // ── Mainnet Trade guard ──────────────────────────────────────────────────
-  // Arc Mainnet Trade routes through OneliqRouter (Uniswap v4 wrapper).
-  // Until that contract is deployed and its address wired into
-  // _MAINNET_CHAINS.arc.contracts.router, show a banner and disable
-  // the swap form. Switching to Testnet via the top-right pill restores it.
-  if (ARC.isMainnet && ARC.isMainnet() && !ARC.CHAINS.arc?.contracts?.router) {
-    const host = document.querySelector('main, .arc-app-content, body') || document.body;
-    const banner = document.createElement('div');
-    banner.style.cssText = 'max-width:640px;margin:24px auto;padding:18px 22px;background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.28);border-radius:14px;color:var(--text);font-size:13.5px;line-height:1.6';
-    banner.innerHTML = `
-      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.15em;color:#00E5A0;margin-bottom:6px">// MAINNET</div>
-      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Trade on Arc Mainnet — router deploy in progress</div>
-      <div style="color:var(--muted)">The Uniswap v4 wrapper (OneliqRouter) is being deployed. Once its address is wired, Trade unlocks automatically for USDC ↔ EURC and any Uniswap v4 pool on Arc.</div>
-      <div style="color:var(--muted);margin-top:8px">Meanwhile: switch to <b>Testnet</b> from the top-right network pill to continue swapping via the existing OneliqRouterV2 + Curve pool.</div>`;
-    // Insert at top of content area
-    const insertAfter = document.querySelector('nav.arc-nav') || document.body.firstChild;
-    (insertAfter && insertAfter.parentNode)
-      ? insertAfter.parentNode.insertBefore(banner, insertAfter.nextSibling)
-      : document.body.insertBefore(banner, document.body.firstChild);
+  // ── Mainnet Trade UI ────────────────────────────────────────────────────
+  // On Arc Mainnet, hide the testnet Curve UI and show a fresh Uniswap v4
+  // trading card powered by ARC.uniV4 (see arc-uniswap-v4.js). Testnet mode
+  // keeps the existing UI below untouched.
+  if (ARC.isMainnet && ARC.isMainnet()) {
+    const routerAddr = ARC.CHAINS.arc?.contracts?.router;
+    // Hide the entire testnet swap card
+    document.querySelectorAll('.trade-col').forEach(el => el.style.display = 'none');
+
+    const mainWrap = document.querySelector('main.trade-wrap') || document.body;
+    if (!routerAddr) {
+      // Router not deployed yet — show fallback banner
+      const banner = document.createElement('div');
+      banner.style.cssText = 'max-width:640px;margin:24px auto;padding:18px 22px;background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.28);border-radius:14px;color:var(--text);font-size:13.5px;line-height:1.6';
+      banner.innerHTML = `
+        <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.15em;color:#00E5A0;margin-bottom:6px">// MAINNET</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Trade on Arc Mainnet — router deploy in progress</div>
+        <div style="color:var(--muted)">The Uniswap v4 wrapper (OneliqRouter) is being deployed. Switch to <b>Testnet</b> from the top-left network pill to continue swapping.</div>`;
+      mainWrap.insertBefore(banner, mainWrap.firstChild);
+      return;
+    }
+
+    // Build a fresh mainnet swap card and inject it
+    const card = document.createElement('div');
+    card.id = 'mainnet-swap-card';
+    card.style.cssText = 'max-width:560px;margin:24px auto;padding:20px 22px;background:var(--surface);border:1px solid var(--border);border-radius:16px;color:var(--text);font-family:var(--font)';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.15em;color:#00E5A0">// MAINNET · UNISWAP v4</div>
+        <div style="flex:1"></div>
+        <div style="font-size:11px;color:var(--muted)">Router <a href="https://explorer.arc.io/address/${routerAddr}" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline">${routerAddr.slice(0,6)}…${routerAddr.slice(-4)}</a></div>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase">
+          <span>Sell</span>
+          <span id="mn-bal-in">Balance: —</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input id="mn-amount-in" placeholder="0.0" inputmode="decimal" autocomplete="off" style="flex:1;background:transparent;border:none;outline:none;font-size:26px;font-weight:600;color:var(--text);font-family:var(--font)"/>
+          <select id="mn-token-in" style="padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">
+            <option value="USDC">USDC</option>
+            <option value="EURC">EURC</option>
+            <option value="__custom__">Custom…</option>
+          </select>
+        </div>
+        <input id="mn-token-in-custom" type="text" placeholder="0x… paste any Arc mainnet token address" style="display:none;width:100%;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;outline:none"/>
+      </div>
+
+      <div style="display:flex;justify-content:center;margin:-6px 0;position:relative;z-index:2">
+        <button id="mn-flip" title="Flip tokens" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:16px">↕</button>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase">
+          <span>Receive</span>
+          <span id="mn-bal-out">Balance: —</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input id="mn-amount-out" placeholder="0.0" readonly style="flex:1;background:transparent;border:none;outline:none;font-size:26px;font-weight:600;color:var(--text);font-family:var(--font)"/>
+          <select id="mn-token-out" style="padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;cursor:pointer">
+            <option value="EURC">EURC</option>
+            <option value="USDC">USDC</option>
+            <option value="__custom__">Custom…</option>
+          </select>
+        </div>
+        <input id="mn-token-out-custom" type="text" placeholder="0x… paste any Arc mainnet token address" style="display:none;width:100%;margin-top:10px;padding:9px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;outline:none"/>
+      </div>
+
+      <div id="mn-quote-info" style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.55;min-height:20px"></div>
+
+      <button id="mn-swap-btn" disabled style="width:100%;margin-top:14px;padding:14px;border-radius:12px;border:none;background:var(--surface2);color:var(--muted);font-size:14px;font-weight:600;cursor:not-allowed;font-family:var(--font);transition:all .15s">Enter amount</button>
+
+      <div id="mn-status" style="margin-top:10px;font-size:12.5px;line-height:1.5;min-height:18px"></div>
+    `;
+    mainWrap.appendChild(card);
+
+    // Wire the mainnet swap UI
+    initMainnetSwapUI(routerAddr);
+    return; // Skip the testnet init below
+  }
+
+  // Below this line runs ONLY in testnet mode.
+
+  // Helper: init the mainnet swap card (Uniswap v4 quote + swap via OneliqRouter)
+  async function initMainnetSwapUI(routerAddr) {
+    const TOKENS_MN = ARC.TOKENS.arc || {};
+    const $ = (id) => document.getElementById(id);
+    const tokenIn  = $('mn-token-in');
+    const tokenOut = $('mn-token-out');
+    const inCustom = $('mn-token-in-custom');
+    const outCustom = $('mn-token-out-custom');
+    const amtIn    = $('mn-amount-in');
+    const amtOut   = $('mn-amount-out');
+    const btn      = $('mn-swap-btn');
+    const status   = $('mn-status');
+    const quoteInfo= $('mn-quote-info');
+    const balIn    = $('mn-bal-in');
+    const balOut   = $('mn-bal-out');
+    const flip     = $('mn-flip');
+
+    // Track resolved token metadata (address, decimals, symbol)
+    let tokMetaIn = null, tokMetaOut = null;
+    let debounceTimer = null;
+
+    async function resolveToken(sel, customInput) {
+      const val = sel.value;
+      if (val === '__custom__') {
+        customInput.style.display = 'block';
+        const addr = customInput.value.trim();
+        if (!ethers.isAddress(addr)) return null;
+        // Fetch ERC20 metadata
+        const provider = ARC.rpcProvider('arc');
+        const erc20 = new ethers.Contract(addr, [
+          'function decimals() view returns (uint8)',
+          'function symbol() view returns (string)',
+        ], provider);
+        try {
+          const [dec, sym] = await Promise.all([erc20.decimals().catch(() => 18), erc20.symbol().catch(() => 'TOKEN')]);
+          return { address: ethers.getAddress(addr), decimals: Number(dec), symbol: sym };
+        } catch { return null; }
+      } else {
+        customInput.style.display = 'none';
+        const tok = TOKENS_MN[val];
+        if (!tok) return null;
+        return { address: tok.address, decimals: tok.decimals, symbol: tok.symbol };
+      }
+    }
+
+    async function refreshBalances() {
+      const s = ARC.wallet.snapshot();
+      if (!s.connected) { balIn.textContent = 'Balance: —'; balOut.textContent = 'Balance: —'; return; }
+      if (tokMetaIn) {
+        try {
+          const bal = await ARC.tokenBalance(tokMetaIn.address, s.address, 'arc');
+          balIn.textContent = `Wallet: ${ARC.formatAmt(bal, tokMetaIn.decimals, 4)} ${tokMetaIn.symbol}`;
+        } catch { balIn.textContent = 'Balance: —'; }
+      }
+      if (tokMetaOut) {
+        try {
+          const bal = await ARC.tokenBalance(tokMetaOut.address, s.address, 'arc');
+          balOut.textContent = `Balance: ${ARC.formatAmt(bal, tokMetaOut.decimals, 4)} ${tokMetaOut.symbol}`;
+        } catch { balOut.textContent = 'Balance: —'; }
+      }
+    }
+
+    async function refreshQuote() {
+      quoteInfo.textContent = '';
+      amtOut.value = '';
+      btn.disabled = true;
+      btn.style.cursor = 'not-allowed';
+      btn.style.background = 'var(--surface2)';
+      btn.style.color = 'var(--muted)';
+
+      if (!tokMetaIn || !tokMetaOut) { btn.textContent = 'Select tokens'; return; }
+      if (tokMetaIn.address.toLowerCase() === tokMetaOut.address.toLowerCase()) {
+        btn.textContent = 'Tokens must differ';
+        return;
+      }
+      const raw = (amtIn.value || '').trim();
+      if (!raw || Number(raw) <= 0) { btn.textContent = 'Enter amount'; return; }
+      let amountInBig;
+      try { amountInBig = ARC.parseAmt(raw, tokMetaIn.decimals); } catch { btn.textContent = 'Invalid amount'; return; }
+      if (amountInBig <= 0n) { btn.textContent = 'Enter amount'; return; }
+
+      quoteInfo.innerHTML = '<span style="color:var(--muted)">Discovering pool + fetching quote…</span>';
+      try {
+        const best = await ARC.uniV4.bestQuote(tokMetaIn.address, tokMetaOut.address, amountInBig);
+        if (!best) {
+          quoteInfo.innerHTML = '<span style="color:var(--c-amber,#FFB84D)">No Uniswap v4 pool found for this pair on Arc Mainnet.</span>';
+          btn.textContent = 'No pool';
+          return;
+        }
+        const outDisp = ARC.formatAmt(best.amountOut, tokMetaOut.decimals, 6);
+        amtOut.value = outDisp;
+        const rate = Number(best.amountOut) / Number(amountInBig) * (10 ** tokMetaIn.decimals) / (10 ** tokMetaOut.decimals);
+        const feeLabel = best.poolKey.fee === 0 ? 'dynamic (hook)' : `${best.poolKey.fee/10000}%`;
+        const hookInfo = best.poolKey.hooks !== ethers.ZeroAddress ? ` · hook ${best.poolKey.hooks.slice(0,6)}…` : '';
+        quoteInfo.innerHTML = `
+          <div style="display:flex;justify-content:space-between"><span>Rate</span><span style="color:var(--text);font-family:var(--mono)">1 ${tokMetaIn.symbol} ≈ ${rate.toFixed(6)} ${tokMetaOut.symbol}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Pool fee</span><span style="color:var(--text)">${feeLabel}${hookInfo}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Oneliq fee</span><span style="color:var(--text)">0.30%</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Slippage tolerance</span><span style="color:var(--text)">0.5%</span></div>`;
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+        btn.style.background = '#00E5A0';
+        btn.style.color = '#050A1C';
+        btn.textContent = `Swap ${raw} ${tokMetaIn.symbol} → ${outDisp} ${tokMetaOut.symbol}`;
+        // Stash for click handler
+        btn._swapCtx = { amountInBig, tokMetaIn, tokMetaOut };
+      } catch (e) {
+        quoteInfo.innerHTML = `<span style="color:var(--c-red,#E24B4A)">Quote failed: ${e?.message || e}</span>`;
+        btn.textContent = 'Quote failed';
+      }
+    }
+
+    function scheduleQuote() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(refreshQuote, 300);
+    }
+
+    async function onTokenChange() {
+      tokMetaIn  = await resolveToken(tokenIn,  inCustom);
+      tokMetaOut = await resolveToken(tokenOut, outCustom);
+      refreshBalances();
+      scheduleQuote();
+    }
+
+    tokenIn.addEventListener('change', onTokenChange);
+    tokenOut.addEventListener('change', onTokenChange);
+    inCustom.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(onTokenChange, 500); });
+    outCustom.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(onTokenChange, 500); });
+    amtIn.addEventListener('input', scheduleQuote);
+    flip.onclick = () => {
+      // Swap the two selects (and custom inputs) then re-quote
+      const [va, vb] = [tokenIn.value, tokenOut.value];
+      tokenIn.value = vb; tokenOut.value = va;
+      const [ca, cb] = [inCustom.value, outCustom.value];
+      inCustom.value = cb; outCustom.value = ca;
+      onTokenChange();
+    };
+
+    btn.onclick = async () => {
+      if (btn.disabled) return;
+      const ctx = btn._swapCtx;
+      if (!ctx) return;
+      const s = ARC.wallet.snapshot();
+      if (!s.connected) { try { await ARC.wallet.connect(); } catch { return; } }
+      const signer = ARC.wallet.signer;
+      if (!signer) { status.innerHTML = '<span style="color:var(--c-red,#E24B4A)">No signer — reconnect wallet.</span>'; return; }
+      btn.disabled = true;
+      btn.style.cursor = 'wait';
+      status.innerHTML = '';
+      try {
+        const result = await ARC.uniV4.executeSwap(signer, {
+          tokenIn:  ctx.tokMetaIn.address,
+          tokenOut: ctx.tokMetaOut.address,
+          amountIn: ctx.amountInBig,
+          slippageBps: 50,
+        }, (msg) => { status.innerHTML = `<span style="color:var(--muted)">${msg}</span>`; });
+        status.innerHTML = `<span style="color:#00E5A0">✓ Swap confirmed. </span><a href="https://explorer.arc.io/tx/${result.hash}" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline">View tx</a>`;
+        try { ARC.track?.({ event: 'trade', chain: 'arc', address: s.address, tokenIn: ctx.tokMetaIn.symbol, tokenOut: ctx.tokMetaOut.symbol, amountIn: ctx.amountInBig.toString() }); } catch {}
+        try { ARC.history?.push?.({ kind: 'trade', chain: 'arc', tokenIn: ctx.tokMetaIn.symbol, tokenOut: ctx.tokMetaOut.symbol, amountIn: ARC.formatAmt(ctx.amountInBig, ctx.tokMetaIn.decimals, 6), amountOut: amtOut.value, hash: result.hash, ts: Date.now() }); } catch {}
+        amtIn.value = ''; amtOut.value = '';
+        refreshBalances();
+      } catch (e) {
+        status.innerHTML = `<span style="color:var(--c-red,#E24B4A)">Swap failed: ${e?.reason || e?.shortMessage || e?.message || e}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+      }
+    };
+
+    // Initial resolve
+    await onTokenChange();
+    ARC.wallet.on(() => { onTokenChange(); });
   }
 
   // ── App Kit Swap (Circle) - dynamic import so trade page still loads if SDK fails

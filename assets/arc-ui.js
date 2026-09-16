@@ -601,13 +601,15 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           </button>
         </div>
+        <div class="arc-side-network" style="padding:6px 12px 10px;border-bottom:1px solid var(--border)">
+          ${networkSwitcherHtml()}
+        </div>
         <nav class="arc-side-nav">${sectionsHtml}</nav>
         <div class="arc-side-foot">
           ${window.ArcTheme ? ArcTheme.buttonHtml() : ''}
-          ${networkSwitcherHtml()}
           <button id="arc-wallet-btn" class="wallet-btn disconnected" title="Connect Wallet">Connect Wallet</button>
         </div>`;
-      // Wire the sidebar network switcher (same handler as top-nav variant).
+      // Wire the sidebar network switcher (moved to head, above nav).
       wireNetworkSwitcher();
 
       // Mobile close button
