@@ -53,6 +53,15 @@
     'function balanceOf(address) view returns (uint256)',
     'function allowance(address,address) view returns (uint256)',
     'function approve(address,uint256) returns (bool)',
+    'function transfer(address,uint256) returns (bool)',
+    'function transferFrom(address,address,uint256) returns (bool)',
+  ];
+
+  // Uniswap v4 StateView — read pool liquidity to filter out empty pools
+  // before we try to swap through them.
+  const STATE_VIEW_ABI = [
+    'function getLiquidity(bytes32 poolId) view returns (uint128 liquidity)',
+    'function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)',
   ];
 
   const ONELIQ_ROUTER_ABI = [
@@ -195,27 +204,41 @@
   }
 
   // Convenience: given tokenIn/tokenOut, find the best pool and quote.
-  // Filters out pools with untrusted fees (see isTrustedFee) so wildly
-  // wrong quotes from custom-fee pools never surface to the UI.
+  // Filters out pools with untrusted fees AND pools with zero on-chain
+  // liquidity (initialized but no LPs). Also returns the full ranked
+  // list of viable candidates so a caller can fall back to the next
+  // pool if the top one reverts in real execution.
   async function bestQuote(tokenIn, tokenOut, amountIn) {
     const pools = await discoverPools(tokenIn, tokenOut);
     if (!pools.length) return null;
     const [currency0] = sortTokens(tokenIn, tokenOut);
     const zfo = zeroForOne(tokenIn, currency0);
-    let best = null;
+    const provider = ARC.rpcProvider('arc');
+    const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
+
+    const candidates = [];
     for (const p of pools) {
       if (!isTrustedFee(p.poolKey.fee)) continue;
+      // Skip empty pools — Quoter can succeed on them but swap will revert.
+      let liquidity = 0n;
+      try {
+        liquidity = BigInt(await stateView.getLiquidity(p.poolId));
+      } catch (e) { /* stateView might not have this pool; still try quote */ }
+      if (liquidity === 0n) continue;
       try {
         const { amountOut, gasEstimate } = await quoteExactInputSingle(p.poolKey, amountIn, zfo);
         if (amountOut === 0n) continue;
-        if (!best || amountOut > best.amountOut) {
-          best = { ...p, amountOut, gasEstimate, zeroForOne: zfo };
-        }
+        candidates.push({ ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity });
       } catch (e) {
-        // Some pools revert (0 liquidity, hooks reject, etc.) — skip.
-        continue;
+        // Pool reverts (hooks reject, etc.) — skip.
       }
     }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => (b.amountOut > a.amountOut ? 1 : -1));
+    console.debug('[arc-univ4] pool candidates (' + candidates.length + '):',
+      candidates.map(c => ({ fee: c.poolKey.fee, tickSpacing: c.poolKey.tickSpacing, hooks: c.poolKey.hooks, liq: c.liquidity.toString(), out: c.amountOut.toString() })));
+    const best = candidates[0];
+    best._candidates = candidates; // stash for fallback iteration
     return best;
   }
 
