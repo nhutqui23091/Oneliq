@@ -21,8 +21,21 @@
 
   // ───────── CONSTANTS ─────────
   // Route through our Pages Function (avoids CORS, allows server-side auth header
-  // injection if Circle starts requiring one in the future).
+  // injection if Circle starts requiring one in the future). The Function picks
+  // upstream (Circle testnet vs mainnet) based on the X-Oneliq-Net header we
+  // send with every request.
   const GW_BASE = '/api/gateway-proxy';
+  const NET_HEADER = { 'X-Oneliq-Net': ARC.network ? ARC.network() : 'testnet' };
+
+  /**
+   * Same signature as fetch() but automatically appends the network-mode
+   * header so the Cloudflare Pages Function routes to the correct upstream.
+   */
+  function gwFetch(input, init) {
+    const opts = { ...(init || {}) };
+    opts.headers = { ...NET_HEADER, ...(opts.headers || {}) };
+    return fetch(input, opts);
+  }
 
   // EIP-712 typed-data definition mirrored verbatim from Circle's quickstart.
   // DO NOT reorder fields - order is part of the EIP-712 signing hash.
@@ -261,7 +274,7 @@
       depositor: getAddress(addr),
     }));
     const body = { token: 'USDC', sources };
-    const res = await fetch(`${GW_BASE}/v1/balances`, {
+    const res = await gwFetch(`${GW_BASE}/v1/balances`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -612,7 +625,7 @@
       opts.onStep?.(label);
       const signature = await ARC.wallet.signer.signTypedData(EIP712_DOMAIN, EIP712_TYPES, intent);
       opts.onStep?.('Submitting to Gateway API…');
-      const res = await fetch(`${GW_BASE}/v1/transfer${opts.useForwarder ? '?enableForwarder=true' : ''}`, {
+      const res = await gwFetch(`${GW_BASE}/v1/transfer${opts.useForwarder ? '?enableForwarder=true' : ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify([{ burnIntent: burnIntentToJson(intent), signature }]),
@@ -679,7 +692,7 @@
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       let details = null;
-      const res = await fetch(`${GW_BASE}/v1/transfer/${transferId}`, {
+      const res = await gwFetch(`${GW_BASE}/v1/transfer/${transferId}`, {
         headers: { 'Accept': 'application/json' },
       }).catch(() => null);
       if (res && res.ok) {
@@ -812,7 +825,7 @@
       if (addr && rec.address && rec.address !== addr) continue; // not this wallet's transfer
       let details = null;
       try {
-        const res = await fetch(`${GW_BASE}/v1/transfer/${rec.transferId}`, { headers: { Accept: 'application/json' } });
+        const res = await gwFetch(`${GW_BASE}/v1/transfer/${rec.transferId}`, { headers: { Accept: 'application/json' } });
         if (res && res.ok) details = await res.json().catch(() => null);
       } catch {}
       const status = String(details?.status || '').toLowerCase();
@@ -1054,7 +1067,7 @@
     };
     const submit = async (signed) => {
       onStep?.('Submitting to Gateway API…');
-      const res = await fetch(`${GW_BASE}/v1/transfer${useForwarder ? '?enableForwarder=true' : ''}`, {
+      const res = await gwFetch(`${GW_BASE}/v1/transfer${useForwarder ? '?enableForwarder=true' : ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signed),
@@ -1161,7 +1174,7 @@
     };
     const submit = async (signed) => {
       onStep?.('Submitting to Gateway API…');
-      const res = await fetch(`${GW_BASE}/v1/transfer?enableForwarder=true`, {
+      const res = await gwFetch(`${GW_BASE}/v1/transfer?enableForwarder=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signed),

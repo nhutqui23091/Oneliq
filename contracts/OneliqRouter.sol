@@ -1,58 +1,71 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 /**
- * @title OneliqRouter
- * @notice Thin fee-taking router for USDC <-> EURC swaps on Arc Testnet.
+ * @title  OneliqRouter (Uniswap v4 wrapper) — Arc Mainnet
+ * @notice Thin fee-charging wrapper around Uniswap v4 Universal Router. User
+ *         calls swap(); router pulls tokenIn, deducts feeBps (default 30 =
+ *         0.30%), forwards the remainder through Universal Router, measures
+ *         the tokenOut delta and forwards to user with a minOut guard.
  *
- * The router does NOT hold liquidity. It forwards the trade to the existing
- * Circle/Curve StableSwap pool (the same pool the Oneliq trade page already
- * routes through), takes a small protocol fee on the input token, and returns
- * the output token to the caller. This gives Oneliq an on-chain entry point it
- * controls (fees, analytics, future on-chain points) without taking on AMM /
- * market-making risk — liquidity stays in Curve.
+ * Security posture — deliberate choices:
+ *   • Executor is FIXED at deploy time (UNIVERSAL_ROUTER immutable). Router
+ *     cannot be tricked into calling arbitrary contracts.
+ *   • Swap output is measured by balance delta, not trusted from the
+ *     Universal Router return. If the Uniswap contract ever mis-reports,
+ *     the fee accrual stays honest.
+ *   • Fee cap enforced at 1% (MAX_FEE_BPS = 100). setFeeBps cannot exceed.
+ *   • Two-step ownership handover (nominate → accept) so one typo can't
+ *     lock the fee pot.
+ *   • Reentrancy guard on swap and rescue.
+ *   • Pause switch cuts new swaps without redeploy.
+ *   • rescue() cannot dip into accruedFees ledger.
+ *   • Tolerates non-standard ERC-20 return shapes (USDT-style silent tokens).
  *
- * Flow (USDC -> EURC):
- *   1. user approves this router for `amountIn` USDC
- *   2. user calls swap(USDC, EURC, amountIn, minOut)
- *   3. router pulls USDC, keeps `feeBps`, approves the pool, calls exchange()
- *   4. pool sends EURC to the router, router forwards it to the user
- *
- * Arc Testnet: chainId 5042002, RPC https://rpc.testnet.arc.network
- * Curve pool : 0x2d84d79c852f6842abe0304b70bbaa1506add457 (USDC idx 0, EURC idx 1)
+ * Deliberately NOT included:
+ *   • Recipient parameter (msg.sender always receives). Prevents proxying
+ *     someone else's swap through a wrapper for phishing UX.
+ *   • Upgrade mechanism. New logic ships as a new deployment.
+ *   • Direct call surface to arbitrary tokens (no rescueEther, no delegatecall).
  */
 
 interface IERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function approve(address spender, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
 }
 
-interface ICurveStableSwap {
-    function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256);
-    function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256);
+interface IUniversalRouter {
+    function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline) external payable;
+}
+
+interface IPermit2 {
+    function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+    function allowance(address owner, address token, address spender) external view returns (uint160, uint48, uint48);
 }
 
 contract OneliqRouter {
-    // ---- Fixed Arc Testnet addresses (see Oneliq trade.html / arc-core-v2.js) ----
-    // Written as bytes20 hex literals so the exact bytes from the repo are kept
-    // verbatim and Solidity's EIP-55 checksum check does not apply.
-    address public constant POOL = address(bytes20(hex"2d84d79c852f6842abe0304b70bbaa1506add457"));
-    address public constant USDC = address(bytes20(hex"3600000000000000000000000000000000000000")); // pool coin index 0
-    address public constant EURC = address(bytes20(hex"89b50855aa3be2f677cd6303cec089b5f319d72a")); // pool coin index 1
+    // ── Immutable config ───────────────────────────────────────────────────
+    address public immutable UNIVERSAL_ROUTER; // Uniswap v4 Universal Router
+    address public immutable PERMIT2;          // Uniswap Permit2 (canonical)
+    uint16  public constant  MAX_FEE_BPS = 100; // 1.00%
 
-    uint256 public constant MAX_UINT = type(uint256).max;
-    uint16  public constant MAX_FEE_BPS = 100; // hard cap: protocol fee can never exceed 1.00%
+    // ── Mutable admin state ────────────────────────────────────────────────
+    uint16  public feeBps;             // current fee in basis points
+    address public owner;              // fee pot admin
+    address public pendingOwner;       // two-step handover
+    bool    public paused;             // pause new swaps
 
-    /// @notice Protocol fee in basis points (1 bps = 0.01%). Taken from the input token.
-    uint16 public feeBps = 30; // 0.30% default
+    // ── Fee ledger ─────────────────────────────────────────────────────────
+    mapping(address => uint256) public accruedFees; // token → owed to owner
 
-    /// @notice Owner (deployer): can tune the fee and withdraw collected fees.
-    address public owner;
+    // ── Reentrancy guard ───────────────────────────────────────────────────
+    uint256 private _locked = 1;
 
-    event Swapped(
+    // ── Events ─────────────────────────────────────────────────────────────
+    event Swap(
         address indexed user,
         address indexed tokenIn,
         address indexed tokenOut,
@@ -60,107 +73,225 @@ contract OneliqRouter {
         uint256 amountOut,
         uint256 fee
     );
-    event FeeUpdated(uint16 oldFeeBps, uint16 newFeeBps);
     event FeesWithdrawn(address indexed token, address indexed to, uint256 amount);
-    event OwnerTransferred(address indexed oldOwner, address indexed newOwner);
+    event FeeBpsSet(uint16 oldBps, uint16 newBps);
+    event OwnershipNominated(address indexed pendingOwner);
+    event OwnershipAccepted(address indexed newOwner);
+    event Paused();
+    event Unpaused();
+    event Rescued(address indexed token, address indexed to, uint256 amount);
 
-    error NotOwner();
-    error InvalidPair();
-    error ZeroAmount();
+    // ── Errors ─────────────────────────────────────────────────────────────
+    error OnlyOwner();
+    error OnlyPending();
+    error IsPaused();
+    error Reentered();
     error FeeTooHigh();
-    error TransferInFailed();
-    error TransferOutFailed();
+    error DeadlinePassed();
+    error InsufficientOutput();
+    error TransferFailed();
+    error ApproveFailed();
     error ZeroAddress();
+    error ZeroAmount();
+    error ExceedsAccrued();
+    error SameToken();
 
+    // ── Modifiers ──────────────────────────────────────────────────────────
     modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwner();
+        if (msg.sender != owner) revert OnlyOwner();
         _;
     }
-
-    constructor() {
-        owner = msg.sender;
+    modifier whenNotPaused() {
+        if (paused) revert IsPaused();
+        _;
+    }
+    modifier nonReentrant() {
+        if (_locked != 1) revert Reentered();
+        _locked = 2;
+        _;
+        _locked = 1;
     }
 
-    /// @dev Pool coin index for a supported token (USDC=0, EURC=1).
-    function _indexOf(address token) private pure returns (int128) {
-        if (token == USDC) return 0;
-        if (token == EURC) return 1;
-        revert InvalidPair();
-    }
-
+    // ── Constructor ────────────────────────────────────────────────────────
     /**
-     * @notice Preview the output for a swap, net of the protocol fee.
-     * @return amountOut Expected output (from the pool's own get_dy).
-     * @return fee       Fee taken from the input token.
+     * @param universalRouter Uniswap v4 Universal Router on Arc Mainnet
+     *                        (0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1)
+     * @param permit2         Canonical Permit2
+     *                        (0x000000000022D473030F116dDEE9F6B43aC78BA3)
+     * @param initialFeeBps   0-100 (0.00% – 1.00%). 30 = 0.30%.
+     * @param initialOwner    Deployer or their EOA (upgrade to a multisig
+     *                        via transferOwnership + acceptOwnership when
+     *                        one is ready).
      */
-    function quote(address tokenIn, address tokenOut, uint256 amountIn)
-        external
-        view
-        returns (uint256 amountOut, uint256 fee)
-    {
-        if (tokenIn == tokenOut) revert InvalidPair();
-        int128 i = _indexOf(tokenIn);
-        int128 j = _indexOf(tokenOut);
-        fee = (amountIn * feeBps) / 10_000;
-        amountOut = ICurveStableSwap(POOL).get_dy(i, j, amountIn - fee);
+    constructor(
+        address universalRouter,
+        address permit2,
+        uint16 initialFeeBps,
+        address initialOwner
+    ) {
+        if (universalRouter == address(0) || permit2 == address(0) || initialOwner == address(0)) revert ZeroAddress();
+        if (initialFeeBps > MAX_FEE_BPS) revert FeeTooHigh();
+        UNIVERSAL_ROUTER = universalRouter;
+        PERMIT2 = permit2;
+        feeBps = initialFeeBps;
+        owner = initialOwner;
     }
 
+    // ── Core: swap ────────────────────────────────────────────────────────
     /**
-     * @notice Swap `amountIn` of `tokenIn` for `tokenOut` via the Curve pool.
-     * @param minOut Minimum acceptable output (slippage floor, enforced by the pool).
-     * @return amountOut Output tokens sent to the caller.
+     * @notice Wrap a Uniswap v4 swap with a fee take at source.
+     *
+     * The Uniswap Universal Router calldata (commands + inputs) is built
+     * OFF-CHAIN by the frontend using the @uniswap/universal-router-sdk.
+     * It MUST include a final TAKE_ALL / SWEEP action sending the output
+     * token to `address(this)` — the router forwards it to msg.sender only
+     * after measuring the balance delta and checking minOut.
+     *
+     * @param tokenIn      ERC-20 the user is spending
+     * @param amountIn     Total user is sending (fee is deducted BEFORE swap)
+     * @param tokenOut     ERC-20 the user is receiving
+     * @param minOut       Minimum tokenOut delta this router must forward
+     * @param deadline     Unix timestamp after which the tx reverts
+     * @param uniCommands  Universal Router `commands` bytes
+     * @param uniInputs    Universal Router `inputs` array
+     * @return amountOut   Actual tokenOut forwarded to msg.sender
      */
-    function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut)
-        external
-        returns (uint256 amountOut)
-    {
+    function swap(
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 minOut,
+        uint256 deadline,
+        bytes calldata uniCommands,
+        bytes[] calldata uniInputs
+    ) external nonReentrant whenNotPaused returns (uint256 amountOut) {
+        if (block.timestamp > deadline) revert DeadlinePassed();
+        if (tokenIn == address(0) || tokenOut == address(0)) revert ZeroAddress();
+        if (tokenIn == tokenOut) revert SameToken();
         if (amountIn == 0) revert ZeroAmount();
-        if (tokenIn == tokenOut) revert InvalidPair();
-        int128 i = _indexOf(tokenIn);
-        int128 j = _indexOf(tokenOut);
 
-        // Pull the input token from the caller.
-        if (!IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn)) revert TransferInFailed();
+        // 1. Pull full amountIn from user (requires prior ERC20.approve
+        //    from user to this router).
+        _pull(tokenIn, msg.sender, amountIn);
 
-        // Protocol fee stays in the router (withdrawable by the owner).
+        // 2. Deduct fee at source. Fee is denominated in tokenIn and never
+        //    touches the output leg — same design as OneliqRouterV2.
         uint256 fee = (amountIn * feeBps) / 10_000;
-        uint256 swapAmount = amountIn - fee;
+        if (fee > 0) accruedFees[tokenIn] += fee;
+        uint256 netIn = amountIn - fee;
 
-        // Approve the pool lazily (max once) so repeat swaps skip the approval.
-        if (IERC20(tokenIn).allowance(address(this), POOL) < swapAmount) {
-            IERC20(tokenIn).approve(POOL, MAX_UINT);
-        }
+        // 3. Ensure Permit2 has our MAX allowance for tokenIn (one-time per
+        //    token). Then grant Universal Router a scoped Permit2 allowance
+        //    for exactly netIn, expiring at `deadline`.
+        _ensurePermit2Approval(tokenIn);
+        IPermit2(PERMIT2).approve(tokenIn, UNIVERSAL_ROUTER, uint160(netIn), uint48(deadline));
 
-        // Forward to Curve; the pool enforces `minOut` and sends output here.
-        amountOut = ICurveStableSwap(POOL).exchange(i, j, swapAmount, minOut);
+        // 4. Snapshot output balance so we can measure the true delta.
+        uint256 balBefore = IERC20(tokenOut).balanceOf(address(this));
 
-        // Forward the output to the caller.
-        if (!IERC20(tokenOut).transfer(msg.sender, amountOut)) revert TransferOutFailed();
+        // 5. Forward the swap. Universal Router pulls netIn via Permit2 and
+        //    executes the commands/inputs the frontend built. Output MUST
+        //    be routed back to this contract (SWEEP → address(this)).
+        IUniversalRouter(UNIVERSAL_ROUTER).execute(uniCommands, uniInputs, deadline);
 
-        emit Swapped(msg.sender, tokenIn, tokenOut, amountIn, amountOut, fee);
+        // 6. Measure delta, enforce minOut, forward the WHOLE delta to user.
+        uint256 balAfter = IERC20(tokenOut).balanceOf(address(this));
+        amountOut = balAfter - balBefore;
+        if (amountOut < minOut) revert InsufficientOutput();
+        _push(tokenOut, msg.sender, amountOut);
+
+        // 7. Belt-and-braces: revoke Permit2 allowance to Universal Router.
+        //    Not strictly required (allowance expired at `deadline`), but
+        //    cheap and clarifies state for any observer.
+        IPermit2(PERMIT2).approve(tokenIn, UNIVERSAL_ROUTER, 0, 0);
+
+        emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, fee);
     }
 
-    // ----------------------------- Admin -----------------------------
-
-    /// @notice Update the protocol fee (basis points). Capped at MAX_FEE_BPS (1%).
-    function setFee(uint16 newFeeBps) external onlyOwner {
-        if (newFeeBps > MAX_FEE_BPS) revert FeeTooHigh();
-        emit FeeUpdated(feeBps, newFeeBps);
-        feeBps = newFeeBps;
+    // ── Fee management ─────────────────────────────────────────────────────
+    function withdrawFees(address token, address to) external onlyOwner nonReentrant {
+        if (to == address(0)) revert ZeroAddress();
+        uint256 amt = accruedFees[token];
+        if (amt == 0) return;
+        accruedFees[token] = 0;
+        _push(token, to, amt);
+        emit FeesWithdrawn(token, to, amt);
     }
 
-    /// @notice Withdraw collected fees (the router's full balance of `token`) to `to`.
-    function withdrawFees(address token, address to) external onlyOwner {
+    function setFeeBps(uint16 newBps) external onlyOwner {
+        if (newBps > MAX_FEE_BPS) revert FeeTooHigh();
+        emit FeeBpsSet(feeBps, newBps);
+        feeBps = newBps;
+    }
+
+    // ── Admin ──────────────────────────────────────────────────────────────
+    function pause() external onlyOwner {
+        paused = true;
+        emit Paused();
+    }
+
+    function unpause() external onlyOwner {
+        paused = false;
+        emit Unpaused();
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        pendingOwner = newOwner;
+        emit OwnershipNominated(newOwner);
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert OnlyPending();
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        emit OwnershipAccepted(owner);
+    }
+
+    /**
+     * @notice Emergency: send tokens that accidentally landed on the router
+     *         (e.g. a user transferred directly) to the owner. Cannot dip
+     *         into the accruedFees ledger — that stays ring-fenced for
+     *         withdrawFees.
+     */
+    function rescue(address token, address to, uint256 amount) external onlyOwner nonReentrant {
         if (to == address(0)) revert ZeroAddress();
         uint256 bal = IERC20(token).balanceOf(address(this));
-        if (!IERC20(token).transfer(to, bal)) revert TransferOutFailed();
-        emit FeesWithdrawn(token, to, bal);
+        uint256 accrued = accruedFees[token];
+        // bal >= accrued always (invariant); rescue can only take the excess.
+        if (bal < accrued || bal - accrued < amount) revert ExceedsAccrued();
+        _push(token, to, amount);
+        emit Rescued(token, to, amount);
     }
 
-    /// @notice Transfer ownership.
-    function transferOwnership(address newOwner) external onlyOwner {
-        if (newOwner == address(0)) revert ZeroAddress();
-        emit OwnerTransferred(owner, newOwner);
-        owner = newOwner;
+    // ── Low-level ERC-20 helpers (tolerate non-standard return shapes) ─────
+    function _pull(address token, address from, uint256 amount) private {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transferFrom.selector, from, address(this), amount)
+        );
+        if (!ok || (data.length > 0 && !abi.decode(data, (bool)))) revert TransferFailed();
+    }
+
+    function _push(address token, address to, uint256 amount) private {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
+        );
+        if (!ok || (data.length > 0 && !abi.decode(data, (bool)))) revert TransferFailed();
+    }
+
+    /**
+     * Ensure Permit2 holds an effectively-infinite allowance for the given
+     * token. Set to 0 first for USDT-style tokens that require a reset
+     * before setting a new non-zero value.
+     */
+    function _ensurePermit2Approval(address token) private {
+        uint256 cur = IERC20(token).allowance(address(this), PERMIT2);
+        if (cur >= type(uint256).max / 2) return; // already effectively max
+        // Reset to 0 first (safe for both standard and USDT-style tokens)
+        (bool ok1,) = token.call(abi.encodeWithSelector(IERC20.approve.selector, PERMIT2, 0));
+        ok1; // ignore — some tokens (e.g. correctly-behaved ERC-20) don't strictly need reset
+        (bool ok2, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.approve.selector, PERMIT2, type(uint256).max)
+        );
+        if (!ok2 || (data.length > 0 && !abi.decode(data, (bool)))) revert ApproveFailed();
     }
 }

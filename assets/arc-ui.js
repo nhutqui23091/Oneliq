@@ -64,6 +64,56 @@
     ];
   }
 
+  // ───────── NETWORK SWITCHER ─────────
+  // Click the pill → dropdown → pick Mainnet or Testnet → hard reload.
+  // Default is Mainnet (Arc mainnet went live 2026-09-16); Testnet stays
+  // available for CCTP sandbox flows and legacy testing.
+  function networkSwitcherHtml() {
+    const isMain = ARC.isMainnet && ARC.isMainnet();
+    const label = isMain ? 'Arc Mainnet' : 'Arc Testnet';
+    const dotColor = isMain ? '#00E5A0' : '#FFB84D';
+    return `
+      <div class="arc-net-switcher" style="position:relative">
+        <button id="arc-net-btn" class="nav-pill" style="cursor:pointer;border:none;background:transparent;font:inherit;color:inherit;padding:0" title="Switch network">
+          <span class="dot" style="background:${dotColor}"></span>${label} <span style="opacity:.55;margin-left:2px">▾</span>
+        </button>
+        <div id="arc-net-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.28);z-index:1000">
+          <button data-net="mainnet" class="arc-net-opt" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer;text-align:left;border-radius:8px">
+            <span style="width:8px;height:8px;border-radius:50%;background:#00E5A0"></span>
+            <span style="flex:1">Arc Mainnet</span>
+            <span style="font-size:10px;opacity:.55">${isMain ? '● active' : ''}</span>
+          </button>
+          <button data-net="testnet" class="arc-net-opt" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer;text-align:left;border-radius:8px">
+            <span style="width:8px;height:8px;border-radius:50%;background:#FFB84D"></span>
+            <span style="flex:1">Arc Testnet</span>
+            <span style="font-size:10px;opacity:.55">${!isMain ? '● active' : ''}</span>
+          </button>
+          <div style="padding:6px 12px 4px;font-size:10.5px;color:var(--muted);line-height:1.5">Switching reloads the app so wallet + balances re-sync against the new network.</div>
+        </div>
+      </div>`;
+  }
+  function wireNetworkSwitcher() {
+    const btn = document.getElementById('arc-net-btn');
+    const menu = document.getElementById('arc-net-menu');
+    if (!btn || !menu) return;
+    const close = () => { menu.style.display = 'none'; document.removeEventListener('click', onDoc); };
+    const onDoc = (e) => { if (!menu.contains(e.target) && e.target !== btn) close(); };
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const open = menu.style.display === 'block';
+      menu.style.display = open ? 'none' : 'block';
+      if (!open) setTimeout(() => document.addEventListener('click', onDoc), 0);
+    };
+    menu.querySelectorAll('.arc-net-opt').forEach(opt => {
+      opt.onmouseenter = () => { opt.style.background = 'var(--border)'; };
+      opt.onmouseleave = () => { opt.style.background = 'transparent'; };
+      opt.onclick = () => {
+        const target = opt.getAttribute('data-net');
+        if (target && ARC.setNetwork) ARC.setNetwork(target);
+      };
+    });
+  }
+
   function renderNav(active) {
     let nav = document.querySelector('nav.arc-nav');
     if (!nav) {
@@ -84,10 +134,11 @@
         </div>
         <div class="nav-right">
           ${window.ArcTheme ? ArcTheme.buttonHtml() : ''}
-          <span class="nav-pill"><span class="dot"></span>Arc Testnet</span>
+          ${networkSwitcherHtml()}
           <button id="arc-wallet-btn" class="wallet-btn disconnected">Connect Wallet</button>
         </div>`;
       document.getElementById('arc-wallet-btn').onclick = onWalletClick;
+      wireNetworkSwitcher();
       refreshWalletBtn();
     };
     paint();

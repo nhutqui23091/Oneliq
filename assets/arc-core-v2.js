@@ -12,8 +12,24 @@
   const { BrowserProvider, JsonRpcProvider, Contract, Interface, getAddress, isAddress,
           formatUnits, parseUnits, keccak256, toUtf8Bytes, zeroPadValue, hexlify, toBeHex } = global.ethers;
 
+  // ───────── NETWORK MODE ─────────
+  // Two live registries: testnet (Circle sandbox + testnet chains) and mainnet
+  // (Circle production + mainnet chains). At load time we pick one based on
+  // localStorage.oneliqNetwork. Default is 'mainnet' (Arc mainnet launched
+  // 2026-09-16); testnet mode is opt-in via the network switcher.
+  function _readNetworkMode() {
+    try {
+      const v = (localStorage.getItem('oneliqNetwork') || '').toLowerCase();
+      if (v === 'testnet' || v === 'mainnet') return v;
+    } catch {}
+    return 'mainnet';
+  }
+  const NETWORK_MODE = _readNetworkMode();
+  const IS_MAINNET = NETWORK_MODE === 'mainnet';
+
   // ───────── CHAIN REGISTRY ─────────
-  const CHAINS = {
+  // TESTNET entries: Arc testnet + Circle sandbox source chains.
+  const _TESTNET_CHAINS = {
     arc: {
       id: 5042002,
       hex: '0x4cef52',
@@ -178,6 +194,197 @@
     },
   };
 
+  // MAINNET entries: Arc mainnet + Circle production source chains.
+  // Contract addresses (CCTP V2 + Gateway) are deterministic-deployed and
+  // identical across every EVM chain. USDC per-chain addresses come from
+  // Circle docs; Arc mainnet USDC is the native gas token.
+  const _MAINNET_CHAINS = {
+    arc: {
+      id: 5042,
+      hex: '0x13b2',
+      name: 'Arc Mainnet',
+      short: 'Arc',
+      rpc: 'https://rpc.mainnet.arc.io',
+      explorer: 'https://explorer.arc.io',
+      explorerTx: h => `https://explorer.arc.io/tx/${h}`,
+      explorerAddr: a => `https://explorer.arc.io/address/${a}`,
+      native: { symbol: 'USDC', name: 'USDC (Arc Gas)', decimals: 18 },
+      cctpDomain: 26,
+      iconGrad: 'linear-gradient(135deg,#6C3FFF,#00CFFF)',
+      gatewayDepositDisabled: true,
+      contracts: {
+        // OneliqRouter mainnet — set after deploy. Trade tab falls back to
+        // Uniswap v4 Universal Router direct call when router is null.
+        router:              null,
+        // Uniswap v4 official Arc mainnet deployment
+        uniV4PoolManager:    '0x8366a39CC670B4001A1121B8F6A443A643e40951',
+        uniV4Quoter:         '0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94',
+        uniV4UniversalRouter:'0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1',
+        uniV4PositionManager:'0x6049c9a0e26405C0985f9E3685C87d0aE917f82B',
+        uniV4StateView:      '0xF3334192D15450CdD385c8B70e03f9A6bD9E673b',
+        permit2:             '0x000000000022D473030F116dDEE9F6B43aC78BA3',
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        fxEscrow:            '0xe2E5F173576B513d994073CCbDaCBE027d43DFe6',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // OneliqCheckIn mainnet — set after deploy; Portal streak fallback
+        // to localStorage-only when null.
+        checkIn:             null,
+      },
+    },
+    ethereum: {
+      id: 1, hex: '0x1',
+      name: 'Ethereum', short: 'ETH',
+      rpc: 'https://ethereum-rpc.publicnode.com',
+      explorer: 'https://etherscan.io',
+      explorerTx: h => `https://etherscan.io/tx/${h}`,
+      explorerAddr: a => `https://etherscan.io/address/${a}`,
+      native: { symbol: 'ETH', name: 'Ether', decimals: 18 },
+      cctpDomain: 0,
+      iconGrad: 'linear-gradient(135deg,#627EEA,#8A9CF0)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+    base: {
+      id: 8453, hex: '0x2105',
+      name: 'Base', short: 'Base',
+      rpc: 'https://base-rpc.publicnode.com',
+      explorer: 'https://basescan.org',
+      explorerTx: h => `https://basescan.org/tx/${h}`,
+      explorerAddr: a => `https://basescan.org/address/${a}`,
+      native: { symbol: 'ETH', name: 'Base ETH', decimals: 18 },
+      cctpDomain: 6,
+      iconGrad: 'linear-gradient(135deg,#0052FF,#62A5FF)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+    avalanche: {
+      id: 43114, hex: '0xa86a',
+      name: 'Avalanche C-Chain', short: 'AVAX',
+      rpc: 'https://avalanche-c-chain-rpc.publicnode.com',
+      explorer: 'https://snowtrace.io',
+      explorerTx: h => `https://snowtrace.io/tx/${h}`,
+      explorerAddr: a => `https://snowtrace.io/address/${a}`,
+      native: { symbol: 'AVAX', name: 'AVAX', decimals: 18 },
+      cctpDomain: 1,
+      iconGrad: 'linear-gradient(135deg,#E84142,#F87C7D)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+    arbitrum: {
+      id: 42161, hex: '0xa4b1',
+      name: 'Arbitrum One', short: 'Arb',
+      rpc: 'https://arbitrum-one-rpc.publicnode.com',
+      explorer: 'https://arbiscan.io',
+      explorerTx: h => `https://arbiscan.io/tx/${h}`,
+      explorerAddr: a => `https://arbiscan.io/address/${a}`,
+      native: { symbol: 'ETH', name: 'Arbitrum ETH', decimals: 18 },
+      cctpDomain: 3,
+      iconGrad: 'linear-gradient(135deg,#28A0F0,#80C8F8)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+    optimism: {
+      id: 10, hex: '0xa',
+      name: 'OP Mainnet', short: 'OP',
+      rpc: 'https://optimism-rpc.publicnode.com',
+      explorer: 'https://optimistic.etherscan.io',
+      explorerTx: h => `https://optimistic.etherscan.io/tx/${h}`,
+      explorerAddr: a => `https://optimistic.etherscan.io/address/${a}`,
+      native: { symbol: 'ETH', name: 'OP ETH', decimals: 18 },
+      cctpDomain: 2,
+      iconGrad: 'linear-gradient(135deg,#FF0420,#FF6B7E)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+    polygon: {
+      id: 137, hex: '0x89',
+      name: 'Polygon PoS', short: 'POL',
+      rpc: 'https://polygon-bor-rpc.publicnode.com',
+      explorer: 'https://polygonscan.com',
+      explorerTx: h => `https://polygonscan.com/tx/${h}`,
+      explorerAddr: a => `https://polygonscan.com/address/${a}`,
+      native: { symbol: 'POL', name: 'Polygon POL', decimals: 18 },
+      cctpDomain: 7,
+      iconGrad: 'linear-gradient(135deg,#8247E5,#B58CF0)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+    unichain: {
+      id: 130, hex: '0x82',
+      name: 'Unichain', short: 'Unichain',
+      rpc: 'https://unichain-rpc.publicnode.com',
+      explorer: 'https://uniscan.xyz',
+      explorerTx: h => `https://uniscan.xyz/tx/${h}`,
+      explorerAddr: a => `https://uniscan.xyz/address/${a}`,
+      native: { symbol: 'ETH', name: 'Unichain ETH', decimals: 18 },
+      cctpDomain: 10,
+      iconGrad: 'linear-gradient(135deg,#FF007A,#FF66B0)',
+      contracts: {
+        multicall3:          '0xcA11bde05977b3631167028862bE2a173976CA11',
+        tokenMessengerV2:    '0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d',
+        messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
+        gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
+        gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+      },
+    },
+  };
+
+  // Active chain registry — swapped at module load based on network mode.
+  const CHAINS = IS_MAINNET ? _MAINNET_CHAINS : _TESTNET_CHAINS;
+
+  // Backwards-compat aliases: legacy code across the frontend hardcodes
+  // testnet chain keys ('sepolia', 'baseSepolia', 'avalancheFuji', etc.). In
+  // mainnet mode we alias those to the equivalent mainnet chain so lookups
+  // like CHAINS.sepolia?.cctpDomain keep resolving without editing every
+  // consumer. New code should prefer the semantic keys (ethereum, base, …).
+  if (IS_MAINNET) {
+    const alias = {
+      sepolia: 'ethereum',
+      baseSepolia: 'base',
+      avalancheFuji: 'avalanche',
+      arbitrumSepolia: 'arbitrum',
+      optimismSepolia: 'optimism',
+      polygonAmoy: 'polygon',
+      unichainSepolia: 'unichain',
+    };
+    for (const [oldKey, newKey] of Object.entries(alias)) {
+      if (CHAINS[newKey] && !CHAINS[oldKey]) CHAINS[oldKey] = CHAINS[newKey];
+    }
+  }
+
   // ───────── TOKEN REGISTRY ─────────
   // Arc's USDC IS the native gas token - it stores balances internally at 18 decimals
   // (same as ETH/wei on other EVM chains), even though the Circle USDC logical
@@ -185,7 +392,7 @@
   // all operate in 18-decimal raw units. We model it as decimals=18 for the UI and
   // same-chain flows. For CCTP messages (canonical 6-decimal), we scale with
   // `cctpDecimals` at the burn/mint boundary.
-  const TOKENS = {
+  const _TESTNET_TOKENS = {
     arc: {
       USDC: {
         symbol: 'USDC',
@@ -254,6 +461,70 @@
       USDC: { symbol:'USDC', name:'USD Coin (Unichain Sep)', address:'0x31d0220469e10c4E71834a79b1f276d740d3768F', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
     },
   };
+
+  // MAINNET tokens — canonical Circle USDC + EURC per Circle docs.
+  // Arc mainnet USDC stays modeled at 18 decimals to match the native gas
+  // wrapper convention (same as testnet). All other chains: canonical 6.
+  const _MAINNET_TOKENS = {
+    arc: {
+      USDC: {
+        symbol: 'USDC',
+        name: 'USD Coin (Arc native)',
+        address: '0x3600000000000000000000000000000000000000',
+        decimals: 18,
+        cctpDecimals: 6,
+        isGasToken: true,
+        icon: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
+      },
+      EURC: {
+        symbol: 'EURC',
+        name: 'Euro Coin',
+        address: '0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1',
+        decimals: 6,
+        icon: 'https://assets.coingecko.com/coins/images/26045/small/euro.png',
+      },
+    },
+    ethereum: {
+      USDC: { symbol:'USDC', name:'USD Coin', address:'0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      ETH:  { symbol:'ETH',  name:'Ether', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
+    },
+    base: {
+      USDC: { symbol:'USDC', name:'USD Coin (Base)', address:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+    },
+    avalanche: {
+      USDC: { symbol:'USDC', name:'USD Coin (Avalanche)', address:'0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+    },
+    arbitrum: {
+      USDC: { symbol:'USDC', name:'USD Coin (Arbitrum)', address:'0xaf88d065e77c8cC2239327C5EDb3A432268e5831', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+    },
+    optimism: {
+      USDC: { symbol:'USDC', name:'USD Coin (OP)', address:'0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+    },
+    polygon: {
+      USDC: { symbol:'USDC', name:'USD Coin (Polygon)', address:'0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+    },
+    unichain: {
+      USDC: { symbol:'USDC', name:'USD Coin (Unichain)', address:'0x078D782b760474a361dDA0AF3839290b0EF57AD6', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+    },
+  };
+
+  const TOKENS = IS_MAINNET ? _MAINNET_TOKENS : _TESTNET_TOKENS;
+
+  // Same alias trick for TOKENS so `TOKENS.sepolia?.USDC` works in mainnet mode.
+  if (IS_MAINNET) {
+    const alias = {
+      sepolia: 'ethereum',
+      baseSepolia: 'base',
+      avalancheFuji: 'avalanche',
+      arbitrumSepolia: 'arbitrum',
+      optimismSepolia: 'optimism',
+      polygonAmoy: 'polygon',
+      unichainSepolia: 'unichain',
+    };
+    for (const [oldKey, newKey] of Object.entries(alias)) {
+      if (TOKENS[newKey] && !TOKENS[oldKey]) TOKENS[oldKey] = TOKENS[newKey];
+    }
+  }
 
   // ───────── ABIs ─────────
   const ABIS = {
@@ -954,7 +1225,10 @@
   }
 
   // ───────── IRIS / CCTP v2 ─────────
-  const IRIS_BASE = 'https://iris-api-sandbox.circle.com/v2';
+  // Testnet → sandbox; mainnet → production.
+  const IRIS_BASE = IS_MAINNET
+    ? 'https://iris-api.circle.com/v2'
+    : 'https://iris-api-sandbox.circle.com/v2';
 
   async function irisMessages(sourceDomain, txHash) {
     const url = `${IRIS_BASE}/messages/${sourceDomain}?transactionHash=${txHash}`;
@@ -1032,6 +1306,24 @@
   }
 
   // ───────── EXPORTS ─────────
+  // ───────── NETWORK MODE HELPERS ─────────
+  // Public: read/set which network the app is running against. Switching
+  // reloads the page so caches (providers, wallet state, TOKENS/CHAINS
+  // references held by other modules) reset cleanly.
+  function network() { return NETWORK_MODE; }
+  function isMainnet() { return IS_MAINNET; }
+  function isTestnet() { return !IS_MAINNET; }
+  function setNetwork(mode) {
+    const m = String(mode || '').toLowerCase();
+    if (m !== 'testnet' && m !== 'mainnet') return false;
+    if (m === NETWORK_MODE) return true;
+    try { localStorage.setItem('oneliqNetwork', m); } catch {}
+    // Force a hard reload — every cached provider / contract instance / token
+    // list needs to re-resolve against the new chain registry.
+    try { location.reload(); } catch {}
+    return true;
+  }
+
   global.ARC = {
     CHAINS, TOKENS, ABIS,
     rpcProvider, chainKeyById,
@@ -1043,13 +1335,15 @@
     irisMessages, irisFastAllowance, IRIS_BASE,
     history: { push: pushHistory, list: listHistory },
     session: { token: sessionToken, headers: sessionHeaders, clear: clearSession },
+    // Network mode
+    network, isMainnet, isTestnet, setNetwork,
     // List of chain keys that have a GatewayWallet deployed (used by arc-gateway.js)
     gatewayChains: () => Object.entries(CHAINS)
       .filter(([, c]) => c.contracts?.gatewayWallet)
       .map(([k]) => k),
     chainIcon,
     track,
-    version: '9.10.0',
+    version: '10.0.0',
   };
 
   // ───────── CHAIN ICONS ─────────
@@ -1058,6 +1352,7 @@
   // pay a CDN round-trip and don't widen img-src in our CSP.
   const CHAIN_ICONS = {
     arc: "/assets/logos/arc.png",
+    // Testnet keys
     avalancheFuji: "/assets/logos/chains/avalanche.svg",
     arbitrumSepolia: "/assets/logos/chains/arbitrum.png",
     sepolia: "/assets/logos/chains/ethereum.png",
@@ -1065,6 +1360,14 @@
     optimismSepolia: "/assets/logos/chains/optimism.png",
     polygonAmoy: "/assets/logos/chains/polygon.svg",
     unichainSepolia: "/assets/logos/chains/unichain.svg",
+    // Mainnet keys — reuse the same brand logos
+    ethereum:  "/assets/logos/chains/ethereum.png",
+    avalanche: "/assets/logos/chains/avalanche.svg",
+    arbitrum:  "/assets/logos/chains/arbitrum.png",
+    base:      "/assets/logos/chains/base.svg",
+    optimism:  "/assets/logos/chains/optimism.png",
+    polygon:   "/assets/logos/chains/polygon.svg",
+    unichain:  "/assets/logos/chains/unichain.svg",
   };
   function chainIcon(chainKey) {
     return CHAIN_ICONS[chainKey] || CHAIN_ICONS.arc;

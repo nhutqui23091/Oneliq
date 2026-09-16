@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="oneliq-discord-client-id" content="1514587016157859900"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://ethereum-sepolia-rpc.publicnode.com https://sepolia.base.org https://api.avax-test.network https://sepolia-rollup.arbitrum.io https://optimism-sepolia.publicnode.com https://rpc-amoy.polygon.technology https://sepolia.unichain.org https://iris-api-sandbox.circle.com https://gateway-api-testnet.circle.com https://*.circle.com https://api.circle.com https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://ethereum-sepolia-rpc.publicnode.com https://ethereum-rpc.publicnode.com https://sepolia.base.org https://base-rpc.publicnode.com https://api.avax-test.network https://avalanche-c-chain-rpc.publicnode.com https://sepolia-rollup.arbitrum.io https://arbitrum-one-rpc.publicnode.com https://optimism-sepolia.publicnode.com https://optimism-rpc.publicnode.com https://rpc-amoy.polygon.technology https://polygon-bor-rpc.publicnode.com https://sepolia.unichain.org https://unichain-rpc.publicnode.com https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://esm.sh wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
@@ -550,9 +550,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
-<script src="/assets/arc-core-v2.js?v=8"></script>
-<script src="/assets/arc-ui.js?v=9.11.4"></script>
-<script src="/assets/arc-gateway.js?v=9.14.6"></script>
+<script src="/assets/arc-core-v2.js?v=10.0.0"></script>
+<script src="/assets/arc-ui.js?v=10.0.0"></script>
+<script src="/assets/arc-gateway.js?v=10.0.0"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -563,6 +563,27 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   const { Contract, Interface, getAddress, isAddress, ZeroAddress } = ethers;
 
   await ArcUI.bootApp('trade');
+
+  // ── Mainnet Trade guard ──────────────────────────────────────────────────
+  // Arc Mainnet Trade routes through OneliqRouter (Uniswap v4 wrapper).
+  // Until that contract is deployed and its address wired into
+  // _MAINNET_CHAINS.arc.contracts.router, show a banner and disable
+  // the swap form. Switching to Testnet via the top-right pill restores it.
+  if (ARC.isMainnet && ARC.isMainnet() && !ARC.CHAINS.arc?.contracts?.router) {
+    const host = document.querySelector('main, .arc-app-content, body') || document.body;
+    const banner = document.createElement('div');
+    banner.style.cssText = 'max-width:640px;margin:24px auto;padding:18px 22px;background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.28);border-radius:14px;color:var(--text);font-size:13.5px;line-height:1.6';
+    banner.innerHTML = `
+      <div style="font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.15em;color:#00E5A0;margin-bottom:6px">// MAINNET</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Trade on Arc Mainnet — router deploy in progress</div>
+      <div style="color:var(--muted)">The Uniswap v4 wrapper (OneliqRouter) is being deployed. Once its address is wired, Trade unlocks automatically for USDC ↔ EURC and any Uniswap v4 pool on Arc.</div>
+      <div style="color:var(--muted);margin-top:8px">Meanwhile: switch to <b>Testnet</b> from the top-right network pill to continue swapping via the existing OneliqRouterV2 + Curve pool.</div>`;
+    // Insert at top of content area
+    const insertAfter = document.querySelector('nav.arc-nav') || document.body.firstChild;
+    (insertAfter && insertAfter.parentNode)
+      ? insertAfter.parentNode.insertBefore(banner, insertAfter.nextSibling)
+      : document.body.insertBefore(banner, document.body.firstChild);
+  }
 
   // ── App Kit Swap (Circle) - dynamic import so trade page still loads if SDK fails
   let APPKIT = null;
@@ -1649,7 +1670,13 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   // quote() is unchanged; swap() takes a fifth argument, `deadline`, and reverts
   // with DeadlinePassed once the chain is past it. A call missing it fails on the
   // selector rather than silently doing something else.
-  const ARC_ROUTER = '0x607C2a739FCdEd84f0350AC43118d85F4398872b';
+  // Testnet: OneliqRouterV2 (Curve wrapper) at 0x607C…872b.
+  // Mainnet: OneliqRouter (Uniswap v4 wrapper) — address populated from
+  // _MAINNET_CHAINS.arc.contracts.router after deploy. Until then, mainnet
+  // Trade shows a "Coming soon" banner (see the network-aware guard below).
+  const ARC_ROUTER = (ARC.isMainnet && ARC.isMainnet())
+    ? (ARC.CHAINS.arc?.contracts?.router || null)
+    : '0x607C2a739FCdEd84f0350AC43118d85F4398872b';
   const ROUTER_ABI = [
     'function quote(address tokenIn, address tokenOut, uint256 amountIn) view returns (uint256 amountOut, uint256 fee)',
     'function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minOut, uint256 deadline) returns (uint256)',

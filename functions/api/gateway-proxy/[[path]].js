@@ -2,22 +2,30 @@
  * Cloudflare Pages Function: server-side proxy to Circle Gateway REST API.
  *
  * Why a proxy?
- *  1. CORS: gateway-api-testnet.circle.com may or may not enable CORS for our
- *     Pages domain. Routing through same-origin /api/* sidesteps that entirely.
- *  2. Auth: if Circle starts requiring a Bearer token for testnet (currently
- *     unauthenticated), we can inject env.GATEWAY_KEY here without leaking it
- *     to the browser. For now it's pass-through.
+ *  1. CORS: gateway-api*.circle.com may or may not enable CORS for our Pages
+ *     domain. Routing through same-origin /api/* sidesteps that entirely.
+ *  2. Auth: if Circle starts requiring a Bearer token, we can inject
+ *     env.GATEWAY_KEY here without leaking it to the browser. For now it's
+ *     pass-through.
  *  3. Origin allowlist: defense-in-depth — only requests from our own pages
  *     are forwarded.
+ *  4. Network routing: the browser tells us via X-Oneliq-Net header whether
+ *     it wants testnet or mainnet Circle Gateway. Default: mainnet.
  *
  * Routing:
- *   Browser  → POST /api/gateway-proxy/v1/balances
- *   Function → POST https://gateway-api-testnet.circle.com/v1/balances
+ *   Browser  → POST /api/gateway-proxy/v1/balances   (header X-Oneliq-Net: mainnet)
+ *   Function → POST https://gateway-api.circle.com/v1/balances
  *
- *   Browser  → POST /api/gateway-proxy/v1/transfer
+ *   Browser  → POST /api/gateway-proxy/v1/transfer   (header X-Oneliq-Net: testnet)
  *   Function → POST https://gateway-api-testnet.circle.com/v1/transfer
  */
-const UPSTREAM = 'https://gateway-api-testnet.circle.com';
+const UPSTREAM_MAINNET = 'https://gateway-api.circle.com';
+const UPSTREAM_TESTNET = 'https://gateway-api-testnet.circle.com';
+function pickUpstream(request) {
+  const net = (request.headers.get('X-Oneliq-Net') || '').toLowerCase();
+  if (net === 'testnet') return UPSTREAM_TESTNET;
+  return UPSTREAM_MAINNET;
+}
 
 const ALLOWED_ORIGINS = [
   'https://oneliq.xyz',
@@ -54,7 +62,8 @@ export async function onRequest(context) {
       headers: {
         'Access-Control-Allow-Origin': origin || '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        // X-Oneliq-Net is our network-mode selector (testnet | mainnet).
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Oneliq-Net',
         'Access-Control-Max-Age': '86400',
       },
     });
@@ -85,7 +94,8 @@ export async function onRequest(context) {
     });
   }
 
-  const targetUrl = `${UPSTREAM}/${upstreamPath}${url.search}`;
+  const upstream = pickUpstream(request);
+  const targetUrl = `${upstream}/${upstreamPath}${url.search}`;
   const upstreamHeaders = new Headers();
   upstreamHeaders.set('Content-Type', request.headers.get('Content-Type') || 'application/json');
   upstreamHeaders.set('Accept', request.headers.get('Accept') || 'application/json');
