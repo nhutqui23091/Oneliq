@@ -313,10 +313,25 @@
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 min
 
+    // Log calldata so the user can inspect / share (helpful when "missing
+    // revert data" happens because the RPC drops the revert bytes).
+    console.groupCollapsed('[arc-univ4] swap calldata');
+    console.log('router:',      routerAddr);
+    console.log('tokenIn:',     tokenIn, '  tokenOut:', tokenOut);
+    console.log('amountIn:',    amountIn.toString(), '  minOut:', minOut.toString());
+    console.log('deadline:',    deadline.toString());
+    console.log('poolKey:',     poolKey);
+    console.log('zeroForOne:',  zfo);
+    console.log('commands:',    commands);
+    console.log('inputs[0]:',   inputs[0]);
+    console.groupEnd();
+
+    const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
+
     // Simulate first so any revert surfaces a decoded reason instead of a
     // bare "execution reverted" from the wallet popup.
     onStep?.('Simulating…');
-    const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
+    let simErr = null;
     try {
       await router.swap.staticCall(
         tokenIn,
@@ -327,25 +342,64 @@
         commands,
         inputs
       );
-    } catch (simErr) {
-      // ethers v6 surfaces revert data at .data when it can extract it.
-      const raw = simErr?.data || simErr?.info?.error?.data || simErr?.error?.data || '';
-      const rawStr = typeof raw === 'string' ? raw : (raw?.data || '');
-      const shortSel = rawStr && rawStr.length >= 10 ? rawStr.slice(0, 10) : '';
-      // Known error selectors we can decode inline
+    } catch (e) { simErr = e; }
+
+    if (simErr) {
+      // Try to extract raw revert bytes from every place ethers/RPC might stash them.
+      const raw = simErr?.data
+                || simErr?.info?.error?.data
+                || simErr?.error?.data
+                || simErr?.info?.error?.body
+                || '';
+      const rawStr = typeof raw === 'string' ? raw : (raw?.data || raw?.originalError?.data || '');
+      const shortSel = rawStr && rawStr.length >= 10 && rawStr.startsWith('0x') ? rawStr.slice(0, 10) : '';
       const KNOWN_ERRORS = {
-        '0xd93c0665': 'IsPaused()',
-        '0x2c5211c6': 'InsufficientOutput()',
-        '0x7c9c6e8f': 'DeadlinePassed()',
-        // Uniswap V4Router: emitted when pool returns less than SETTLE_ALL max
-        '0x8b063d73': 'V4Router: TooMuchRequested (pool refused settle)',
-        // Uniswap V4Router: TooLittle on TAKE_ALL
-        '0x39d35496': 'V4Router: TooLittle (pool paid less than minOut)',
+        '0xd93c0665': 'OneliqRouter.IsPaused()',
+        '0x2c5211c6': 'OneliqRouter.InsufficientOutput()',
+        '0x7c9c6e8f': 'OneliqRouter.DeadlinePassed()',
+        '0x8b063d73': 'V4Router.V4TooMuchRequested()',
+        '0x39d35496': 'V4Router.V4TooLittle()',
+        '0x815e1d64': 'Permit2.AllowanceExpired()',
+        '0xf96fb071': 'Permit2.InsufficientAllowance()',
       };
-      const decoded = KNOWN_ERRORS[shortSel] || (shortSel ? `revert selector ${shortSel}` : (simErr?.shortMessage || simErr?.message || 'unknown'));
-      const err = new Error(`Simulation reverted — ${decoded}`);
+      const decoded = KNOWN_ERRORS[shortSel]
+        || (shortSel ? `revert selector ${shortSel}` : '')
+        || (simErr?.shortMessage || simErr?.reason || simErr?.message || 'unknown');
+
+      // No selector? Try a direct call to Universal Router to see if it's the
+      // pool/hook rejecting or something in OneliqRouter's own logic.
+      onStep?.('Deep diagnostic (direct Uniswap call)…');
+      let directErr = null, directOk = false;
+      try {
+        const uniAbi = ['function execute(bytes commands, bytes[] inputs, uint256 deadline) payable'];
+        const uni = new Contract(V4.universalRouter, uniAbi, signer);
+        await uni.execute.staticCall(commands, inputs, deadline);
+        directOk = true;
+      } catch (dErr) { directErr = dErr; }
+      const directRaw = directErr?.data || directErr?.info?.error?.data || '';
+      const directStr = typeof directRaw === 'string' ? directRaw : (directRaw?.data || '');
+      const directSel = directStr && directStr.length >= 10 && directStr.startsWith('0x') ? directStr.slice(0, 10) : '';
+      const directDecoded = KNOWN_ERRORS[directSel] || (directSel ? `direct selector ${directSel}` : (directErr?.shortMessage || 'unknown'));
+
+      console.error('[arc-univ4] simulation revert', {
+        oneliqRouterSelector: shortSel,
+        oneliqRouterMsg: decoded,
+        directUniversalRouterSelector: directSel,
+        directUniversalRouterMsg: directDecoded,
+        directWouldSucceed: directOk,
+        rawSimErr: simErr,
+        rawDirectErr: directErr,
+      });
+
+      const hint = directOk
+        ? ' (Universal Router direct call would succeed → issue is OneliqRouter or Permit2 flow)'
+        : directSel
+        ? ` (direct → ${directDecoded})`
+        : '';
+      const err = new Error(`Simulation reverted — ${decoded}${hint}`);
       err.cause = simErr;
       err.selector = shortSel;
+      err.directSelector = directSel;
       err.poolKey = poolKey;
       throw err;
     }
