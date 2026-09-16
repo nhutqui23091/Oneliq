@@ -329,18 +329,24 @@
     const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
 
     // Simulate first so any revert surfaces a decoded reason instead of a
-    // bare "execution reverted" from the wallet popup.
+    // bare "execution reverted" from the wallet popup. Use OUR provider
+    // (not the signer's) so MetaMask RPCs that strip revert data don't
+    // give a blank "missing revert data" error. eth_call with explicit
+    // `from = owner` lets Permit2/allowance checks pass.
     onStep?.('Simulating…');
     let simErr = null;
+    const arcProvider = ARC.rpcProvider('arc');
+    const routerRead = new Contract(routerAddr, ONELIQ_ROUTER_ABI, arcProvider);
     try {
-      await router.swap.staticCall(
+      await routerRead.swap.staticCall(
         tokenIn,
         BigInt(amountIn),
         tokenOut,
         minOut,
         deadline,
         commands,
-        inputs
+        inputs,
+        { from: owner }
       );
     } catch (e) { simErr = e; }
 
@@ -366,36 +372,54 @@
         || (shortSel ? `revert selector ${shortSel}` : '')
         || (simErr?.shortMessage || simErr?.reason || simErr?.message || 'unknown');
 
-      // No selector? Try a direct call to Universal Router to see if it's the
-      // pool/hook rejecting or something in OneliqRouter's own logic.
-      onStep?.('Deep diagnostic (direct Uniswap call)…');
+      // Deep diagnostic:
+      // (a) probe transferFrom on the tokenIn wrapper — proves whether the
+      //     ERC-20 layer accepts moves at all (Arc's USDC has native/wrapper
+      //     dual-facade weirdness that can cause silent revert).
+      // (b) direct-call Universal Router with the same commands (as if the
+      //     USER were the payer). If that also reverts with a real selector,
+      //     the pool hook is the culprit, not OneliqRouter.
+      onStep?.('Deep diagnostic…');
+      let xferErr = null;
+      try {
+        const erc20Read = new Contract(tokenIn, ERC20_MIN_ABI, arcProvider);
+        // Static call transferFrom(owner, routerAddr, amountIn) as if OneliqRouter did it
+        await erc20Read.transferFrom.staticCall(owner, routerAddr, BigInt(amountIn), { from: routerAddr });
+      } catch (e) { xferErr = e; }
+
       let directErr = null, directOk = false;
       try {
         const uniAbi = ['function execute(bytes commands, bytes[] inputs, uint256 deadline) payable'];
-        const uni = new Contract(V4.universalRouter, uniAbi, signer);
-        await uni.execute.staticCall(commands, inputs, deadline);
+        const uni = new Contract(V4.universalRouter, uniAbi, arcProvider);
+        await uni.execute.staticCall(commands, inputs, deadline, { from: owner });
         directOk = true;
       } catch (dErr) { directErr = dErr; }
       const directRaw = directErr?.data || directErr?.info?.error?.data || '';
       const directStr = typeof directRaw === 'string' ? directRaw : (directRaw?.data || '');
       const directSel = directStr && directStr.length >= 10 && directStr.startsWith('0x') ? directStr.slice(0, 10) : '';
       const directDecoded = KNOWN_ERRORS[directSel] || (directSel ? `direct selector ${directSel}` : (directErr?.shortMessage || 'unknown'));
+      const xferOk = !xferErr;
 
       console.error('[arc-univ4] simulation revert', {
         oneliqRouterSelector: shortSel,
         oneliqRouterMsg: decoded,
+        tokenTransferFromOk: xferOk,
+        tokenTransferFromErr: xferErr?.shortMessage || xferErr?.message,
         directUniversalRouterSelector: directSel,
         directUniversalRouterMsg: directDecoded,
         directWouldSucceed: directOk,
         rawSimErr: simErr,
+        rawXferErr: xferErr,
         rawDirectErr: directErr,
       });
 
-      const hint = directOk
-        ? ' (Universal Router direct call would succeed → issue is OneliqRouter or Permit2 flow)'
+      const hint = !xferOk
+        ? ` (ERC-20 transferFrom on ${tokenIn.slice(0,6)}… also reverts → wrapper doesn't accept normal transfers)`
+        : directOk
+        ? ' (Universal Router direct call would succeed → issue is OneliqRouter Permit2 flow)'
         : directSel
-        ? ` (direct → ${directDecoded})`
-        : '';
+        ? ` (direct-call selector ${directSel} = ${directDecoded})`
+        : ' (direct call also gave no revert data → likely a hook rejecting with revert())';
       const err = new Error(`Simulation reverted — ${decoded}${hint}`);
       err.cause = simErr;
       err.selector = shortSel;
