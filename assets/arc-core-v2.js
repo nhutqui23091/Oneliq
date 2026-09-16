@@ -472,8 +472,16 @@
   };
 
   // MAINNET tokens — canonical Circle USDC + EURC per Circle docs.
-  // Arc mainnet USDC stays modeled at 18 decimals to match the native gas
-  // wrapper convention (same as testnet). All other chains: canonical 6.
+  // Arc's USDC is a two-facade beast (verified on-chain 2026-09-16):
+  //   • Native ledger (eth_getBalance): 18-wei precision — feeds gas
+  //     accounting and the balance UI displays.
+  //   • ERC-20 wrapper 0x3600… (balanceOf/transfer): 6-decimal canonical
+  //     — feeds Uniswap v4 pools, Curve, and anything that reads the
+  //     token as a normal ERC-20.
+  // We model USDC at decimals=18 so the balance UI matches MetaMask (which
+  // shows the native side). Any code that has to talk to an ERC-20-backed
+  // pool must scale amounts down by 10^(decimals - cctpDecimals) — see the
+  // mainnet branch in trade.html quoteSwap() and arc-uniswap-v4.js.
   const _MAINNET_TOKENS = {
     arc: {
       USDC: {

@@ -183,17 +183,31 @@
     return { amountOut: BigInt(amountOut), gasEstimate: BigInt(gasEstimate) };
   }
 
+  // Uniswap v4 LPFeeLibrary constants
+  const MAX_LP_FEE     = 1_000_000; // 100.0000%
+  const DYNAMIC_FEE    = 0x800000;  // = 8388608, hook-controlled
+  // Safe static-fee tiers we trust for direct trading: <=3% (30000).
+  // Anything higher on a stable pair is almost certainly a scam or
+  // misconfigured pool. Dynamic-fee (hook) pools are OK — the hook
+  // sets the effective fee at swap time.
+  function isTrustedFee(fee) {
+    return fee === 0 || fee === DYNAMIC_FEE || fee <= 30000;
+  }
+
   // Convenience: given tokenIn/tokenOut, find the best pool and quote.
+  // Filters out pools with untrusted fees (see isTrustedFee) so wildly
+  // wrong quotes from custom-fee pools never surface to the UI.
   async function bestQuote(tokenIn, tokenOut, amountIn) {
     const pools = await discoverPools(tokenIn, tokenOut);
     if (!pools.length) return null;
     const [currency0] = sortTokens(tokenIn, tokenOut);
     const zfo = zeroForOne(tokenIn, currency0);
-    // Try each pool in order, pick best amountOut.
     let best = null;
     for (const p of pools) {
+      if (!isTrustedFee(p.poolKey.fee)) continue;
       try {
         const { amountOut, gasEstimate } = await quoteExactInputSingle(p.poolKey, amountIn, zfo);
+        if (amountOut === 0n) continue;
         if (!best || amountOut > best.amountOut) {
           best = { ...p, amountOut, gasEstimate, zeroForOne: zfo };
         }
