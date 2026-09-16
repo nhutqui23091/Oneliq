@@ -213,9 +213,9 @@
       iconGrad: 'linear-gradient(135deg,#6C3FFF,#00CFFF)',
       gatewayDepositDisabled: true,
       contracts: {
-        // OneliqRouter mainnet — set after deploy. Trade tab falls back to
-        // Uniswap v4 Universal Router direct call when router is null.
-        router:              null,
+        // OneliqRouter mainnet (Uniswap v4 wrapper) — deployed 2026-09-16.
+        // Deploy tx: 0x0866fb4594300386dd930d8a8914cdcb5b70d60fcf1b5f02eb450b31b5e76713
+        router:              '0xB1Ed79ee288C4631176440b7f4e624C6B4f078F0',
         // Uniswap v4 official Arc mainnet deployment
         uniV4PoolManager:    '0x8366a39CC670B4001A1121B8F6A443A643e40951',
         uniV4Quoter:         '0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94',
@@ -229,9 +229,9 @@
         fxEscrow:            '0xe2E5F173576B513d994073CCbDaCBE027d43DFe6',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
-        // OneliqCheckIn mainnet — set after deploy; Portal streak fallback
-        // to localStorage-only when null.
-        checkIn:             null,
+        // OneliqCheckIn mainnet — deployed 2026-09-16.
+        // Deploy tx: 0x93782209ac860227894af1b604e02d558711155ae829b8d7c62da6e28c8aafa4
+        checkIn:             '0x0cccbe2F3acEc01d71B38249a1d103117c8473Ac',
       },
     },
     ethereum: {

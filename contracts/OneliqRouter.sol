@@ -142,7 +142,7 @@ contract OneliqRouter {
      * @notice Wrap a Uniswap v4 swap with a fee take at source.
      *
      * The Uniswap Universal Router calldata (commands + inputs) is built
-     * OFF-CHAIN by the frontend using the @uniswap/universal-router-sdk.
+     * OFF-CHAIN by the frontend using the Uniswap universal-router-sdk.
      * It MUST include a final TAKE_ALL / SWEEP action sending the output
      * token to `address(this)` — the router forwards it to msg.sender only
      * after measuring the balance delta and checking minOut.

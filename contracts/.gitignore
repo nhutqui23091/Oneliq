@@ -1,0 +1,13 @@
+out/
+cache/
+broadcast/
+lib/
+.env
+.env.*
+*.key
+*.pem
+*.keystore
+# Foundry needs .sol under src/ — we copy from the flat contracts/ layout
+# during setup (see WALKTHROUGH.md). The copies under src/ are derived,
+# canonical source lives in contracts/*.sol.
+src/
