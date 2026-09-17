@@ -216,21 +216,36 @@
     const provider = ARC.rpcProvider('arc');
     const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
 
+    const ZERO_HOOKS_LC = '0x0000000000000000000000000000000000000000';
     const candidates = [];
     for (const p of pools) {
       if (!isTrustedFee(p.poolKey.fee)) continue;
-      // Skip empty pools — Quoter can succeed on them but swap will revert.
+      // Liquidity gate ONLY for no-hook pools. StateView.getLiquidity
+      // returns the current-tick position which is 0 for empty pools —
+      // but is also 0 for concentrated-liquidity pools whose range is
+      // above/below current price (still swappable via cross-tick math).
+      // Hook-mediated pools can also fake liquidity. So we skip the
+      // liquidity check unless the pool is plainly no-hook AND we can
+      // successfully read a zero from StateView.
       let liquidity = 0n;
-      try {
-        liquidity = BigInt(await stateView.getLiquidity(p.poolId));
-      } catch (e) { /* stateView might not have this pool; still try quote */ }
-      if (liquidity === 0n) continue;
+      let liquidityKnown = false;
+      if (p.poolKey.hooks.toLowerCase() === ZERO_HOOKS_LC) {
+        try {
+          liquidity = BigInt(await stateView.getLiquidity(p.poolId));
+          liquidityKnown = true;
+        } catch { /* StateView doesn't know it; fall through to Quoter */ }
+      }
+      // Trust Quoter as the primary signal. If it returns > 0, the pool
+      // is quotable at this amountIn regardless of what StateView says.
       try {
         const { amountOut, gasEstimate } = await quoteExactInputSingle(p.poolKey, amountIn, zfo);
         if (amountOut === 0n) continue;
-        candidates.push({ ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity });
+        // Only skip if we're SURE it's an empty no-hook pool AND Quoter's
+        // number is still 0. Otherwise, keep the pool — user's swap may
+        // succeed via cross-tick or hook logic.
+        candidates.push({ ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity, liquidityKnown });
       } catch (e) {
-        // Pool reverts (hooks reject, etc.) — skip.
+        // Pool reverts in Quoter (hooks reject, actual empty, etc.) — skip.
       }
     }
     if (!candidates.length) return null;

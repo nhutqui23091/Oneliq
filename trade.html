@@ -517,7 +517,8 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       </div>
 
       <!-- Info summary + expandable details -->
-      <div class="info-summary">
+      <!-- Hidden until first real quote; setMetrics() toggles visibility -->
+      <div class="info-summary" style="display:none">
         <div class="info-summary-line">
           <span id="m-rate-inline">-</span>
           <span class="info-dot">·</span>
@@ -527,7 +528,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         </div>
         <button class="info-chevron-btn" id="info-chevron-btn" type="button" aria-label="Toggle details"><span class="chev-icon" id="chev-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l7 7 7-7"/></svg></span></button>
       </div>
-      <div class="info-details" id="info-details">
+      <div class="info-details" id="info-details" style="display:none">
         <div class="metric-row"><span class="lbl">Rate</span><span class="val" id="m-rate">-</span></div>
         <div class="metric-row"><span class="lbl">Price impact</span><span class="val" id="m-impact">-</span></div>
         <div class="metric-row"><span class="lbl">Network fee</span><span class="val" id="m-netfee">-</span></div>
@@ -553,7 +554,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 <script src="/assets/arc-core-v2.js?v=10.0.3"></script>
 <script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
-<script src="/assets/arc-uniswap-v4.js?v=1.2.1"></script>
+<script src="/assets/arc-uniswap-v4.js?v=1.2.2"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -1652,6 +1653,16 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     if (tI) tI.textContent = ' ' + m.time;
     const fI = document.getElementById('m-fee-inline');
     if (fI) fI.textContent = ' ' + m.fee;
+    // Hide the whole info summary + details when nothing has been quoted
+    // yet ("- · - · -" looked broken; matches Uniswap behavior of only
+    // showing route/fees when there's a real quote to describe).
+    const sum = document.querySelector('.info-summary');
+    const det = document.getElementById('info-details');
+    const isEmpty = (m.rate === '-' || m.rate === '' || m.rate == null)
+                 && (m.fee  === '-' || m.fee  === '' || m.fee  == null)
+                 && (m.time === '-' || m.time === '' || m.time == null);
+    if (sum) sum.style.display = isEmpty ? 'none' : '';
+    if (det) det.style.display = isEmpty ? 'none' : '';
   }
 
   function estimateUSD(amount, token) {
