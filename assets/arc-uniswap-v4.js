@@ -100,9 +100,31 @@
   // pools like dynamic-fee launch pads.
   const _poolCache = new Map(); // key: `${a.toLowerCase()}_${b.toLowerCase()}` → array<poolKey>
 
-  // Standard v4 fee tiers + common meme tiers on Arc. Ordered by likelihood.
-  const PROBE_FEES = [3000, 500, 100, 10000, 100000, 25000, 20000, 50000, 5000, 30000];
-  const PROBE_TICK_SPACINGS = [60, 10, 1, 200, 100, 500, 1000, 2000, 50];
+  // Curated probe combos. Circle's Arc mainnet RPC caps at roughly 20
+  // requests/window per session — a naive 10×9 (fee × tickSpacing) grid
+  // gets 70/90 rate-limited AND misses the very pool we're looking for.
+  // Instead: standard Uniswap v4 tiers + the meme-friendly tiers we've
+  // actually seen on Arc. All 15 fit in one JSON-RPC batch.
+  const PROBE_COMBOS = [
+    // Standard tiers
+    [   100,   1],
+    [   500,  10],
+    [  3000,  60],
+    [ 10000, 200],
+    // Meme / high-fee tiers (observed on Arc)
+    [ 25000, 200],
+    [ 25000, 500],
+    [ 50000, 100],
+    [ 50000, 500],
+    [100000, 200],
+    [100000, 500],
+    [100000,1000],
+    // Extra safety net
+    [  3000, 200],
+    [ 10000, 100],
+    [ 10000, 500],
+    [ 20000, 200],
+  ];
 
   function computePoolId(currency0, currency1, fee, tickSpacing, hooks) {
     return keccak256(abi.encode(
@@ -111,47 +133,109 @@
     ));
   }
 
+  // JSON-RPC batch helper. Sends all requests in one HTTP call, then retries
+  // any rate-limited items (up to 2 more rounds with backoff). Falls back to
+  // sequential fetches if the RPC rejects batches.
+  const _getSlot0Selector = '0xc815641c'; // keccak256("getSlot0(bytes32)")[:4]
+  async function _batchGetSlot0(rpcUrl, poolIds) {
+    const body = poolIds.map((pid, i) => ({
+      jsonrpc: '2.0', id: i, method: 'eth_call',
+      params: [{ to: V4.stateView, data: _getSlot0Selector + pid.slice(2) }, 'latest'],
+    }));
+    const out = new Array(poolIds.length).fill(null);
+    async function fire(items) {
+      const r = await fetch(rpcUrl, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(items),
+      });
+      if (!r.ok) throw new Error('rpc HTTP ' + r.status);
+      const j = await r.json();
+      return Array.isArray(j) ? j : [j];
+    }
+    let pending = body;
+    for (let attempt = 0; attempt < 3 && pending.length; attempt++) {
+      let resps;
+      try { resps = await fire(pending); }
+      catch (e) { console.warn('[arc-univ4] batch failed:', e?.message); break; }
+      const retry = [];
+      for (const resp of resps) {
+        const idx = resp.id;
+        if (resp.error) {
+          // Rate-limit → retry; other errors → give up on this slot
+          if (/rate|limit|-32005|429/i.test(String(resp.error.message || resp.error.code || ''))) {
+            retry.push(body[idx]);
+          }
+        } else if (resp.result && resp.result !== '0x') {
+          // sqrtPriceX96 is the first word (32 bytes)
+          const sqrt = BigInt('0x' + resp.result.slice(2, 66));
+          out[idx] = sqrt > 0n ? sqrt : 0n;
+        } else {
+          out[idx] = 0n;
+        }
+      }
+      if (!retry.length) break;
+      await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+      pending = retry;
+    }
+    return out;
+  }
+
   async function fastProbeNoHookPools(currency0, currency1) {
+    // Try to resolve the RPC URL for a raw fetch. Fall back to ethers if
+    // we can't (some providers don't expose the URL cleanly).
     const provider = ARC.rpcProvider('arc');
-    const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
+    let rpcUrl = null;
+    try {
+      rpcUrl = (provider._getConnection && provider._getConnection().url)
+            || provider?.connection?.url
+            || ARC.CHAINS?.arc?.rpc
+            || null;
+    } catch { /* ignore */ }
+
     const hooks = ZeroAddress;
-    const probes = [];
-    for (const fee of PROBE_FEES) {
-      for (const ts of PROBE_TICK_SPACINGS) {
-        probes.push({ fee, ts });
+    const poolIds = PROBE_COMBOS.map(([fee, ts]) => computePoolId(currency0, currency1, fee, ts, hooks));
+
+    let sqrtValues;
+    if (rpcUrl) {
+      sqrtValues = await _batchGetSlot0(rpcUrl, poolIds).catch(() => null);
+    }
+    // Fallback: sequential ethers calls with small concurrency (rare path).
+    if (!sqrtValues) {
+      const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
+      sqrtValues = new Array(poolIds.length).fill(0n);
+      const CONC = 4;
+      for (let i = 0; i < poolIds.length; i += CONC) {
+        const batch = poolIds.slice(i, i + CONC);
+        const rs = await Promise.allSettled(batch.map(pid => stateView.getSlot0(pid)));
+        for (let j = 0; j < rs.length; j++) {
+          if (rs[j].status === 'fulfilled') {
+            const [sqrt] = rs[j].value;
+            sqrtValues[i + j] = BigInt(sqrt);
+          }
+        }
       }
     }
-    // Fire all 90 probes at once — StateView.getSlot0 is a static view call,
-    // cheap on the RPC. Sequential batching was making discovery feel slow
-    // for no reason. If the RPC rate-limits, individual probes just return
-    // null and we fall back to what came back.
-    const results = await Promise.allSettled(probes.map(async ({ fee, ts }) => {
-      const poolId = computePoolId(currency0, currency1, fee, ts, hooks);
-      try {
-        const [sqrtPriceX96] = await stateView.getSlot0(poolId);
-        if (BigInt(sqrtPriceX96) > 0n) {
-          return { fee, ts, poolId, sqrtPriceX96: sqrtPriceX96.toString() };
-        }
-      } catch { /* pool doesn't exist or RPC blipped; ignore */ }
-      return null;
-    }));
+
     const found = [];
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) found.push(r.value);
+    for (let i = 0; i < PROBE_COMBOS.length; i++) {
+      const [fee, ts] = PROBE_COMBOS[i];
+      if (sqrtValues[i] && sqrtValues[i] > 0n) {
+        found.push({
+          poolId: poolIds[i],
+          poolKey: {
+            currency0, currency1,
+            fee, tickSpacing: ts,
+            hooks: getAddress(hooks),
+          },
+          sqrtPriceX96: sqrtValues[i].toString(),
+          tick: null,
+          blockNumber: null,
+          txHash: null,
+          _source: 'fastProbe',
+        });
+      }
     }
-    return found.map(p => ({
-      poolId: p.poolId,
-      poolKey: {
-        currency0, currency1,
-        fee: p.fee, tickSpacing: p.ts,
-        hooks: getAddress(hooks),
-      },
-      sqrtPriceX96: p.sqrtPriceX96,
-      tick: null,
-      blockNumber: null,
-      txHash: null,
-      _source: 'fastProbe',
-    }));
+    return found;
   }
 
   async function _getLogsWithRetry(provider, filter, tries = 3) {
