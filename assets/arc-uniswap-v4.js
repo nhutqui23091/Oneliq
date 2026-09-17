@@ -98,10 +98,11 @@
 
     const provider = ARC.rpcProvider('arc');
     const latest = Number(await provider.getBlockNumber());
-    // Scan last N blocks; Arc mainnet has ~200k blocks/day so 1M blocks = ~5 days.
-    // eth_getLogs is capped at 10k blocks/call on the primary Circle RPC, so
-    // fan out across chunks.
-    const spanBlocks = opts.spanBlocks || 200_000;
+    // Scan last N blocks. AKARII pool init was ~189k blocks back so 200k
+    // barely covers it; bump to 500k so newer meme pools created a few days
+    // ago are still discoverable. eth_getLogs is capped at 10k blocks/call
+    // on the primary Circle RPC, so fan out across chunks.
+    const spanBlocks = opts.spanBlocks || 500_000;
     const chunkSize  = 10_000;
     const startBlock = Math.max(0, latest - spanBlocks);
 
@@ -195,12 +196,12 @@
   // Uniswap v4 LPFeeLibrary constants
   const MAX_LP_FEE     = 1_000_000; // 100.0000%
   const DYNAMIC_FEE    = 0x800000;  // = 8388608, hook-controlled
-  // Safe static-fee tiers we trust for direct trading: <=3% (30000).
-  // Anything higher on a stable pair is almost certainly a scam or
-  // misconfigured pool. Dynamic-fee (hook) pools are OK — the hook
-  // sets the effective fee at swap time.
+  // Fee cap. Meme pools on Arc often use 1-10% (e.g. AKARII/USDC = fee 100000
+  // = 10%), so a 3% cap silently drops them. Cap at 10% — anything higher on
+  // a real trading pair is either misconfigured or a rug trap. Dynamic-fee
+  // (hook) pools are OK — the hook sets the effective fee at swap time.
   function isTrustedFee(fee) {
-    return fee === 0 || fee === DYNAMIC_FEE || fee <= 30000;
+    return fee === 0 || fee === DYNAMIC_FEE || fee <= 100000;
   }
 
   // Convenience: given tokenIn/tokenOut, find the best pool and quote.

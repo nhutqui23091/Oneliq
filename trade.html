@@ -499,8 +499,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         </button>
       </div>
 
-      <!-- Slippage summary (always visible) -->
-      <div class="slip-summary-row">
+      <!-- Slippage summary — hidden until a real quote lands, alongside the
+           info bar; setMetrics() toggles all three together. -->
+      <div class="slip-summary-row" style="display:none">
         <span class="lbl">Max Slippage</span>
         <button class="slip-summary-pill" id="slip-summary-pill" type="button">
           <span id="slip-pill-val">0.5%</span>
@@ -554,7 +555,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 <script src="/assets/arc-core-v2.js?v=10.0.3"></script>
 <script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
-<script src="/assets/arc-uniswap-v4.js?v=1.2.2"></script>
+<script src="/assets/arc-uniswap-v4.js?v=1.2.3"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -1653,16 +1654,21 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     if (tI) tI.textContent = ' ' + m.time;
     const fI = document.getElementById('m-fee-inline');
     if (fI) fI.textContent = ' ' + m.fee;
-    // Hide the whole info summary + details when nothing has been quoted
-    // yet ("- · - · -" looked broken; matches Uniswap behavior of only
-    // showing route/fees when there's a real quote to describe).
+    // Hide the whole slippage + info block when there's no real quote
+    // (empty or "No route"). Matches Uniswap: no dangling "- · - · -" row,
+    // no slippage pill until a route is actually being priced.
+    const slip = document.querySelector('.slip-summary-row');
+    const slipDrop = document.getElementById('slip-dropdown');
     const sum = document.querySelector('.info-summary');
     const det = document.getElementById('info-details');
-    const isEmpty = (m.rate === '-' || m.rate === '' || m.rate == null)
+    const noQuote = (m.rate === '-' || m.rate === '' || m.rate == null
+                    || m.rate === 'No route')
                  && (m.fee  === '-' || m.fee  === '' || m.fee  == null)
                  && (m.time === '-' || m.time === '' || m.time == null);
-    if (sum) sum.style.display = isEmpty ? 'none' : '';
-    if (det) det.style.display = isEmpty ? 'none' : '';
+    if (slip) slip.style.display = noQuote ? 'none' : '';
+    if (slipDrop && noQuote) slipDrop.classList.remove('open');
+    if (sum) sum.style.display = noQuote ? 'none' : '';
+    if (det) det.style.display = noQuote ? 'none' : '';
   }
 
   function estimateUSD(amount, token) {
