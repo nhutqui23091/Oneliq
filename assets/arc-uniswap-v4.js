@@ -86,29 +86,98 @@
   }
 
   // ── Pool discovery ─────────────────────────────────────────────────────
-  // Scans PoolManager Initialize events for (tokenA, tokenB) pairs. Returns
-  // an array of pool keys ordered by liquidity heuristic (currently just
-  // insertion order). Caches by (a, b) so a repeat lookup is instant.
+  // Two-pronged discovery so we're not at the mercy of log scans:
+  //   (a) fastProbeNoHookPools — deterministic. Compute poolId for every
+  //       common (fee, tickSpacing) combo with hooks = 0x0, then ask
+  //       StateView.getSlot0(poolId). Live pools have sqrtPriceX96 > 0.
+  //       This is O(1) in chain age and misses ONLY hook pools.
+  //   (b) scanInitLogs — best-effort log scan for hook pools (with retry).
+  //       Runs alongside (a); if the RPC rate-limits or the pool is older
+  //       than the window, (a) still returns the standard-tier pools.
+  //
+  // Meme tokens on Arc frequently ship no-hook pools at 1-10% fees, so (a)
+  // alone catches almost everything. (b) is only necessary for hook-mediated
+  // pools like dynamic-fee launch pads.
   const _poolCache = new Map(); // key: `${a.toLowerCase()}_${b.toLowerCase()}` → array<poolKey>
 
-  async function discoverPools(tokenA, tokenB, opts = {}) {
-    const [currency0, currency1] = sortTokens(tokenA, tokenB);
-    const cacheKey = `${currency0.toLowerCase()}_${currency1.toLowerCase()}`;
-    if (!opts.force && _poolCache.has(cacheKey)) return _poolCache.get(cacheKey);
+  // Standard v4 fee tiers + common meme tiers on Arc. Ordered by likelihood.
+  const PROBE_FEES = [3000, 500, 100, 10000, 100000, 25000, 20000, 50000, 5000, 30000];
+  const PROBE_TICK_SPACINGS = [60, 10, 1, 200, 100, 500, 1000, 2000, 50];
 
+  function computePoolId(currency0, currency1, fee, tickSpacing, hooks) {
+    return keccak256(abi.encode(
+      ['tuple(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks)'],
+      [{ currency0, currency1, fee, tickSpacing, hooks }],
+    ));
+  }
+
+  async function fastProbeNoHookPools(currency0, currency1) {
+    const provider = ARC.rpcProvider('arc');
+    const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
+    const hooks = ZeroAddress;
+    // Fire all probes in parallel but cap concurrency to be nice to the RPC.
+    const probes = [];
+    for (const fee of PROBE_FEES) {
+      for (const ts of PROBE_TICK_SPACINGS) {
+        probes.push({ fee, ts });
+      }
+    }
+    const found = [];
+    const CONC = 8;
+    for (let i = 0; i < probes.length; i += CONC) {
+      const batch = probes.slice(i, i + CONC);
+      const results = await Promise.allSettled(batch.map(async ({ fee, ts }) => {
+        const poolId = computePoolId(currency0, currency1, fee, ts, hooks);
+        try {
+          const [sqrtPriceX96] = await stateView.getSlot0(poolId);
+          if (BigInt(sqrtPriceX96) > 0n) {
+            return { fee, ts, poolId, sqrtPriceX96: sqrtPriceX96.toString() };
+          }
+        } catch { /* pool doesn't exist; ignore */ }
+        return null;
+      }));
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) found.push(r.value);
+      }
+    }
+    return found.map(p => ({
+      poolId: p.poolId,
+      poolKey: {
+        currency0, currency1,
+        fee: p.fee, tickSpacing: p.ts,
+        hooks: getAddress(hooks),
+      },
+      sqrtPriceX96: p.sqrtPriceX96,
+      tick: null,
+      blockNumber: null,
+      txHash: null,
+      _source: 'fastProbe',
+    }));
+  }
+
+  async function _getLogsWithRetry(provider, filter, tries = 3) {
+    let lastErr;
+    for (let i = 0; i < tries; i++) {
+      try { return await provider.getLogs(filter); }
+      catch (e) {
+        lastErr = e;
+        const msg = String(e?.message || '');
+        // Only retry rate-limit / transient errors — not "range too large".
+        if (!/rate|limit|429|timeout|network/i.test(msg)) throw e;
+        await new Promise(r => setTimeout(r, 500 * (i + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  async function scanInitLogs(currency0, currency1, opts) {
     const provider = ARC.rpcProvider('arc');
     const latest = Number(await provider.getBlockNumber());
-    // Scan last N blocks. AKARII pool init was ~189k blocks back so 200k
-    // barely covers it; bump to 500k so newer meme pools created a few days
-    // ago are still discoverable. eth_getLogs is capped at 10k blocks/call
-    // on the primary Circle RPC, so fan out across chunks.
     const spanBlocks = opts.spanBlocks || 500_000;
-    const chunkSize  = 10_000;
+    const chunkSize  = 9_500; // stay just under the 10k cap on Arc RPC
     const startBlock = Math.max(0, latest - spanBlocks);
-
     const c0Padded = padAddress(currency0);
     const c1Padded = padAddress(currency1);
-
     const pools = [];
     for (let from = latest; from > startBlock; from -= chunkSize) {
       const to = from;
@@ -120,20 +189,41 @@
         toBlock:   '0x' + to.toString(16),
       };
       let logs;
-      try { logs = await provider.getLogs(filter); }
+      try { logs = await _getLogsWithRetry(provider, filter); }
       catch (e) { console.warn('[arc-univ4] getLogs chunk failed:', e?.message); continue; }
       for (const log of logs) {
         try {
           const decoded = decodeInitLog(log);
-          if (decoded) pools.push(decoded);
+          if (decoded) { decoded._source = 'logScan'; pools.push(decoded); }
         } catch (e) {
           console.warn('[arc-univ4] decode init log failed:', e?.message);
         }
       }
-      // Enough data — most pools are recent. Stop early if we found some.
-      if (pools.length >= 5) break;
     }
+    return pools;
+  }
 
+  async function discoverPools(tokenA, tokenB, opts = {}) {
+    const [currency0, currency1] = sortTokens(tokenA, tokenB);
+    const cacheKey = `${currency0.toLowerCase()}_${currency1.toLowerCase()}`;
+    if (!opts.force && _poolCache.has(cacheKey)) return _poolCache.get(cacheKey);
+
+    // Fast probe FIRST — cheap and deterministic. Then log scan for hooks
+    // in parallel. If either fails, the other still returns useful pools.
+    const [fastOut, logOut] = await Promise.all([
+      fastProbeNoHookPools(currency0, currency1).catch(e => {
+        console.warn('[arc-univ4] fast probe failed:', e?.message); return [];
+      }),
+      scanInitLogs(currency0, currency1, opts).catch(e => {
+        console.warn('[arc-univ4] log scan failed:', e?.message); return [];
+      }),
+    ]);
+    // Merge, dedupe by poolId (log scan may repeat fast-probe hits).
+    const byId = new Map();
+    for (const p of [...fastOut, ...logOut]) {
+      if (!byId.has(p.poolId)) byId.set(p.poolId, p);
+    }
+    const pools = [...byId.values()];
     _poolCache.set(cacheKey, pools);
     return pools;
   }
