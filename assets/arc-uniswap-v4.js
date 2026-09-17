@@ -181,17 +181,8 @@
   }
 
   async function fastProbeNoHookPools(currency0, currency1) {
-    // Try to resolve the RPC URL for a raw fetch. Fall back to ethers if
-    // we can't (some providers don't expose the URL cleanly).
     const provider = ARC.rpcProvider('arc');
-    let rpcUrl = null;
-    try {
-      rpcUrl = (provider._getConnection && provider._getConnection().url)
-            || provider?.connection?.url
-            || ARC.CHAINS?.arc?.rpc
-            || null;
-    } catch { /* ignore */ }
-
+    const rpcUrl = _resolveRpcUrl();
     const hooks = ZeroAddress;
     const poolIds = PROBE_COMBOS.map(([fee, ts]) => computePoolId(currency0, currency1, fee, ts, hooks));
 
@@ -352,12 +343,90 @@
   }
 
   // ── Quote ──────────────────────────────────────────────────────────────
-  // Call the v4 Quoter via eth_call (simulation) — safe, no gas, works with
-  // hook-controlled dynamic-fee pools. Returns { amountOut, gasEstimate }.
+  // Call the v4 Quoter via eth_call. When available, we bypass ethers here
+  // because on rate-limited responses ethers can hang for 30-45s retrying
+  // internally — devastating for a quote flow that has to answer in ~1s.
+  const _QUOTER_SELECTOR = '0xaa9d21cb'; // keccak256("quoteExactInputSingle(((address,address,uint24,int24,address),bool,uint128,bytes))")[:4]
+  const _QUOTER_TUPLE = ['tuple(tuple(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) poolKey,bool zeroForOne,uint128 exactAmount,bytes hookData)'];
+
+  function _encodeQuoterCalldata(poolKey, amountIn, zeroForOne, hookData) {
+    const enc = abi.encode(_QUOTER_TUPLE, [{
+      poolKey: {
+        currency0:   poolKey.currency0,
+        currency1:   poolKey.currency1,
+        fee:         poolKey.fee,
+        tickSpacing: poolKey.tickSpacing,
+        hooks:       poolKey.hooks,
+      },
+      zeroForOne,
+      exactAmount: BigInt(amountIn),
+      hookData: hookData || '0x',
+    }]);
+    return _QUOTER_SELECTOR + enc.slice(2);
+  }
+
+  function _decodeQuoterResult(hex) {
+    if (!hex || hex === '0x') return { amountOut: 0n, gasEstimate: 0n };
+    const [amountOut, gasEstimate] = abi.decode(['uint256', 'uint256'], hex);
+    return { amountOut: BigInt(amountOut), gasEstimate: BigInt(gasEstimate) };
+  }
+
+  // Batched Quoter — sends N eth_calls in ONE JSON-RPC batch, retries any
+  // that come back with -32005 rate-limit. Returns array of { amountOut,
+  // gasEstimate } (0n when the call reverts or the pool is empty).
+  async function _batchQuote(rpcUrl, calls) {
+    const body = calls.map((c, i) => ({
+      jsonrpc: '2.0', id: i, method: 'eth_call',
+      params: [{ to: V4.quoter, data: _encodeQuoterCalldata(c.poolKey, c.amountIn, c.zeroForOne, c.hookData) }, 'latest'],
+    }));
+    const out = new Array(calls.length).fill(null).map(() => ({ amountOut: 0n, gasEstimate: 0n }));
+    let pending = body;
+    for (let attempt = 0; attempt < 3 && pending.length; attempt++) {
+      let resps;
+      try {
+        const r = await fetch(rpcUrl, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(pending),
+        });
+        if (!r.ok) throw new Error('rpc HTTP ' + r.status);
+        const j = await r.json();
+        resps = Array.isArray(j) ? j : [j];
+      } catch (e) {
+        console.warn('[arc-univ4] quoter batch failed:', e?.message);
+        break;
+      }
+      const retry = [];
+      for (const resp of resps) {
+        const idx = resp.id;
+        if (resp.error) {
+          if (/rate|limit|-32005|429/i.test(String(resp.error.message || resp.error.code || ''))) {
+            retry.push(body[idx]);
+          }
+          // Non-rate-limit errors → pool reverts → leave out[idx] as zero.
+        } else if (resp.result) {
+          try { out[idx] = _decodeQuoterResult(resp.result); }
+          catch { /* malformed → leave zero */ }
+        }
+      }
+      if (!retry.length) break;
+      await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+      pending = retry;
+    }
+    return out;
+  }
+
+  // Public: single-quote wrapper. Used by executeSwap where we want a
+  // pre-flight quote for the pool the user is about to swap through.
   async function quoteExactInputSingle(poolKey, amountIn, zeroForOne, hookData = '0x') {
+    const rpcUrl = _resolveRpcUrl();
+    if (rpcUrl) {
+      const [out] = await _batchQuote(rpcUrl, [{ poolKey, amountIn, zeroForOne, hookData }]);
+      return out;
+    }
+    // Fallback: ethers wrapper.
     const provider = ARC.rpcProvider('arc');
     const quoter = new Contract(V4.quoter, QUOTER_ABI, provider);
-    const params = {
+    const [amountOut, gasEstimate] = await quoter.quoteExactInputSingle.staticCall({
       poolKey: {
         currency0:   poolKey.currency0,
         currency1:   poolKey.currency1,
@@ -368,11 +437,18 @@
       zeroForOne,
       exactAmount: amountIn,
       hookData,
-    };
-    // Quoter methods are "state-modifying" (non-view) but designed to be
-    // called with eth_call so they revert-and-return the quote.
-    const [amountOut, gasEstimate] = await quoter.quoteExactInputSingle.staticCall(params);
+    });
     return { amountOut: BigInt(amountOut), gasEstimate: BigInt(gasEstimate) };
+  }
+
+  function _resolveRpcUrl() {
+    try {
+      const provider = ARC.rpcProvider('arc');
+      return (provider._getConnection && provider._getConnection().url)
+          || provider?.connection?.url
+          || ARC.CHAINS?.arc?.rpc
+          || null;
+    } catch { return null; }
   }
 
   // Uniswap v4 LPFeeLibrary constants
@@ -400,25 +476,27 @@
     const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
 
     const ZERO_HOOKS_LC = '0x0000000000000000000000000000000000000000';
-    // Quote every trusted-fee pool in parallel. Sequential was adding
-    // ~200ms per candidate — for 3 pools that's 600ms of pure round-trip.
     const trusted = pools.filter(p => isTrustedFee(p.poolKey.fee));
-    const settled = await Promise.allSettled(trusted.map(async p => {
-      let liquidity = 0n;
-      let liquidityKnown = false;
-      if (p.poolKey.hooks.toLowerCase() === ZERO_HOOKS_LC) {
-        try {
-          liquidity = BigInt(await stateView.getLiquidity(p.poolId));
-          liquidityKnown = true;
-        } catch { /* StateView doesn't know it; fall through to Quoter */ }
-      }
-      const { amountOut, gasEstimate } = await quoteExactInputSingle(p.poolKey, amountIn, zfo);
-      if (amountOut === 0n) return null;
-      return { ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity, liquidityKnown };
-    }));
+    // Batch every Quoter call into ONE JSON-RPC HTTP request. Ethers via
+    // Contract retries internally on rate-limit responses (30-45s hangs);
+    // fetch+batch bypasses that and returns in ~150ms.
+    const rpcUrl = _resolveRpcUrl();
+    let quotes;
+    if (rpcUrl) {
+      quotes = await _batchQuote(rpcUrl,
+        trusted.map(p => ({ poolKey: p.poolKey, amountIn, zeroForOne: zfo, hookData: '0x' })));
+    } else {
+      // Fallback: single ethers calls (each is its own risk window).
+      const settled = await Promise.allSettled(trusted.map(p =>
+        quoteExactInputSingle(p.poolKey, amountIn, zfo)));
+      quotes = settled.map(r => r.status === 'fulfilled' ? r.value : { amountOut: 0n, gasEstimate: 0n });
+    }
     const candidates = [];
-    for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) candidates.push(r.value);
+    for (let i = 0; i < trusted.length; i++) {
+      const p = trusted[i];
+      const { amountOut, gasEstimate } = quotes[i] || { amountOut: 0n, gasEstimate: 0n };
+      if (amountOut === 0n) continue;
+      candidates.push({ ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity: 0n, liquidityKnown: false });
     }
     if (!candidates.length) return null;
     // Prefer NO-HOOK pools first (open to anyone), then by output size.
