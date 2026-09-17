@@ -115,30 +115,29 @@
     const provider = ARC.rpcProvider('arc');
     const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
     const hooks = ZeroAddress;
-    // Fire all probes in parallel but cap concurrency to be nice to the RPC.
     const probes = [];
     for (const fee of PROBE_FEES) {
       for (const ts of PROBE_TICK_SPACINGS) {
         probes.push({ fee, ts });
       }
     }
+    // Fire all 90 probes at once — StateView.getSlot0 is a static view call,
+    // cheap on the RPC. Sequential batching was making discovery feel slow
+    // for no reason. If the RPC rate-limits, individual probes just return
+    // null and we fall back to what came back.
+    const results = await Promise.allSettled(probes.map(async ({ fee, ts }) => {
+      const poolId = computePoolId(currency0, currency1, fee, ts, hooks);
+      try {
+        const [sqrtPriceX96] = await stateView.getSlot0(poolId);
+        if (BigInt(sqrtPriceX96) > 0n) {
+          return { fee, ts, poolId, sqrtPriceX96: sqrtPriceX96.toString() };
+        }
+      } catch { /* pool doesn't exist or RPC blipped; ignore */ }
+      return null;
+    }));
     const found = [];
-    const CONC = 8;
-    for (let i = 0; i < probes.length; i += CONC) {
-      const batch = probes.slice(i, i + CONC);
-      const results = await Promise.allSettled(batch.map(async ({ fee, ts }) => {
-        const poolId = computePoolId(currency0, currency1, fee, ts, hooks);
-        try {
-          const [sqrtPriceX96] = await stateView.getSlot0(poolId);
-          if (BigInt(sqrtPriceX96) > 0n) {
-            return { fee, ts, poolId, sqrtPriceX96: sqrtPriceX96.toString() };
-          }
-        } catch { /* pool doesn't exist; ignore */ }
-        return null;
-      }));
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) found.push(r.value);
-      }
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) found.push(r.value);
     }
     return found.map(p => ({
       poolId: p.poolId,
@@ -208,24 +207,33 @@
     const cacheKey = `${currency0.toLowerCase()}_${currency1.toLowerCase()}`;
     if (!opts.force && _poolCache.has(cacheKey)) return _poolCache.get(cacheKey);
 
-    // Fast probe FIRST — cheap and deterministic. Then log scan for hooks
-    // in parallel. If either fails, the other still returns useful pools.
-    const [fastOut, logOut] = await Promise.all([
-      fastProbeNoHookPools(currency0, currency1).catch(e => {
-        console.warn('[arc-univ4] fast probe failed:', e?.message); return [];
-      }),
-      scanInitLogs(currency0, currency1, opts).catch(e => {
-        console.warn('[arc-univ4] log scan failed:', e?.message); return [];
-      }),
-    ]);
-    // Merge, dedupe by poolId (log scan may repeat fast-probe hits).
-    const byId = new Map();
-    for (const p of [...fastOut, ...logOut]) {
-      if (!byId.has(p.poolId)) byId.set(p.poolId, p);
+    // Fast probe first — ~90 parallel getSlot0 calls, returns in <1s. Covers
+    // every no-hook pool at standard tiers.
+    const fastOut = await fastProbeNoHookPools(currency0, currency1).catch(e => {
+      console.warn('[arc-univ4] fast probe failed:', e?.message); return [];
+    });
+    // If fast probe found any pool, return immediately and enrich the cache
+    // asynchronously with log-scan (for hook pools). The user's quote gets
+    // to render in <1s instead of waiting the extra 5-10s for log scan.
+    if (fastOut.length > 0) {
+      _poolCache.set(cacheKey, fastOut);
+      // Fire-and-forget log scan to augment cache for a possible second call.
+      scanInitLogs(currency0, currency1, opts).then(logOut => {
+        const byId = new Map();
+        for (const p of [...fastOut, ...logOut]) {
+          if (!byId.has(p.poolId)) byId.set(p.poolId, p);
+        }
+        _poolCache.set(cacheKey, [...byId.values()]);
+      }).catch(() => { /* silent; fast-probe pools already served */ });
+      return fastOut;
     }
-    const pools = [...byId.values()];
-    _poolCache.set(cacheKey, pools);
-    return pools;
+    // No standard-tier no-hook pool — token likely uses a hook (bonding
+    // curve, dynamic-fee launch pad, etc.). Wait for the log scan.
+    const logOut = await scanInitLogs(currency0, currency1, opts).catch(e => {
+      console.warn('[arc-univ4] log scan failed:', e?.message); return [];
+    });
+    _poolCache.set(cacheKey, logOut);
+    return logOut;
   }
 
   function decodeInitLog(log) {
@@ -308,16 +316,10 @@
     const stateView = new Contract(V4.stateView, STATE_VIEW_ABI, provider);
 
     const ZERO_HOOKS_LC = '0x0000000000000000000000000000000000000000';
-    const candidates = [];
-    for (const p of pools) {
-      if (!isTrustedFee(p.poolKey.fee)) continue;
-      // Liquidity gate ONLY for no-hook pools. StateView.getLiquidity
-      // returns the current-tick position which is 0 for empty pools —
-      // but is also 0 for concentrated-liquidity pools whose range is
-      // above/below current price (still swappable via cross-tick math).
-      // Hook-mediated pools can also fake liquidity. So we skip the
-      // liquidity check unless the pool is plainly no-hook AND we can
-      // successfully read a zero from StateView.
+    // Quote every trusted-fee pool in parallel. Sequential was adding
+    // ~200ms per candidate — for 3 pools that's 600ms of pure round-trip.
+    const trusted = pools.filter(p => isTrustedFee(p.poolKey.fee));
+    const settled = await Promise.allSettled(trusted.map(async p => {
       let liquidity = 0n;
       let liquidityKnown = false;
       if (p.poolKey.hooks.toLowerCase() === ZERO_HOOKS_LC) {
@@ -326,18 +328,13 @@
           liquidityKnown = true;
         } catch { /* StateView doesn't know it; fall through to Quoter */ }
       }
-      // Trust Quoter as the primary signal. If it returns > 0, the pool
-      // is quotable at this amountIn regardless of what StateView says.
-      try {
-        const { amountOut, gasEstimate } = await quoteExactInputSingle(p.poolKey, amountIn, zfo);
-        if (amountOut === 0n) continue;
-        // Only skip if we're SURE it's an empty no-hook pool AND Quoter's
-        // number is still 0. Otherwise, keep the pool — user's swap may
-        // succeed via cross-tick or hook logic.
-        candidates.push({ ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity, liquidityKnown });
-      } catch (e) {
-        // Pool reverts in Quoter (hooks reject, actual empty, etc.) — skip.
-      }
+      const { amountOut, gasEstimate } = await quoteExactInputSingle(p.poolKey, amountIn, zfo);
+      if (amountOut === 0n) return null;
+      return { ...p, amountOut, gasEstimate, zeroForOne: zfo, liquidity, liquidityKnown };
+    }));
+    const candidates = [];
+    for (const r of settled) {
+      if (r.status === 'fulfilled' && r.value) candidates.push(r.value);
     }
     if (!candidates.length) return null;
     // Prefer NO-HOOK pools first (open to anyone), then by output size.
