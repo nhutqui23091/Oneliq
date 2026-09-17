@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="oneliq-discord-client-id" content="1514587016157859900"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://ethereum-sepolia-rpc.publicnode.com https://ethereum-rpc.publicnode.com https://sepolia.base.org https://base-rpc.publicnode.com https://api.avax-test.network https://avalanche-c-chain-rpc.publicnode.com https://sepolia-rollup.arbitrum.io https://arbitrum-one-rpc.publicnode.com https://optimism-sepolia.publicnode.com https://optimism-rpc.publicnode.com https://rpc-amoy.polygon.technology https://polygon-bor-rpc.publicnode.com https://sepolia.unichain.org https://unichain-rpc.publicnode.com https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://ethereum-sepolia-rpc.publicnode.com https://ethereum-rpc.publicnode.com https://sepolia.base.org https://base-rpc.publicnode.com https://api.avax-test.network https://avalanche-c-chain-rpc.publicnode.com https://sepolia-rollup.arbitrum.io https://arbitrum-one-rpc.publicnode.com https://optimism-sepolia.publicnode.com https://optimism-rpc.publicnode.com https://rpc-amoy.polygon.technology https://polygon-bor-rpc.publicnode.com https://sepolia.unichain.org https://unichain-rpc.publicnode.com https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
@@ -555,7 +555,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 <script src="/assets/arc-core-v2.js?v=10.0.3"></script>
 <script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
-<script src="/assets/arc-uniswap-v4.js?v=1.3.3"></script>
+<script src="/assets/arc-uniswap-v4.js?v=1.3.4"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -666,10 +666,62 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     try {
       const saved = JSON.parse(localStorage.getItem(CUSTOM_LS_KEY) || '{}');
       if (!saved[chainKey]) saved[chainKey] = [];
-      if (!saved[chainKey].find(t => t.address.toLowerCase() === tok.address.toLowerCase()))
+      const existing = saved[chainKey].find(t => t.address.toLowerCase() === tok.address.toLowerCase());
+      if (existing) {
+        // Merge new fields (e.g. icon fetched from DexScreener after import)
+        Object.assign(existing, tok);
+      } else {
         saved[chainKey].push(tok);
+      }
       localStorage.setItem(CUSTOM_LS_KEY, JSON.stringify(saved));
     } catch {}
+  }
+
+  // ── DEXSCREENER TOKEN METADATA ────────────────────────
+  // Fetches logo + USD price from DexScreener for an Arc token address. Free,
+  // no key. We only use this on Arc mainnet where DexScreener has coverage
+  // (chainId "arc"). Cached in localStorage for 24h so we don't refetch on
+  // every picker render.
+  const DEXS_LS_KEY = 'arcswap:dexsTokenInfo';
+  const DEXS_TTL_MS = 24 * 60 * 60 * 1000;
+  function _loadDexsCache(chainKey, addr) {
+    try {
+      const all = JSON.parse(localStorage.getItem(DEXS_LS_KEY) || '{}');
+      const rec = all[`${chainKey}:${addr.toLowerCase()}`];
+      if (!rec || Date.now() - rec.ts > DEXS_TTL_MS) return null;
+      return rec.info;
+    } catch { return null; }
+  }
+  function _saveDexsCache(chainKey, addr, info) {
+    try {
+      const all = JSON.parse(localStorage.getItem(DEXS_LS_KEY) || '{}');
+      all[`${chainKey}:${addr.toLowerCase()}`] = { ts: Date.now(), info };
+      localStorage.setItem(DEXS_LS_KEY, JSON.stringify(all));
+    } catch {}
+  }
+  async function fetchDexScreenerInfo(chainKey, addr) {
+    // Only Arc mainnet is supported by DexScreener under chainId "arc". For
+    // other chains we return null and the caller keeps the letter avatar.
+    if (chainKey !== 'arc' || !ARC.isMainnet || !ARC.isMainnet()) return null;
+    const cached = _loadDexsCache(chainKey, addr);
+    if (cached) return cached;
+    try {
+      const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`);
+      if (!r.ok) return null;
+      const j = await r.json();
+      const pairs = (j?.pairs || []).filter(p => p.chainId === 'arc');
+      if (!pairs.length) return null;
+      // Pick the highest-liquidity pair for the most representative price.
+      pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+      const top = pairs[0];
+      const info = {
+        icon: top.info?.imageUrl || null,
+        priceUsd: top.priceUsd ? Number(top.priceUsd) : null,
+        liquidityUsd: top.liquidity?.usd || null,
+      };
+      _saveDexsCache(chainKey, addr, info);
+      return info;
+    } catch { return null; }
   }
   function mergeCustomTokens() {
     for (const chainKey of ALL_CHAINS) {
@@ -1071,7 +1123,21 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       if (t.icon) {
         const img = new Image(); img.src = t.icon; img.onerror = () => { ico.textContent = t.symbol[0]; };
         ico.appendChild(img);
-      } else ico.textContent = t.symbol[0];
+      } else {
+        ico.textContent = t.symbol[0];
+        // Custom Arc token with no icon → fetch from DexScreener, cache on
+        // the token object + localStorage, re-render pill on success.
+        if (t.custom && t.address) {
+          const chainKey = side === 'from' ? state.src.chainKey : state.dst.chainKey;
+          fetchDexScreenerInfo(chainKey, t.address).then(dx => {
+            if (!dx?.icon) return;
+            t.icon = dx.icon;
+            if (dx.priceUsd != null) t.priceUsd = dx.priceUsd;
+            saveCustomToken(chainKey, t);
+            renderPickBtn(side);
+          }).catch(() => { /* silent */ });
+        }
+      }
     }
   }
   renderPickBtn('from'); renderPickBtn('to');
@@ -1104,6 +1170,14 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
               const c = new Contract(addr, ABIS.erc20, rpcProvider(chainKey));
               const [sym, name, dec] = await Promise.all([c.symbol(), c.name(), c.decimals()]);
               const tok = { symbol: sym, name, address: addr, decimals: Number(dec), custom: true };
+              // Try to enrich with logo + USD price from DexScreener (Arc only).
+              // Non-blocking on failure — if DexScreener doesn't know the token,
+              // we still let the user import with a letter avatar.
+              try {
+                const dx = await fetchDexScreenerInfo(chainKey, addr);
+                if (dx?.icon) tok.icon = dx.icon;
+                if (dx?.priceUsd != null) tok.priceUsd = dx.priceUsd;
+              } catch { /* ignore */ }
               const already = tokens.find(t => t.address.toLowerCase() === addr.toLowerCase());
               list.innerHTML = `<div class="import-card">
                 <div class="import-warn">⚠ Unverified token - trade at your own risk</div>
@@ -1141,6 +1215,18 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
               <div class="token-meta"><div class="token-sym">${t.symbol}${t.custom ? '<span class="token-badge unverified">unverified</span>' : ''}</div><div class="token-name">${t.name}</div></div>
               <div class="token-bal" data-bal="${t.address}">-</div>
             </div>`).join('');
+          // Back-fill logos for previously imported custom tokens that don't
+          // have one yet. Fire in parallel; DOM-swap on success.
+          filtered.forEach(async (t) => {
+            if (t.icon || !t.custom) return;
+            const dx = await fetchDexScreenerInfo(chainKey, t.address).catch(() => null);
+            if (!dx?.icon) return;
+            t.icon = dx.icon;
+            if (dx.priceUsd != null) t.priceUsd = dx.priceUsd;
+            saveCustomToken(chainKey, t);
+            const row = list.querySelector(`.token-row[data-addr="${t.address}"] .token-ico`);
+            if (row) row.innerHTML = `<img src="${t.icon}" data-imgfallback="text" data-fb-text="${t.symbol[0]}"/>`;
+          });
           list.querySelectorAll('.token-row').forEach(r => r.onclick = () => {
             const tok = filtered.find(x => x.address === r.dataset.addr);
             state[side + 'Token'] = tok;
@@ -1203,8 +1289,13 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         fLabel = 'Wallet';
       }
       const tb = await tokenBalance(state.dst.chainKey, state.toToken, addr);
+      // Remember the "from" wallet/gateway balance so refreshExec() can flag
+      // "Not enough <symbol>" before the user tries to swap something they
+      // don't hold (matches Uniswap's button state).
+      state.fromBalance = fb;
       fromBal.innerHTML = `${fLabel}: <b id="from-bal-b">${formatAmt(fb, state.fromToken.decimals, 4)}</b> ${state.fromToken.symbol}`;
       toBal.innerHTML = `Balance: <b>${formatAmt(tb, state.toToken.decimals, 4)}</b> ${state.toToken.symbol}`;
+      refreshExec();
       const setMaxAmount = () => {
         let avail = fb;
         // USDC is Arc's native gas token — maxing out the entire wallet balance
@@ -1679,6 +1770,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   function estimateUSD(amount, token) {
     // Stablecoin assumption for USDC/EURC; ETH rough $2400 on Sepolia (display only)
     const s = parseFloat(formatAmt(amount, token.decimals));
+    // Custom Arc tokens: use DexScreener-cached USD price when available
+    // (attached in fetchDexScreenerInfo / import flow).
+    if (typeof token.priceUsd === 'number') return (s * token.priceUsd).toFixed(2);
     if (token.symbol === 'USDC') return s.toFixed(2);
     if (token.symbol === 'EURC') return (s * 1.08).toFixed(2);
     if (token.symbol === 'ETH') return (s * 2400).toFixed(2);
@@ -2017,6 +2111,17 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     if (!addr) { btn.disabled = false; btn.textContent = 'Connect wallet'; btn.onclick = () => wallet.connect().catch(e => ArcUI.toast('error','Connect failed',explainError(e))); return; }
     if (state.recipient && !isAddress(state.recipient)) { btn.disabled = true; btn.textContent = 'Invalid recipient'; return; }
     if (!state.amountIn || parseAmt(state.amountIn, state.fromToken.decimals) === 0n) { btn.disabled = true; btn.textContent = 'Enter amount'; return; }
+    // Balance check — if user is trying to sell more than they own, say so
+    // (matches Uniswap "Not enough <SYMBOL>"). state.fromBalance is populated
+    // by updateBalances(); undefined = balance not fetched yet, don't block.
+    if (typeof state.fromBalance === 'bigint') {
+      const amtWant = parseAmt(state.amountIn, state.fromToken.decimals);
+      if (amtWant > state.fromBalance) {
+        btn.disabled = true;
+        btn.textContent = `Not enough ${state.fromToken.symbol}`;
+        return;
+      }
+    }
     if (!state.quote || !state.quote.steps) { btn.disabled = true; btn.textContent = state.holdOnly ? 'cirBTC — hold only' : 'No route'; return; }
 
     // Wallet must be on the chain of the FIRST step (gateway-spend / cctp-bridge / swap)

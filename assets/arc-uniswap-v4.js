@@ -277,13 +277,43 @@
     return pools;
   }
 
+  // Cross-session pool cache in localStorage: pool set for a pair changes
+  // rarely, so a 30-min TTL saves 15+ RPC calls on every reload. Value:
+  // { ts: epochMs, pools: [{poolId, poolKey, sqrtPriceX96}] }
+  const _LS_TTL_MS = 30 * 60 * 1000;
+  function _lsKey(c0, c1) { return `arc-univ4:pools:${c0.toLowerCase()}_${c1.toLowerCase()}`; }
+  function _loadLsPools(c0, c1) {
+    try {
+      const raw = localStorage.getItem(_lsKey(c0, c1));
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (!obj || typeof obj.ts !== 'number' || !Array.isArray(obj.pools)) return null;
+      if (Date.now() - obj.ts > _LS_TTL_MS) return null;
+      return obj.pools;
+    } catch { return null; }
+  }
+  function _saveLsPools(c0, c1, pools) {
+    try {
+      localStorage.setItem(_lsKey(c0, c1), JSON.stringify({ ts: Date.now(), pools }));
+    } catch { /* private mode / quota; ignore */ }
+  }
+
   async function discoverPools(tokenA, tokenB, opts = {}) {
     const [currency0, currency1] = sortTokens(tokenA, tokenB);
     const cacheKey = `${currency0.toLowerCase()}_${currency1.toLowerCase()}`;
     if (!opts.force && _poolCache.has(cacheKey)) return _poolCache.get(cacheKey);
 
-    // Fast probe first — ~90 parallel getSlot0 calls, returns in <1s. Covers
-    // every no-hook pool at standard tiers.
+    // localStorage first — instant if we've seen this pair recently.
+    if (!opts.force) {
+      const ls = _loadLsPools(currency0, currency1);
+      if (ls && ls.length) {
+        _poolCache.set(cacheKey, ls);
+        return ls;
+      }
+    }
+
+    // Fast probe first — ~15 combos in ONE JSON-RPC batch, returns in <1s.
+    // Covers every no-hook pool at standard tiers.
     const fastOut = await fastProbeNoHookPools(currency0, currency1).catch(e => {
       console.warn('[arc-univ4] fast probe failed:', e?.message); return [];
     });
@@ -292,13 +322,16 @@
     // to render in <1s instead of waiting the extra 5-10s for log scan.
     if (fastOut.length > 0) {
       _poolCache.set(cacheKey, fastOut);
+      _saveLsPools(currency0, currency1, fastOut);
       // Fire-and-forget log scan to augment cache for a possible second call.
       scanInitLogs(currency0, currency1, opts).then(logOut => {
         const byId = new Map();
         for (const p of [...fastOut, ...logOut]) {
           if (!byId.has(p.poolId)) byId.set(p.poolId, p);
         }
-        _poolCache.set(cacheKey, [...byId.values()]);
+        const merged = [...byId.values()];
+        _poolCache.set(cacheKey, merged);
+        _saveLsPools(currency0, currency1, merged);
       }).catch(() => { /* silent; fast-probe pools already served */ });
       return fastOut;
     }
@@ -308,6 +341,7 @@
       console.warn('[arc-univ4] log scan failed:', e?.message); return [];
     });
     _poolCache.set(cacheKey, logOut);
+    if (logOut.length) _saveLsPools(currency0, currency1, logOut);
     return logOut;
   }
 
