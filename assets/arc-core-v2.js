@@ -516,21 +516,27 @@
     },
     base: {
       USDC: { symbol:'USDC', name:'USD Coin (Base)', address:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      ETH:  { symbol:'ETH',  name:'Base ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     avalanche: {
       USDC: { symbol:'USDC', name:'USD Coin (Avalanche)', address:'0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      AVAX: { symbol:'AVAX', name:'Avalanche AVAX', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/avalanche-avax-logo.png' },
     },
     arbitrum: {
       USDC: { symbol:'USDC', name:'USD Coin (Arbitrum)', address:'0xaf88d065e77c8cC2239327C5EDb3A432268e5831', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      ETH:  { symbol:'ETH',  name:'Arbitrum ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     optimism: {
       USDC: { symbol:'USDC', name:'USD Coin (OP)', address:'0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      ETH:  { symbol:'ETH',  name:'OP ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     polygon: {
       USDC: { symbol:'USDC', name:'USD Coin (Polygon)', address:'0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      POL:  { symbol:'POL',  name:'Polygon POL', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/polygon-matic-logo.png' },
     },
     unichain: {
       USDC: { symbol:'USDC', name:'USD Coin (Unichain)', address:'0x078D782b760474a361dDA0AF3839290b0EF57AD6', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      ETH:  { symbol:'ETH',  name:'Unichain ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
   };
 
