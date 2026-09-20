@@ -556,6 +556,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 <script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
 <script src="/assets/arc-uniswap-v4.js?v=1.3.6"></script>
+<script src="/assets/arc-uniswap-v3.js?v=1.0.0"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -1642,6 +1643,8 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     const seq = ++quoteSeq;
     state.holdOnly = false;
     state.holdOnlyLabel = null;
+    state._uniV3 = null;
+    state._uniV4 = null;
     let steps;
     try {
       steps = planRoute();
@@ -2047,22 +2050,43 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       const dOut = tOut.decimals - (tOut.cctpDecimals ?? tOut.decimals);
       const poolIn = dIn > 0 ? amtIn / (10n ** BigInt(dIn)) : amtIn;
       // Pre-flight: many memes on Arc (TOLLY, MALA, …) trade primarily on
-      // Uniswap v3, but a stray v4 pool with garbage state may exist and
-      // return a phantom Quoter number. Ask DexScreener first — if the
-      // pair only has meaningful v3 liquidity, refuse the quote up front
-      // instead of walking into a broken swap.
+      // Uniswap v3, others (AKARII) only on v4. Ask DexScreener which venue
+      // has the depth, then route accordingly.
+      let venue = 'v4';
       try {
         const liq = await arcPairLiquidity(tIn.address, tOut.address);
-        if (liq && liq.v3Usd > 1000 && liq.v4Usd < 1000) {
-          const err = new Error(`${tIn.symbol}/${tOut.symbol} only trades on Uniswap v3 on Arc ($${Math.round(liq.v3Usd).toLocaleString()} liq). Oneliq's v4 router can't reach it yet — v3 routing is on the roadmap. Try AKARII, ARGUS or another token with v4 liquidity.`);
-          err.holdOnly = true; // reuse the hold-only branch so button shows the message
-          err.holdOnlyLabel = 'Uniswap v3 only — not supported yet';
-          throw err;
-        }
-      } catch (e) {
-        if (e && e.holdOnly) throw e; // preflight verdict — rethrow
-        /* DexScreener down or CORS — fall through and try v4 anyway */
+        if (liq && liq.v3Usd > liq.v4Usd && liq.v3Usd > 1000) venue = 'v3';
+      } catch { /* DexScreener down — default to v4 attempt */ }
+
+      // ── V3 path (memes: TOLLY, MALA, most launchpad tokens) ────────────
+      if (venue === 'v3' && ARC.uniV3) {
+        const poolInfo = await ARC.uniV3.discoverV3Pool(tIn.address, tOut.address);
+        if (!poolInfo) throw new Error(`No Uniswap v3 pool for ${tIn.symbol}/${tOut.symbol} on Arc`);
+        const q = await ARC.uniV3.quoteV3(poolInfo, poolIn, tIn.address);
+        if (!q || q.amountOut === 0n) throw new Error(`v3 pool has no depth for that amount`);
+        const poolOut = BigInt(q.amountOut);
+        const out  = dOut > 0 ? poolOut * (10n ** BigInt(dOut)) : poolOut;
+        const slip = BigInt(state.slippageBps);
+        const minOut = out - (out * slip) / 10000n;
+        const inFloat  = Number(amtIn) / (10 ** tIn.decimals);
+        const outFloat = Number(out)   / (10 ** tOut.decimals);
+        const rateNum  = inFloat > 0 ? outFloat / inFloat : 0;
+        const feeLabel = `Uniswap v3 · ${(poolInfo.fee / 10000).toFixed(4)}%`;
+        state._uniV3 = { poolInfo };
+        state._uniV4 = null;
+        return {
+          amountOut: out,
+          minOut,
+          path: [tIn.address, tOut.address],
+          provider: 'univ3',
+          rate: `1 ${tIn.symbol} ≈ ${rateNum.toFixed(6)} ${tOut.symbol}`,
+          impact: null, impactWarn: false, impactBad: false,
+          feeLabel,
+          time: '~3 s',
+        };
       }
+
+      // ── V4 path (default) ──────────────────────────────────────────────
       const best = await ARC.uniV4.bestQuote(tIn.address, tOut.address, poolIn);
       if (!best) throw new Error(`No Uniswap v4 pool for ${tIn.symbol}/${tOut.symbol} on Arc Mainnet`);
       const poolOut = BigInt(best.amountOut);
@@ -2414,14 +2438,19 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           const balBefore = await tokenBalance('arc', tOutTok, wallet.address).catch(() => 0n);
           const inputStr = formatAmt(runAmt, tInTok.decimals);
           modal.set(stepId, 'active', `Swap ${step.tIn} → ${step.tOut}…`);
-          // ── Mainnet: OneliqRouter → Uniswap v4 ──────────────────────────
+          // ── Mainnet: OneliqRouter → Uniswap v3 or v4 ────────────────────
+          // Which venue was chosen depends on where the pair has depth —
+          // quoteSwap set state._uniV3 (memes) or state._uniV4 (default).
           if (ARC.isMainnet && ARC.isMainnet()) {
             try {
               // Scale runAmt from display units (18-decimal for Arc USDC)
               // down to the ERC-20 wrapper units the pool actually sees.
               const dIn = tInTok.decimals - (tInTok.cctpDecimals ?? tInTok.decimals);
               const poolAmountIn = dIn > 0 ? runAmt / (10n ** BigInt(dIn)) : runAmt;
-              const result = await ARC.uniV4.executeSwap(wallet.signer, {
+              const useV3 = !!state._uniV3;
+              const venueLabel = useV3 ? 'Uniswap v3' : 'Uniswap v4';
+              const exec = useV3 ? ARC.uniV3.executeV3Swap : ARC.uniV4.executeSwap;
+              const result = await exec(wallet.signer, {
                 tokenIn: tInTok.address,
                 tokenOut: tOutTok.address,
                 amountIn: poolAmountIn,
@@ -2429,7 +2458,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
               }, (msg) => modal.set(stepId, 'active', msg));
               lastTxHash = result.hash; lastTxChain = 'arc';
               modal.set(stepId, 'done', `<a href="${CHAINS.arc.explorerTx(result.hash)}" target="_blank" rel="noopener" style="color:var(--arc2)">${shortAddr(result.hash)} ↗</a>`);
-              pushActivity({ kind: 'swap', chain: 'arc', hash: result.hash, status: 'done', text: `${inputStr} ${step.tIn} → ${step.tOut} (Uniswap v4)` });
+              pushActivity({ kind: 'swap', chain: 'arc', hash: result.hash, status: 'done', text: `${inputStr} ${step.tIn} → ${step.tOut} (${venueLabel})` });
               const balAfter = await tokenBalance('arc', tOutTok, wallet.address).catch(() => balBefore);
               runAmt = balAfter > balBefore ? (balAfter - balBefore) : runAmt;
               runChain = 'arc'; runTokSym = step.tOut;
