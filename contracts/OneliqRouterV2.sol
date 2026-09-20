@@ -2,13 +2,17 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title  OneliqRouterV2 (v4 + v3 wrapper) — Arc Mainnet
- * @notice Same security model as OneliqRouter, plus a dedicated `swapV3`
- *         method that wraps SwapRouter02 (Uniswap v3) because Arc's
- *         Universal Router v3 handler is broken (SliceOutOfBounds on every
- *         V3_SWAP_EXACT_IN input shape). This lets Oneliq collect the
- *         0.30% fee on v3 memes (TOLLY, MALA, …) the same way it does on
- *         v4 pairs (USDC/EURC/AKARII).
+ * @title  OneliqRouter (v4 + v3 wrapper) — Arc Mainnet
+ * @notice Successor to the v4-only OneliqRouter at 0xB1Ed79…78F0. Adds a
+ *         dedicated `swapV3()` method that wraps SwapRouter02 (Uniswap v3)
+ *         because Arc's Universal Router v3 handler is broken
+ *         (SliceOutOfBounds on every V3_SWAP_EXACT_IN input shape). This
+ *         lets Oneliq collect the 0.30% fee on v3 memes (TOLLY, MALA, …)
+ *         the same way it does on v4 pairs (USDC/EURC/AKARII).
+ *
+ *         File is `OneliqRouterV2.sol` to keep git history clean, but the
+ *         contract class name is `OneliqRouter` so Arcscan shows the same
+ *         brand as the v1 deployment.
  *
  * Layout mirrors OneliqRouter:
  *   swap()   → Uniswap v4 via Universal Router (unchanged from v1)
@@ -49,7 +53,7 @@ interface ISwapRouter02 {
         external payable returns (uint256 amountOut);
 }
 
-contract OneliqRouterV2 {
+contract OneliqRouter {
     // ── Immutable config ───────────────────────────────────────────────────
     address public immutable UNIVERSAL_ROUTER; // Uniswap v4 Universal Router
     address public immutable PERMIT2;          // Uniswap Permit2 (canonical)
