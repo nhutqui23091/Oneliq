@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="oneliq-discord-client-id" content="1514587016157859900"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
+<link rel="apple-touch-icon" href="/assets/logos/mark-oneliq.png"/>
+<meta name="description" content="Explore Arc tokens: live prices, 1H/1D changes, FDV, and 24h volume across every pool Oneliq routes through."/>
+<title>Explore | Oneliq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=10.0.0"/>
+<style>
+/* ============================================================
+   EXPLORE — token discovery for Arc mainnet.
+   Live data from DexScreener (free public API) — top-of-page
+   stat tiles for 1D volume + Total Oneliq TVL, then a sortable
+   token table with price, 1H/1D change, FDV, volume.
+   Tokens: chỉ Arc (per user's spec).
+============================================================ */
+.ex-wrap{position:relative;z-index:2;max-width:1240px;margin:0 auto;padding:48px 36px 80px}
+
+/* HERO stats */
+.ex-hero{padding:32px 34px;border-radius:24px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);margin-bottom:24px;position:relative;overflow:hidden}
+.ex-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 10%,rgba(77,214,219,.45) 50%,transparent 90%)}
+.ex-hero::after{content:'';position:absolute;right:-160px;top:-160px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(77,214,219,.10) 0%,transparent 60%);pointer-events:none}
+.ex-eyebrow{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--arc1);margin-bottom:16px;display:inline-block}
+.ex-stat-row{display:flex;flex-wrap:wrap;gap:56px}
+.ex-stat{min-width:180px}
+.ex-stat-lbl{font-size:13px;color:var(--muted);font-weight:500;margin-bottom:6px}
+.ex-stat-val{font-family:var(--display);font-size:clamp(30px,3.5vw,42px);font-weight:300;letter-spacing:-.025em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.ex-stat-sub{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* TAB row */
+.ex-tab-row{display:flex;align-items:center;gap:26px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.ex-tab{padding:14px 0;font-size:19px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;letter-spacing:-.015em;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);transition:color .15s,border-color .15s}
+.ex-tab:hover{color:var(--text)}
+.ex-tab.active{color:var(--text);border-bottom-color:var(--arc1)}
+
+/* Toolbar (chips + time filter + search) */
+.ex-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.ex-chips{display:flex;gap:8px;flex-wrap:wrap}
+.ex-chip{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;font-family:var(--font);transition:all .15s}
+.ex-chip:hover{color:var(--text);border-color:var(--border2)}
+.ex-chip.active{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.ex-chip-ico{font-size:14px;opacity:.85}
+.ex-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ex-search{padding:9px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:var(--font);width:220px;outline:none;transition:border-color .15s}
+.ex-search:focus{border-color:var(--arc1)}
+.ex-time-dd{position:relative}
+.ex-time-btn{padding:9px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;font-family:var(--font)}
+.ex-time-btn:hover{border-color:var(--border2)}
+.ex-time-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:160px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,.35);z-index:200;display:none}
+.ex-time-menu.open{display:block}
+.ex-time-opt{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer;text-align:left;border-radius:8px}
+.ex-time-opt:hover{background:var(--surface2)}
+.ex-time-opt.checked{color:var(--arc1);font-weight:600}
+.ex-time-opt .chk{margin-left:auto;color:var(--arc1);opacity:0}
+.ex-time-opt.checked .chk{opacity:1}
+
+/* TABLE */
+.ex-table-wrap{border-radius:16px;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.ex-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.ex-table thead th{text-align:right;font-size:12px;color:var(--muted);font-weight:500;padding:14px 18px;border-bottom:1px solid var(--border);text-transform:none;letter-spacing:0;background:transparent;position:sticky;top:0;z-index:2;font-family:var(--font)}
+.ex-table thead th:first-child,.ex-table thead th:nth-child(2){text-align:left}
+.ex-table thead th.sortable{cursor:pointer;user-select:none}
+.ex-table thead th.sortable:hover{color:var(--text)}
+.ex-table thead th .sort-ind{display:inline-block;margin-left:4px;opacity:.55;font-size:10px}
+.ex-table tbody tr{transition:background .12s;cursor:pointer}
+.ex-table tbody tr:hover{background:rgba(var(--tint),.04)}
+.ex-table tbody td{padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;color:var(--text);text-align:right;white-space:nowrap}
+.ex-table tbody tr:last-child td{border-bottom:none}
+.ex-table tbody td:first-child{color:var(--muted);font-size:13px;text-align:left;width:52px}
+.ex-table tbody td:nth-child(2){text-align:left}
+
+.ex-tok{display:flex;align-items:center;gap:12px;min-width:0}
+.ex-tok-ico{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted)}
+.ex-tok-ico img{width:100%;height:100%;object-fit:cover;display:block}
+.ex-tok-meta{min-width:0}
+.ex-tok-name{font-weight:600;color:var(--text);font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.ex-tok-sym{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:500;margin-top:2px}
+
+/* % changes */
+.ex-pct{display:inline-flex;align-items:center;gap:3px}
+.ex-pct.pos{color:#00E5A0}
+.ex-pct.neg{color:#ff6b7e}
+.ex-pct.zero{color:var(--muted)}
+.ex-pct-arrow{font-size:9px;line-height:1}
+
+/* Sparkline placeholder — DexScreener free API doesn't return a price
+   series, so we render a simple 24h up/down trend line (color-only). */
+.ex-spark{display:inline-block;width:70px;height:24px;vertical-align:middle}
+
+/* Loading + empty states */
+.ex-skel-row td{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.02),rgba(255,255,255,.05),rgba(255,255,255,.02));background-size:200% 100%;animation:exShim 1.6s infinite}
+@keyframes exShim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.ex-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px}
+.ex-empty-t{font-size:15px;color:var(--text);font-weight:600;margin-bottom:6px}
+.ex-empty-s{font-size:13px;color:var(--muted)}
+
+/* Footer note */
+.ex-note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.6}
+.ex-note a{color:var(--arc1);text-decoration:none}
+.ex-note a:hover{text-decoration:underline}
+
+@media (max-width:768px){
+  .ex-wrap{padding:26px 16px 60px}
+  .ex-hero{padding:22px 20px}
+  .ex-stat-row{gap:28px}
+  .ex-table thead th:nth-child(4), .ex-table tbody td:nth-child(4){display:none}
+  .ex-table thead th:nth-child(6), .ex-table tbody td:nth-child(6){display:none}
+  .ex-tools .ex-search{width:150px}
+}
+</style>
+</head>
+<body>
+
+<main>
+  <div class="ex-wrap">
+    <div class="ex-hero">
+      <span class="ex-eyebrow">Explore</span>
+      <div class="ex-stat-row">
+        <div class="ex-stat">
+          <div class="ex-stat-lbl">1D volume</div>
+          <div class="ex-stat-val" id="ex-vol">—</div>
+          <div class="ex-stat-sub">Across every Arc pool DexScreener indexes</div>
+        </div>
+        <div class="ex-stat">
+          <div class="ex-stat-lbl">Total Oneliq TVL</div>
+          <div class="ex-stat-val" id="ex-tvl">—</div>
+          <div class="ex-stat-sub">Aggregate USD liquidity, Arc mainnet</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex-tab-row">
+      <button class="ex-tab active" type="button" data-tab="tokens">Tokens</button>
+      <button class="ex-tab" type="button" data-tab="pools" title="Coming soon" style="opacity:.55;cursor:not-allowed">Pools</button>
+      <button class="ex-tab" type="button" data-tab="txns" title="Coming soon" style="opacity:.55;cursor:not-allowed">Transactions</button>
+    </div>
+
+    <div class="ex-toolbar">
+      <div class="ex-chips" role="tablist" aria-label="Category">
+        <button class="ex-chip active" data-cat="popular" type="button"><span class="ex-chip-ico">◈</span>Popular</button>
+        <button class="ex-chip" data-cat="stables" type="button"><span class="ex-chip-ico">＄</span>Stables</button>
+        <button class="ex-chip" data-cat="memes" type="button"><span class="ex-chip-ico">🐸</span>Memes</button>
+      </div>
+      <div class="ex-tools">
+        <div class="ex-time-dd">
+          <button class="ex-time-btn" id="ex-time-btn" type="button" aria-haspopup="menu">
+            <span id="ex-time-lbl">1D volume</span>
+            <span style="opacity:.55">▾</span>
+          </button>
+          <div class="ex-time-menu" id="ex-time-menu" role="menu">
+            <button class="ex-time-opt checked" data-win="h1" type="button" role="menuitem">1H volume<span class="chk">✓</span></button>
+            <button class="ex-time-opt checked" data-win="h24" type="button" role="menuitem">1D volume<span class="chk">✓</span></button>
+          </div>
+        </div>
+        <input class="ex-search" id="ex-search" placeholder="Search token or paste address" autocomplete="off"/>
+      </div>
+    </div>
+
+    <div class="ex-table-wrap">
+      <table class="ex-table" id="ex-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Token</th>
+            <th class="sortable" data-sort="price">Price <span class="sort-ind"></span></th>
+            <th class="sortable" data-sort="h1">1H <span class="sort-ind"></span></th>
+            <th class="sortable" data-sort="h24">1D <span class="sort-ind"></span></th>
+            <th class="sortable" data-sort="fdv">FDV <span class="sort-ind"></span></th>
+            <th class="sortable" data-sort="vol">↓ Volume <span class="sort-ind"></span></th>
+          </tr>
+        </thead>
+        <tbody id="ex-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="ex-note">
+      Data by <a href="https://dexscreener.com/arc" target="_blank" rel="noopener noreferrer">DexScreener</a>. Prices update on refresh. Click a row to open in <a href="/trade">Trade</a>.
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"
+        integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+<script src="/assets/appkit.bundle.js?v=1.0.1"></script>
+<script src="/assets/arc-core-v2.js?v=10.0.8"></script>
+<script src="/assets/arc-ui.js?v=10.0.4"></script>
+<script>
+(async () => {
+  await ArcUI.bootApp('explore');
+
+  // ── State ───────────────────────────────────────────────────────────
+  const state = {
+    tokens: [],       // [{address, symbol, name, priceUsd, priceChange:{h1,h24}, fdv, vol24, vol1h, liquidity, icon, pairs:[…]}]
+    totalVol24: 0,    // sum of unique pair 24h volumes
+    totalTvl: 0,      // sum of unique pair liquidity
+    query: '',
+    category: 'popular',   // popular | stables | memes
+    timeWindow: 'h24',     // h1 | h24
+    sort: { key: 'vol', dir: 'desc' },
+  };
+
+  // ── Utilities ───────────────────────────────────────────────────────
+  const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const fmtUsd = (n, digits) => {
+    if (n == null || !isFinite(n)) return '—';
+    if (n === 0) return '$0';
+    const abs = Math.abs(n);
+    if (abs >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+    if (abs >= 1e9)  return '$' + (n / 1e9).toFixed(2)  + 'B';
+    if (abs >= 1e6)  return '$' + (n / 1e6).toFixed(2)  + 'M';
+    if (abs >= 1e3)  return '$' + (n / 1e3).toFixed(1)  + 'K';
+    if (abs >= 1)    return '$' + n.toFixed(digits ?? 2);
+    if (abs >= 0.01) return '$' + n.toFixed(4);
+    if (abs >= 0.0001) return '$' + n.toFixed(6);
+    return '$' + n.toExponential(2);
+  };
+  const fmtPct = (n) => {
+    if (n == null || !isFinite(n)) return '—';
+    const s = Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(2);
+    return s + '%';
+  };
+  const cls = (n) => n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero';
+  const arrow = (n) => n > 0 ? '▲' : n < 0 ? '▼' : '·';
+
+  // ── Seed addresses ──────────────────────────────────────────────────
+  // Anchor tokens that DexScreener's `search?q=arc` might miss because they
+  // sit inside pools where they're the quote asset (USDC on Arc is always the
+  // pool's quote token). Fetching them by address guarantees they appear.
+  const SEED_ADDRS = [
+    '0x3600000000000000000000000000000000000000', // USDC (Arc native gas)
+    '0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1', // EURC
+  ];
+
+  // ── DexScreener fetchers ────────────────────────────────────────────
+  const DXS_BASE = 'https://api.dexscreener.com/latest/dex';
+  async function _fetchJson(url) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }
+  async function fetchSearchArc() {
+    // The `search` endpoint ranks pairs by relevance; we hit it with a few
+    // seed queries so we cast a wider net than a single query would.
+    const queries = ['arc', 'meme arc', 'usdc arc'];
+    const all = new Map(); // pairAddr → pair
+    for (const q of queries) {
+      const j = await _fetchJson(`${DXS_BASE}/search/?q=${encodeURIComponent(q)}`);
+      for (const p of (j?.pairs || [])) {
+        if (p.chainId !== 'arc') continue;
+        const k = (p.pairAddress || '').toLowerCase();
+        if (!k || all.has(k)) continue;
+        all.set(k, p);
+      }
+    }
+    return [...all.values()];
+  }
+  async function fetchTokens(addrs) {
+    // /tokens/:addrs supports up to 30 comma-separated addresses. We only
+    // seed 2 today, so one call is enough — but we chunk defensively.
+    const out = [];
+    const CH = 30;
+    for (let i = 0; i < addrs.length; i += CH) {
+      const chunk = addrs.slice(i, i + CH).join(',');
+      const j = await _fetchJson(`${DXS_BASE}/tokens/${chunk}`);
+      for (const p of (j?.pairs || [])) {
+        if (p.chainId === 'arc') out.push(p);
+      }
+    }
+    return out;
+  }
+
+  // ── Pair aggregation ────────────────────────────────────────────────
+  // Turn a flat list of pairs into a per-token aggregate. Each pair
+  // contributes stats to BOTH sides (matches Uniswap Explore: USDC shows
+  // volume from every pool it touches, not just pools where it's base).
+  function aggregate(pairs) {
+    const byPair = new Map();
+    for (const p of pairs) {
+      const k = (p.pairAddress || '').toLowerCase();
+      if (k && !byPair.has(k)) byPair.set(k, p);
+    }
+    const uniqPairs = [...byPair.values()];
+
+    // Header totals (each pair counted once).
+    let totalVol24 = 0, totalTvl = 0;
+    for (const p of uniqPairs) {
+      totalVol24 += Number(p.volume?.h24) || 0;
+      totalTvl   += Number(p.liquidity?.usd) || 0;
+    }
+
+    const byTok = new Map();
+    const addSide = (t, p, isBase) => {
+      if (!t?.address) return;
+      const key = t.address.toLowerCase();
+      let rec = byTok.get(key);
+      if (!rec) {
+        rec = {
+          address: t.address,
+          symbol: t.symbol || '?',
+          name: t.name || t.symbol || 'Unknown',
+          priceUsd: 0,
+          priceChange: { h1: 0, h24: 0 },
+          fdv: 0,
+          vol24: 0,
+          vol1h: 0,
+          liquidity: 0,
+          icon: null,
+          _bestLiq: 0,   // pick most-liquid pair's price/FDV as the token-level number
+          pairs: [],
+        };
+        byTok.set(key, rec);
+      }
+      rec.pairs.push(p.pairAddress);
+      const liq = Number(p.liquidity?.usd) || 0;
+      rec.vol24 += Number(p.volume?.h24) || 0;
+      rec.vol1h += Number(p.volume?.h1)  || 0;
+      rec.liquidity += liq;
+      // Pull the token-level price/FDV from the deepest pool that quotes IT
+      // as the base — otherwise "USDC price" would flip to whatever meme pair
+      // ranks first.
+      if (isBase && liq > rec._bestLiq) {
+        rec._bestLiq = liq;
+        rec.priceUsd = Number(p.priceUsd) || 0;
+        rec.fdv = Number(p.fdv) || 0;
+        rec.priceChange = {
+          h1:  Number(p.priceChange?.h1  ?? 0),
+          h24: Number(p.priceChange?.h24 ?? 0),
+        };
+        if (p.info?.imageUrl) rec.icon = p.info.imageUrl;
+      }
+    };
+    for (const p of uniqPairs) {
+      addSide(p.baseToken, p, true);
+      addSide(p.quoteToken, p, false);
+    }
+
+    // Fill missing prices on quote-only tokens (USDC) from the best pool
+    // they're in — treating the pool's price as $1 for anchors.
+    for (const rec of byTok.values()) {
+      if (rec.priceUsd) continue;
+      if (rec.symbol === 'USDC' || rec.symbol === 'USDT' || rec.symbol === 'DAI') {
+        rec.priceUsd = 1;
+      }
+    }
+
+    return { tokens: [...byTok.values()], totalVol24, totalTvl };
+  }
+
+  // ── Categorisation ──────────────────────────────────────────────────
+  const STABLES = new Set(['USDC','USDT','EURC','DAI','USDS','FRAX','LUSD']);
+  function categoryOf(t) {
+    if (STABLES.has(t.symbol)) return 'stables';
+    return 'memes';
+  }
+
+  // ── Rendering ───────────────────────────────────────────────────────
+  function tokenRowHtml(t, i) {
+    const iconHtml = t.icon
+      ? `<img src="${escapeHtml(t.icon)}" alt="" data-imgfallback="text" data-fb-text="${escapeHtml(t.symbol[0] || '?')}"/>`
+      : escapeHtml((t.symbol[0] || '?').toUpperCase());
+    const volNum = state.timeWindow === 'h1' ? t.vol1h : t.vol24;
+    const ch1 = t.priceChange?.h1  ?? 0;
+    const ch24 = t.priceChange?.h24 ?? 0;
+    // A colour-only 2-point spark: DexScreener free doesn't hand us a real
+    // series, so we draw a straight line whose slope encodes the sign of the
+    // 24h change. Not a chart — a trend cue.
+    const spark = sparkSvg(ch24);
+    return `
+      <tr data-addr="${escapeHtml(t.address)}" data-sym="${escapeHtml(t.symbol)}">
+        <td>${i + 1}</td>
+        <td>
+          <div class="ex-tok">
+            <div class="ex-tok-ico">${iconHtml}</div>
+            <div class="ex-tok-meta">
+              <div class="ex-tok-name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</div>
+              <div class="ex-tok-sym">${escapeHtml(t.symbol)}</div>
+            </div>
+          </div>
+        </td>
+        <td>${fmtUsd(t.priceUsd)}</td>
+        <td><span class="ex-pct ${cls(ch1)}"><span class="ex-pct-arrow">${arrow(ch1)}</span>${fmtPct(Math.abs(ch1))}</span></td>
+        <td><span class="ex-pct ${cls(ch24)}"><span class="ex-pct-arrow">${arrow(ch24)}</span>${fmtPct(Math.abs(ch24))}</span></td>
+        <td>${t.fdv ? fmtUsd(t.fdv) : '—'}</td>
+        <td>${fmtUsd(volNum)}${spark ? ` <span class="ex-spark">${spark}</span>` : ''}</td>
+      </tr>`;
+  }
+  function sparkSvg(ch24) {
+    const w = 70, h = 24;
+    const up = ch24 > 0, flat = ch24 === 0;
+    const color = flat ? '#8b9dc3' : (up ? '#00E5A0' : '#ff6b7e');
+    const y1 = up ? h * 0.8 : (flat ? h * 0.5 : h * 0.25);
+    const y2 = up ? h * 0.2 : (flat ? h * 0.5 : h * 0.75);
+    return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><polyline points="2,${y1} ${w-2},${y2}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+  }
+
+  function sortTokens(arr) {
+    const key = state.sort.key;
+    const dir = state.sort.dir === 'asc' ? 1 : -1;
+    const cmp = (a, b) => {
+      let x, y;
+      if (key === 'price') { x = a.priceUsd || 0; y = b.priceUsd || 0; }
+      else if (key === 'h1')  { x = a.priceChange?.h1  || 0; y = b.priceChange?.h1  || 0; }
+      else if (key === 'h24') { x = a.priceChange?.h24 || 0; y = b.priceChange?.h24 || 0; }
+      else if (key === 'fdv') { x = a.fdv || 0; y = b.fdv || 0; }
+      else /* vol */          { x = state.timeWindow === 'h1' ? (a.vol1h||0) : (a.vol24||0);
+                                y = state.timeWindow === 'h1' ? (b.vol1h||0) : (b.vol24||0); }
+      return (x - y) * dir;
+    };
+    return arr.slice().sort(cmp);
+  }
+
+  function filterTokens(arr) {
+    const q = state.query.trim().toLowerCase();
+    let list = arr;
+    if (state.category === 'stables') list = list.filter(t => categoryOf(t) === 'stables');
+    else if (state.category === 'memes') list = list.filter(t => categoryOf(t) === 'memes');
+    if (q) {
+      list = list.filter(t =>
+        t.symbol.toLowerCase().includes(q) ||
+        t.name.toLowerCase().includes(q)   ||
+        t.address.toLowerCase() === q);
+    }
+    return list;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('ex-tbody');
+    const list = sortTokens(filterTokens(state.tokens));
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="ex-empty"><div class="ex-empty-t">No tokens found</div><div class="ex-empty-s">Try a different filter or search a token address.</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map((t, i) => tokenRowHtml(t, i)).join('');
+    // Row click → open Trade preselected with this token address
+    tbody.querySelectorAll('tr[data-addr]').forEach(row => {
+      row.onclick = () => {
+        const addr = row.dataset.addr;
+        location.href = `/trade?token=${encodeURIComponent(addr)}`;
+      };
+    });
+    // Sort-indicator glyphs
+    document.querySelectorAll('.ex-table thead th.sortable').forEach(th => {
+      const key = th.dataset.sort;
+      const ind = th.querySelector('.sort-ind');
+      if (!ind) return;
+      ind.textContent = (state.sort.key === key) ? (state.sort.dir === 'asc' ? '▲' : '▼') : '';
+    });
+  }
+
+  function renderHero() {
+    document.getElementById('ex-vol').textContent = fmtUsd(state.totalVol24, 2);
+    document.getElementById('ex-tvl').textContent = fmtUsd(state.totalTvl,   2);
+  }
+
+  // ── Wire up interactions ────────────────────────────────────────────
+  // Category chips
+  document.querySelectorAll('.ex-chip').forEach(chip => {
+    chip.onclick = () => {
+      document.querySelectorAll('.ex-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.category = chip.dataset.cat;
+      renderTable();
+    };
+  });
+
+  // Search
+  const searchEl = document.getElementById('ex-search');
+  searchEl.oninput = () => { state.query = searchEl.value; renderTable(); };
+
+  // Time window dropdown
+  const timeBtn = document.getElementById('ex-time-btn');
+  const timeMenu = document.getElementById('ex-time-menu');
+  const timeLbl = document.getElementById('ex-time-lbl');
+  timeBtn.onclick = (e) => {
+    e.stopPropagation();
+    timeMenu.classList.toggle('open');
+  };
+  document.addEventListener('click', (e) => {
+    if (!timeMenu.contains(e.target) && e.target !== timeBtn) timeMenu.classList.remove('open');
+  });
+  document.querySelectorAll('.ex-time-opt').forEach(opt => {
+    opt.onclick = () => {
+      state.timeWindow = opt.dataset.win;
+      timeLbl.textContent = opt.dataset.win === 'h1' ? '1H volume' : '1D volume';
+      document.querySelectorAll('.ex-time-opt').forEach(o => o.classList.toggle('checked', o === opt));
+      timeMenu.classList.remove('open');
+      renderTable();
+    };
+  });
+
+  // Sortable headers
+  document.querySelectorAll('.ex-table thead th.sortable').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.sort;
+      if (state.sort.key === key) {
+        state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sort.key = key;
+        state.sort.dir = 'desc';
+      }
+      renderTable();
+    };
+  });
+
+  // ── Data loading ────────────────────────────────────────────────────
+  function skelRows(n) {
+    const cells = Array(7).fill('<td>—</td>').join('');
+    return Array(n).fill(0).map(() => `<tr class="ex-skel-row">${cells}</tr>`).join('');
+  }
+  document.getElementById('ex-tbody').innerHTML = skelRows(10);
+
+  try {
+    // Only mainnet has DexScreener coverage for chainId "arc". Testnet users
+    // still see the page shell but with a friendly empty state.
+    if (ARC.isMainnet && ARC.isMainnet()) {
+      const [searched, seeded] = await Promise.all([
+        fetchSearchArc(),
+        fetchTokens(SEED_ADDRS),
+      ]);
+      const { tokens, totalVol24, totalTvl } = aggregate([...searched, ...seeded]);
+      state.tokens = tokens;
+      state.totalVol24 = totalVol24;
+      state.totalTvl = totalTvl;
+    } else {
+      state.tokens = [];
+    }
+  } catch (e) {
+    console.warn('[explore] load failed:', e?.message || e);
+  }
+  renderHero();
+  renderTable();
+
+  if (!state.tokens.length) {
+    document.getElementById('ex-tbody').innerHTML = `<tr><td colspan="7"><div class="ex-empty">
+      <div class="ex-empty-t">${ARC.isMainnet && ARC.isMainnet() ? 'No pools indexed yet' : 'Explore is mainnet-only'}</div>
+      <div class="ex-empty-s">${ARC.isMainnet && ARC.isMainnet() ? 'DexScreener returned no Arc pairs. Try again in a moment.' : 'Switch to Arc Mainnet from the header to see live tokens.'}</div>
+    </div></td></tr>`;
+  }
+})();
+</script>
+</body>
+</html>

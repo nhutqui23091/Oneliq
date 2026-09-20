@@ -57,6 +57,7 @@
   function navTabs(active) {
     return [
       { id: 'trade',     label: 'Trade',        href: '/trade'   },
+      { id: 'explore',   label: 'Explore',      href: '/explore' },
       { id: 'balance',   label: 'Balance',      href: '/balance' },
       { id: 'agent',     label: 'Oneliq AI',    href: '/agent'   },
       { id: 'history',   label: 'History',      href: '/history' },
@@ -522,6 +523,7 @@
       title: 'Products',
       items: [
         { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
+        { id: 'explore',   label: 'Explore',   icon: '◉', href: '/explore' },
         { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
         { id: 'agent',     label: 'Oneliq AI', icon: '✦', href: '/agent'   },
         // History lives inside the Dashboard now (Recent activity card, with a
