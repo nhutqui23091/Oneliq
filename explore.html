@@ -179,7 +179,7 @@
     </div>
 
     <div class="ex-note">
-      Data by <a href="https://dexscreener.com/arc" target="_blank" rel="noopener noreferrer">DexScreener</a>. Prices update on refresh. Click a row to open in <a href="/trade">Trade</a>.
+      Data by <a href="https://dexscreener.com/arc" target="_blank" rel="noopener noreferrer">DexScreener</a>. Prices update on refresh. Click a row to open its detail page.
     </div>
   </div>
 </main>
@@ -466,7 +466,7 @@
           return;
         }
         const url = `/coin/${addr}`;
-        console.debug('[explore] navigating to', url);
+        console.log('[explore] navigating to', url);
         location.href = url;
       };
     });
