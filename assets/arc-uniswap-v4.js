@@ -615,6 +615,73 @@
    * @param onStep   optional (msg) => void progress callback
    * @returns tx receipt + amountOut
    */
+  // Revert-selector table used to decode staticCall failures.
+  const KNOWN_ERRORS = {
+    '0xd93c0665': 'OneliqRouter.IsPaused()',
+    '0x2c5211c6': 'OneliqRouter.InsufficientOutput()',
+    '0x7c9c6e8f': 'OneliqRouter.DeadlinePassed()',
+    '0x8b063d73': 'V4Router.V4TooMuchRequested()',
+    '0x39d35496': 'V4Router.V4TooLittle()',
+    '0x815e1d64': 'Permit2.AllowanceExpired()',
+    '0xf96fb071': 'Permit2.InsufficientAllowance()',
+  };
+
+  function _extractSelector(err) {
+    const raw = err?.data
+             || err?.info?.error?.data
+             || err?.error?.data
+             || err?.info?.error?.body
+             || '';
+    const rawStr = typeof raw === 'string' ? raw : (raw?.data || raw?.originalError?.data || '');
+    return rawStr && rawStr.length >= 10 && rawStr.startsWith('0x') ? rawStr.slice(0, 10) : '';
+  }
+
+  // Try to swap through one specific pool. Returns { ok, tx?, receipt?,
+  // simError? } — never throws so the caller can iterate over candidates.
+  async function _trySimulateAndSwap(signer, routerRead, router, candidate, tokenIn, tokenOut, amountIn, slippageBps, owner, arcProvider, onStep) {
+    const { poolKey, zeroForOne: zfo, amountOut: quotedOut } = candidate;
+    const minOut = (quotedOut * BigInt(10_000 - slippageBps)) / 10_000n;
+    const { commands, inputs } = buildSwapCalldata(poolKey, tokenIn, tokenOut, amountIn, zfo);
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 min
+
+    // Simulate first so we can catch hook-gated pools before touching the wallet.
+    let simErr = null;
+    try {
+      await routerRead.swap.staticCall(
+        tokenIn, BigInt(amountIn), tokenOut, minOut, deadline, commands, inputs,
+        { from: owner },
+      );
+    } catch (e) { simErr = e; }
+
+    if (simErr) {
+      const shortSel = _extractSelector(simErr);
+      const decoded = KNOWN_ERRORS[shortSel]
+        || (shortSel ? `revert selector ${shortSel}` : (simErr?.shortMessage || simErr?.reason || simErr?.message || 'unknown'));
+      // Direct-call the Universal Router with the same calldata to see if
+      // this is a Permit2/OneliqRouter issue vs a hook rejection.
+      let directOk = false, directSel = '';
+      try {
+        const uni = new Contract(V4.universalRouter, ['function execute(bytes,bytes[],uint256) payable'], arcProvider);
+        await uni.execute.staticCall(commands, inputs, deadline, { from: owner });
+        directOk = true;
+      } catch (dErr) { directSel = _extractSelector(dErr); }
+      console.warn('[arc-univ4] candidate simulation failed', {
+        pool: { fee: poolKey.fee, ts: poolKey.tickSpacing, hooks: poolKey.hooks },
+        oneliqSelector: shortSel, oneliqDecoded: decoded,
+        directOk, directSelector: directSel,
+      });
+      return { ok: false, simErr, decoded, shortSel, directOk, directSel, poolKey };
+    }
+
+    onStep?.('Submitting swap...');
+    const tx = await router.swap(
+      tokenIn, BigInt(amountIn), tokenOut, minOut, deadline, commands, inputs,
+    );
+    onStep?.(`Confirming ${tx.hash.slice(0, 12)}…`);
+    const receipt = await tx.wait();
+    return { ok: true, tx, receipt, quotedOut, minOut, poolKey };
+  }
+
   async function executeSwap(signer, opts, onStep) {
     const { tokenIn, tokenOut, amountIn, slippageBps = 50 } = opts;
     if (!signer) throw new Error('No signer connected');
@@ -625,9 +692,7 @@
     onStep?.('Discovering pool...');
     const best = await bestQuote(tokenIn, tokenOut, amountIn);
     if (!best) throw new Error(`No liquid Uniswap v4 pool for ${tokenIn} / ${tokenOut}`);
-    const { amountOut: quotedOut, poolKey, zeroForOne: zfo } = best;
-
-    const minOut = (quotedOut * BigInt(10_000 - slippageBps)) / 10_000n;
+    const candidates = best._candidates && best._candidates.length ? best._candidates : [best];
 
     onStep?.('Checking allowance...');
     const erc20 = new Contract(tokenIn, ERC20_MIN_ABI, signer);
@@ -639,149 +704,47 @@
       await atx.wait();
     }
 
-    onStep?.('Building v4 calldata...');
-    const { commands, inputs } = buildSwapCalldata(poolKey, tokenIn, tokenOut, amountIn, zfo);
-
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 600); // 10 min
-
-    // Log calldata so the user can inspect / share (helpful when "missing
-    // revert data" happens because the RPC drops the revert bytes).
-    console.groupCollapsed('[arc-univ4] swap calldata');
-    console.log('router:',      routerAddr);
-    console.log('tokenIn:',     tokenIn, '  tokenOut:', tokenOut);
-    console.log('amountIn:',    amountIn.toString(), '  minOut:', minOut.toString());
-    console.log('deadline:',    deadline.toString());
-    console.log('poolKey:',     poolKey);
-    console.log('zeroForOne:',  zfo);
-    console.log('commands:',    commands);
-    console.log('inputs[0]:',   inputs[0]);
-    console.groupEnd();
-
-    const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
-
-    // Simulate first so any revert surfaces a decoded reason instead of a
-    // bare "execution reverted" from the wallet popup. Use OUR provider
-    // (not the signer's) so MetaMask RPCs that strip revert data don't
-    // give a blank "missing revert data" error. eth_call with explicit
-    // `from = owner` lets Permit2/allowance checks pass.
-    onStep?.('Simulating…');
-    let simErr = null;
     const arcProvider = ARC.rpcProvider('arc');
     const routerRead = new Contract(routerAddr, ONELIQ_ROUTER_ABI, arcProvider);
-    try {
-      await routerRead.swap.staticCall(
-        tokenIn,
-        BigInt(amountIn),
-        tokenOut,
-        minOut,
-        deadline,
-        commands,
-        inputs,
-        { from: owner }
+    const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
+
+    // Try each candidate pool in order (no-hook first, then by amountOut).
+    // If the top one is hook-gated and reverts, keep going — meme tokens
+    // often have a permissive backup pool alongside their launchpad hook.
+    const failed = [];
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      onStep?.(`Simulating pool ${i + 1}/${candidates.length}…`);
+      const res = await _trySimulateAndSwap(
+        signer, routerRead, router, c,
+        tokenIn, tokenOut, amountIn, slippageBps, owner, arcProvider, onStep,
       );
-    } catch (e) { simErr = e; }
-
-    if (simErr) {
-      // Try to extract raw revert bytes from every place ethers/RPC might stash them.
-      const raw = simErr?.data
-                || simErr?.info?.error?.data
-                || simErr?.error?.data
-                || simErr?.info?.error?.body
-                || '';
-      const rawStr = typeof raw === 'string' ? raw : (raw?.data || raw?.originalError?.data || '');
-      const shortSel = rawStr && rawStr.length >= 10 && rawStr.startsWith('0x') ? rawStr.slice(0, 10) : '';
-      const KNOWN_ERRORS = {
-        '0xd93c0665': 'OneliqRouter.IsPaused()',
-        '0x2c5211c6': 'OneliqRouter.InsufficientOutput()',
-        '0x7c9c6e8f': 'OneliqRouter.DeadlinePassed()',
-        '0x8b063d73': 'V4Router.V4TooMuchRequested()',
-        '0x39d35496': 'V4Router.V4TooLittle()',
-        '0x815e1d64': 'Permit2.AllowanceExpired()',
-        '0xf96fb071': 'Permit2.InsufficientAllowance()',
-      };
-      const decoded = KNOWN_ERRORS[shortSel]
-        || (shortSel ? `revert selector ${shortSel}` : '')
-        || (simErr?.shortMessage || simErr?.reason || simErr?.message || 'unknown');
-
-      // Deep diagnostic:
-      // (a) probe transferFrom on the tokenIn wrapper — proves whether the
-      //     ERC-20 layer accepts moves at all (Arc's USDC has native/wrapper
-      //     dual-facade weirdness that can cause silent revert).
-      // (b) direct-call Universal Router with the same commands (as if the
-      //     USER were the payer). If that also reverts with a real selector,
-      //     the pool hook is the culprit, not OneliqRouter.
-      onStep?.('Deep diagnostic…');
-      let xferErr = null;
-      try {
-        const erc20Read = new Contract(tokenIn, ERC20_MIN_ABI, arcProvider);
-        // Static call transferFrom(owner, routerAddr, amountIn) as if OneliqRouter did it
-        await erc20Read.transferFrom.staticCall(owner, routerAddr, BigInt(amountIn), { from: routerAddr });
-      } catch (e) { xferErr = e; }
-
-      let directErr = null, directOk = false;
-      try {
-        const uniAbi = ['function execute(bytes commands, bytes[] inputs, uint256 deadline) payable'];
-        const uni = new Contract(V4.universalRouter, uniAbi, arcProvider);
-        await uni.execute.staticCall(commands, inputs, deadline, { from: owner });
-        directOk = true;
-      } catch (dErr) { directErr = dErr; }
-      const directRaw = directErr?.data || directErr?.info?.error?.data || '';
-      const directStr = typeof directRaw === 'string' ? directRaw : (directRaw?.data || '');
-      const directSel = directStr && directStr.length >= 10 && directStr.startsWith('0x') ? directStr.slice(0, 10) : '';
-      const directDecoded = KNOWN_ERRORS[directSel] || (directSel ? `direct selector ${directSel}` : (directErr?.shortMessage || 'unknown'));
-      const xferOk = !xferErr;
-
-      console.error('[arc-univ4] simulation revert', {
-        oneliqRouterSelector: shortSel,
-        oneliqRouterMsg: decoded,
-        tokenTransferFromOk: xferOk,
-        tokenTransferFromErr: xferErr?.shortMessage || xferErr?.message,
-        directUniversalRouterSelector: directSel,
-        directUniversalRouterMsg: directDecoded,
-        directWouldSucceed: directOk,
-        rawSimErr: simErr,
-        rawXferErr: xferErr,
-        rawDirectErr: directErr,
-      });
-
-      const hookHex = (poolKey.hooks || '0x0000000000000000000000000000000000000000').toLowerCase();
-      const hasHook = hookHex !== '0x0000000000000000000000000000000000000000';
-      const hint = !xferOk
-        ? ` (ERC-20 transferFrom on ${tokenIn.slice(0,6)}… also reverts → wrapper doesn't accept normal transfers)`
-        : directOk
-        ? ' (Universal Router direct call would succeed → issue is OneliqRouter Permit2 flow)'
-        : directSel
-        ? ` (direct-call selector ${directSel} = ${directDecoded})`
-        : hasHook
-        ? ` — pool is hook-gated (${poolKey.hooks.slice(0,10)}…). This pool's hook contract rejects swaps from external routers. Try a different pool or token pair.`
-        : ' (direct call also gave no revert data → likely low liquidity or a hook rejecting with revert())';
-      const err = new Error(`Simulation reverted — ${decoded}${hint}`);
-      err.cause = simErr;
-      err.selector = shortSel;
-      err.directSelector = directSel;
-      err.poolKey = poolKey;
-      throw err;
+      if (res.ok) {
+        return { hash: res.tx.hash, receipt: res.receipt, quotedOut: res.quotedOut, minOut: res.minOut, poolKey: res.poolKey };
+      }
+      failed.push(res);
     }
 
-    onStep?.('Submitting swap...');
-    const tx = await router.swap(
-      tokenIn,
-      BigInt(amountIn),
-      tokenOut,
-      minOut,
-      deadline,
-      commands,
-      inputs
-    );
-    onStep?.(`Confirming ${tx.hash.slice(0, 12)}…`);
-    const receipt = await tx.wait();
-    return {
-      hash: tx.hash,
-      receipt,
-      quotedOut,
-      minOut,
-      poolKey,
-    };
+    // All candidates failed. Build a user-friendly diagnosis from what we
+    // saw. If every failure was hook-gated with no revert data → the token
+    // only trades through its launchpad UI. If any hook = 0x0 also failed →
+    // likely thin liquidity at this size.
+    const anyNoHookFailed = failed.some(f => (f.poolKey.hooks || '').toLowerCase() === '0x0000000000000000000000000000000000000000');
+    const allHookGated  = failed.every(f => (f.poolKey.hooks || '').toLowerCase() !== '0x0000000000000000000000000000000000000000');
+    const nSel = failed.filter(f => f.shortSel || f.directSel).length;
+
+    let msg;
+    if (allHookGated && nSel === 0) {
+      msg = `This token only trades through its launchpad. Every Uniswap v4 pool we tried is hook-gated and rejected the swap. Try trading on the token's own site, then deposit back here.`;
+    } else if (anyNoHookFailed && nSel === 0) {
+      msg = `Not enough liquidity in this pool for that amount. Try a smaller size — quote says ~${(Number(candidates[0].amountOut) / 1e6).toFixed(4)} out but the pool couldn't fill it.`;
+    } else {
+      const top = failed[0];
+      msg = `Swap simulation failed — ${top.decoded}${top.directOk ? ' (Universal Router would accept — likely a Permit2/router flow bug)' : ''}. Tried ${failed.length} pool${failed.length > 1 ? 's' : ''}.`;
+    }
+    const err = new Error(msg);
+    err.candidates = failed.map(f => ({ fee: f.poolKey.fee, ts: f.poolKey.tickSpacing, hooks: f.poolKey.hooks, decoded: f.decoded, directOk: f.directOk }));
+    throw err;
   }
 
   // ── Exports ────────────────────────────────────────────────────────────
