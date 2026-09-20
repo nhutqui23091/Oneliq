@@ -126,12 +126,10 @@
         <div class="ex-stat">
           <div class="ex-stat-lbl">1D volume</div>
           <div class="ex-stat-val" id="ex-vol">—</div>
-          <div class="ex-stat-sub">Across every Arc pool DexScreener indexes</div>
         </div>
         <div class="ex-stat">
           <div class="ex-stat-lbl">Total Oneliq TVL</div>
           <div class="ex-stat-val" id="ex-tvl">—</div>
-          <div class="ex-stat-sub">Aggregate USD liquidity, Arc mainnet</div>
         </div>
       </div>
     </div>
@@ -354,6 +352,19 @@
       }
     }
 
+    // Fallback icons for anchor stables. USDC/EURC are the quote side in
+    // almost every pool, so the "isBase && liq > best" branch above never
+    // fires for them and their DexScreener info.imageUrl stays null. Look
+    // up our TOKENS registry by address as a last resort so the row shows
+    // the real logo instead of a letter avatar.
+    for (const rec of byTok.values()) {
+      if (rec.icon) continue;
+      const known = ARC.TOKENS?.arc ? Object.values(ARC.TOKENS.arc).find(
+        t => t.address && t.address.toLowerCase() === rec.address.toLowerCase()
+      ) : null;
+      if (known?.icon) rec.icon = known.icon;
+    }
+
     return { tokens: [...byTok.values()], totalVol24, totalTvl };
   }
 
@@ -446,7 +457,7 @@
     tbody.querySelectorAll('tr[data-addr]').forEach(row => {
       row.onclick = () => {
         const addr = row.dataset.addr;
-        location.href = `/token.html?a=${encodeURIComponent(addr)}`;
+        location.href = `/token?a=${encodeURIComponent(addr)}`;
       };
     });
     // Sort-indicator glyphs
