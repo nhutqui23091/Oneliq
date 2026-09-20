@@ -365,7 +365,7 @@ html{scroll-behavior:smooth}
       <span class="chain-panel-title">Per-chain breakdown</span>
       <span class="chain-count" id="chain-count">-</span>
       <label class="chain-empty-toggle">
-        <input type="checkbox" id="chain-hide-empty" checked/>
+        <input type="checkbox" id="chain-hide-empty"/>
         <span>Hide empty chains</span>
       </label>
     </div>
@@ -777,7 +777,9 @@ html{scroll-behavior:smooth}
   // can do. Declared up here because renderTable() reads it and can fire from
   // the wallet listener below.
   const HIDE_EMPTY_KEY = 'arcswap:balance:hideEmptyChains';
-  const hideEmptyChains = () => { try { return localStorage.getItem(HIDE_EMPTY_KEY) !== 'false'; } catch { return true; } };
+  // Default = show every Arc-supported chain, even empty ones, so the user
+  // sees Oneliq's full network coverage. Explicit 'true' hides them.
+  const hideEmptyChains = () => { try { return localStorage.getItem(HIDE_EMPTY_KEY) === 'true'; } catch { return false; } };
   const setHideEmptyChains = (v) => { try { localStorage.setItem(HIDE_EMPTY_KEY, v ? 'true' : 'false'); } catch {} };
 
   // ───── Wallet ─────

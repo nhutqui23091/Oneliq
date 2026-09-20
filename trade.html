@@ -900,11 +900,12 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
 
   function renderSourcePanel() {
     const all = [...state.sources.values()];
-    const hasAny = all.some(s => s.canonical > 0n || (s.pending && s.pending > 0n));
-    const visibleFilter = (s) => (s.canonical > 0n) || (s.pending && s.pending > 0n)
-      || (!hasAny && s.chainKey === 'arc');
-    const wallet  = all.filter(s => s.kind === 'wallet'  && visibleFilter(s)).sort(colSort);
-    const gateway = all.filter(s => s.kind === 'gateway' && visibleFilter(s)).sort(colSort);
+    // Show EVERY Arc-supported chain, funded or not, so users see the full
+    // network coverage. Zero-balance rows are styled muted via the `zero`
+    // class inside rowHtml() and remain clickable — useful for CCTP source
+    // selection after the user tops up.
+    const wallet  = all.filter(s => s.kind === 'wallet').sort(colSort);
+    const gateway = all.filter(s => s.kind === 'gateway').sort(colSort);
 
     const isActive = (s) => state.src.chainKey === s.chainKey && state.src.kind === s.kind;
     const isUnifiedActive = state.src.kind === 'unified';

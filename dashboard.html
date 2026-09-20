@@ -460,22 +460,31 @@
       el.innerHTML = `<div class="db-empty"><div class="db-empty-ico">⊘</div><div class="db-empty-t">Couldn't load balances</div><div class="db-empty-s">The Gateway balance service is unreachable right now. Try again shortly.</div></div>`;
       return;
     }
-    const withBal = balances.filter(b => (b.canonical || 0n) > 0n || (b.pending || 0n) > 0n);
-    const totalRaw = balances.reduce((a, b) => a + (b.canonical || 0n), 0n);
+    // Merge Circle's response with the full mainnet chain list so every
+    // Arc-supported chain shows up — even the ones with zero balance. Users
+    // see the full network coverage instead of thinking Oneliq only supports
+    // whatever they happen to have USDC on.
+    const gwKeys = (ARC.gateway.gatewayChains?.() || []).filter(k => ARC.CHAINS[k]?.contracts?.gatewayWallet);
+    const byKey = new Map(balances.filter(b => b.chainKey).map(b => [b.chainKey, b]));
+    const full = gwKeys.map(k => byKey.get(k) || {
+      chainKey: k, canonical: 0n, pending: 0n, display: '0.00', pendingDisplay: '0',
+    });
+    const withBal = full.filter(b => (b.canonical || 0n) > 0n || (b.pending || 0n) > 0n);
+    const totalRaw = full.reduce((a, b) => a + (b.canonical || 0n), 0n);
     const totalDisplay = ARC.formatAmt(totalRaw, 6, 2);
-    if (!withBal.length){
-      el.innerHTML = `
-        <div class="db-cc-top"><span class="db-cc-total">0.00<span class="u">USDC</span></span></div>
-        <div class="db-empty"><div class="db-empty-ico">◈</div><div class="db-empty-t">No cross-chain balance</div><div class="db-empty-s">Deposit USDC into your Unified Balance to spend it on any chain.</div><a class="db-cta" href="/balance">Open Balance →</a></div>`;
-      return;
-    }
-    const rows = withBal
-      .sort((a, b) => (b.canonical > a.canonical ? 1 : -1))
+    // Funded chains first (descending), then zero-balance ones alphabetically.
+    const rows = full
+      .sort((a, b) => {
+        const av = a.canonical || 0n, bv = b.canonical || 0n;
+        if (av !== bv) return bv > av ? 1 : -1;
+        return (ARC.CHAINS[a.chainKey]?.name || a.chainKey).localeCompare(ARC.CHAINS[b.chainKey]?.name || b.chainKey);
+      })
       .map(b => {
         const c = ARC.CHAINS[b.chainKey];
         const name = c?.name || c?.short || b.chainKey;
+        const isZero = (b.canonical || 0n) === 0n && (b.pending || 0n) === 0n;
         const pend = (b.pending || 0n) > 0n ? `<div class="db-cc-pend">+${b.pendingDisplay} pending</div>` : '';
-        return `<div class="db-cc-row">
+        return `<div class="db-cc-row${isZero ? ' zero' : ''}" style="${isZero ? 'opacity:.55' : ''}">
           <img src="${escapeHtml(ARC.chainIcon(b.chainKey))}" alt="" data-imgfallback="hide"/>
           <div><div class="db-cc-name">${escapeHtml(name)}</div>${pend}</div>
           <div class="db-cc-amt">${b.display}</div>
@@ -484,9 +493,10 @@
     el.innerHTML = `
       <div class="db-cc-top">
         <span class="db-cc-total">${totalDisplay}<span class="u">USDC</span></span>
-        <span class="db-cc-sub">across ${withBal.length} chain${withBal.length === 1 ? '' : 's'}</span>
+        <span class="db-cc-sub">${withBal.length ? `funded on ${withBal.length} of ${full.length} chains` : `${full.length} chains available · deposit to get started`}</span>
       </div>
-      ${rows}`;
+      ${rows}
+      ${withBal.length ? '' : `<a class="db-cta" href="/balance" style="margin-top:12px">Open Balance →</a>`}`;
   }
 
   // ── RECENT ACTIVITY ───────────────────────────────────────────
