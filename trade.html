@@ -1125,18 +1125,24 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         ico.appendChild(img);
       } else {
         ico.textContent = t.symbol[0];
-        // Custom Arc token with no icon → fetch from DexScreener, cache on
-        // the token object + localStorage, re-render pill on success.
-        if (t.custom && t.address) {
-          const chainKey = side === 'from' ? state.src.chainKey : state.dst.chainKey;
-          fetchDexScreenerInfo(chainKey, t.address).then(dx => {
-            if (!dx?.icon) return;
-            t.icon = dx.icon;
-            if (dx.priceUsd != null) t.priceUsd = dx.priceUsd;
-            saveCustomToken(chainKey, t);
-            renderPickBtn(side);
-          }).catch(() => { /* silent */ });
-        }
+      }
+      // Custom Arc token missing icon OR priceUsd → fetch from DexScreener,
+      // cache on the token object + localStorage, re-render pill + re-quote
+      // so the header logo AND the preview rate show up instantly.
+      if (t.custom && t.address && (!t.icon || typeof t.priceUsd !== 'number')) {
+        const chainKey = side === 'from' ? state.src.chainKey : state.dst.chainKey;
+        fetchDexScreenerInfo(chainKey, t.address).then(dx => {
+          if (!dx) return;
+          let touched = false;
+          if (dx.icon && !t.icon) { t.icon = dx.icon; touched = true; }
+          if (dx.priceUsd != null && t.priceUsd !== dx.priceUsd) { t.priceUsd = dx.priceUsd; touched = true; }
+          if (!touched) return;
+          saveCustomToken(chainKey, t);
+          renderPickBtn(side);
+          // Re-trigger the quote so the preview rate flashes without the
+          // user having to nudge the amount field.
+          if (state.amountIn && parseAmt(state.amountIn, state.fromToken.decimals) > 0n) triggerQuote();
+        }).catch(() => { /* silent */ });
       }
     }
   }
@@ -1625,20 +1631,50 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       document.getElementById('to-usd').textContent = '≈ $0.00';
       state.quote = null; refreshExec(); return;
     }
-    // Inform users the quote is live (source depends on network: mainnet
-    // uses Uniswap v4 pool discovery, testnet uses Circle App Kit / Curve).
-    // Other metrics stay shimmer-skeleton; only the rate row gets the message
-    // because it's the field users actually look at while waiting.
-    const quotingMsg = (ARC.isMainnet && ARC.isMainnet())
-      ? 'Discovering Uniswap v4 pools'
-      : 'Querying Circle App Kit · routing aggregator';
-    setMetrics({
-      rate: '<span class="quoting-msg">' + quotingMsg + '</span>',
-      impact: '<span class="skel">-</span>',
-      fee:    '<span class="skel">-</span>',
-      min:    '<span class="skel">-</span>',
-      time:   '<span class="skel">-</span>',
-    });
+    // Instant DexScreener-based preview: when both tokens have a known USD
+    // price we can show a rate + preview amountOut immediately, matching
+    // Uniswap's <1s rate flash. The real Quoter call still runs below and
+    // overwrites these values with the exact on-chain output. If either
+    // price is missing, kick off a DexScreener fetch so the next quote()
+    // has it (and re-render once it lands).
+    const pIn  = tokenUsdPrice(state.fromToken);
+    const pOut = tokenUsdPrice(state.toToken);
+    const havePreview = pIn && pOut && amt > 0n;
+    if (havePreview) {
+      const inFloat  = Number(amt) / (10 ** state.fromToken.decimals);
+      const outFloat = inFloat * pIn / pOut;
+      const previewRate = pIn / pOut;
+      document.getElementById('amount-out').value = outFloat.toFixed(6);
+      document.getElementById('to-usd').textContent = '≈ $' + (outFloat * pOut).toFixed(2);
+      setMetrics({
+        rate:   `1 ${state.fromToken.symbol} ≈ ${previewRate.toFixed(6)} ${state.toToken.symbol}`,
+        impact: '<span class="skel">-</span>',
+        fee:    '<span class="skel">-</span>',
+        min:    '<span class="skel">-</span>',
+        time:   '<span class="skel">-</span>',
+      });
+    } else {
+      // No cached price for at least one side — fall back to the loading
+      // strip while the real Quoter (or Circle App Kit on testnet) runs,
+      // and warm the DexScreener cache in the background so the next
+      // quote() has the numbers to build a preview from.
+      const quotingMsg = (ARC.isMainnet && ARC.isMainnet())
+        ? 'Discovering Uniswap v4 pools'
+        : 'Querying Circle App Kit · routing aggregator';
+      setMetrics({
+        rate: '<span class="quoting-msg">' + quotingMsg + '</span>',
+        impact: '<span class="skel">-</span>',
+        fee:    '<span class="skel">-</span>',
+        min:    '<span class="skel">-</span>',
+        time:   '<span class="skel">-</span>',
+      });
+      _warmDexPrices(state.fromToken, state.toToken, () => {
+        // Only re-quote if this is still the freshest quote() call — avoids
+        // clobbering a newer amount/token that the user typed in the mean-
+        // time. Also skip when the real Quoter already answered.
+        if (seq === quoteSeq && !state.quote) triggerQuote();
+      });
+    }
 
     try {
       // Walk the pipeline, accumulating output token + fee labels + time.
@@ -1778,6 +1814,42 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     if (token.symbol === 'ETH') return (s * 2400).toFixed(2);
     if (token.custom) return '';
     return s.toFixed(2);
+  }
+
+  // Returns the "priceUsd" number for a token, or null when unknown. Used
+  // for the instant DexScreener-based rate preview shown before the real
+  // Uniswap v4 Quoter answers — matches Uniswap's <1s rate flash.
+  function tokenUsdPrice(token) {
+    if (!token) return null;
+    if (typeof token.priceUsd === 'number') return token.priceUsd;
+    if (token.symbol === 'USDC') return 1;
+    if (token.symbol === 'EURC') return 1.08;
+    if (token.symbol === 'ETH')  return 2400;
+    return null;
+  }
+  // Fire DexScreener lookups for any token missing a priceUsd, then call
+  // `done` if either fetch actually filled one in. Used by quote() to warm
+  // the cache without blocking the loading state.
+  async function _warmDexPrices(a, b, done) {
+    const jobs = [];
+    if (a && !tokenUsdPrice(a) && a.address) jobs.push([a, state.src.chainKey]);
+    if (b && !tokenUsdPrice(b) && b.address) jobs.push([b, state.dst.chainKey]);
+    if (!jobs.length) return;
+    let changed = false;
+    await Promise.all(jobs.map(async ([tok, chainKey]) => {
+      const dx = await fetchDexScreenerInfo(chainKey, tok.address).catch(() => null);
+      if (!dx) return;
+      if (dx.priceUsd != null && tok.priceUsd !== dx.priceUsd) {
+        tok.priceUsd = dx.priceUsd; changed = true;
+      }
+      if (dx.icon && !tok.icon) {
+        tok.icon = dx.icon;
+        // Re-render the pill so the freshly-fetched logo shows up.
+        try { renderPickBtn(tok === state.fromToken ? 'from' : 'to'); } catch {}
+      }
+      if (tok.custom) { try { saveCustomToken(chainKey, tok); } catch {} }
+    }));
+    if (changed && typeof done === 'function') done();
   }
 
   // ── DIRECT ARC POOL (Curve) ──────────────────────────
