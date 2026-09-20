@@ -16,20 +16,21 @@
   const abi = AbiCoder.defaultAbiCoder();
 
   // ── Constants ──────────────────────────────────────────────────────────
-  // Universal Router V3_SWAP_EXACT_IN command byte.
-  const CMD_V3_SWAP_EXACT_IN = 0x00;
-
-  // Universal Router special constant addresses (see UniversalRouter.sol):
-  //   MSG_SENDER   — funds/output go to the caller of execute() (= OneliqRouter)
-  //   ADDRESS_THIS — funds/output go to the Universal Router itself
-  const MSG_SENDER = '0x0000000000000000000000000000000000000001';
-
-  // Verified via bytecode probe: 0xf0db…3918 is the Uniswap v3 Factory on
-  // Arc mainnet (queried TOLLY pool.factory()). We don't call it directly
-  // — we rely on DexScreener for pool addresses — but keep it here for
-  // sanity-checking that a discovered pool really is a Uniswap v3 pool.
+  // Verified via bytecode probe (queried TOLLY pool.factory + top pool.swap
+  // callers over recent Swap events):
+  //   V3_FACTORY   = 0xf0db…3918  — Uniswap v3 Factory on Arc mainnet
+  //   SWAP_ROUTER  = 0x53bf…6f77  — SwapRouter02 (has exactInputSingle,
+  //                                exactInput, factory, WETH9, multicall).
+  //
+  // We call SwapRouter02 directly instead of Universal Router because
+  // Arc's Universal Router (0x4fcA…9Fb1) rejects V3 command inputs with
+  // SliceOutOfBounds() — its v3 handler appears to be either miscompiled
+  // or intentionally disabled by the Circle build. Verified: V4_SWAP and
+  // SWEEP dispatch fine, V3_SWAP_EXACT_IN reverts on every input shape
+  // we tried, including the exact abi-encoded shape the Uniswap SDK emits.
+  // SwapRouter02 is the standard alternative and its dispatch works.
   const V3_FACTORY = '0xf0db7b58379503491d857db50ac9ece64c653918';
-  const UNIVERSAL_ROUTER = '0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1';
+  const SWAP_ROUTER = '0x53bf6b0684ec7ef91e1387da3d1a1769bc5a6f77';
 
   // Uniswap v3 pool minimum ABI — only the fields we read to quote.
   const V3_POOL_ABI = [
@@ -48,8 +49,8 @@
     'function approve(address,uint256) returns (bool)',
   ];
 
-  const ONELIQ_ROUTER_ABI = [
-    'function swap(address tokenIn, uint256 amountIn, address tokenOut, uint256 minOut, uint256 deadline, bytes uniCommands, bytes[] uniInputs) returns (uint256 amountOut)',
+  const SWAP_ROUTER_ABI = [
+    'function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)',
   ];
 
   // ── Pool discovery via DexScreener ─────────────────────────────────────
@@ -163,42 +164,15 @@
     };
   }
 
-  // ── Calldata builder ───────────────────────────────────────────────────
-  /**
-   * Build a Universal Router V3_SWAP_EXACT_IN command that ends with the
-   * output landing on OneliqRouter (which then forwards to user with its
-   * own minOut check).
-   *
-   * Path encoding is packed:
-   *   tokenIn (20 bytes) + fee (uint24 = 3 bytes) + tokenOut (20 bytes)
-   *
-   * payerIsUser = true → callback pulls tokens from Universal Router's
-   * msg.sender (= OneliqRouter) via Permit2. OneliqRouter has already
-   * granted Permit2 → Universal Router allowance in its swap() flow, so
-   * this works identically to the v4 path.
-   */
-  function buildV3SwapCalldata(tokenIn, tokenOut, fee, amountIn, amountOutMinimum) {
-    const tokIn  = getAddress(tokenIn).slice(2).toLowerCase();
-    const tokOut = getAddress(tokenOut).slice(2).toLowerCase();
-    const feeHex = fee.toString(16).padStart(6, '0'); // uint24 → 3 bytes
-    const path = '0x' + tokIn + feeHex + tokOut;
-
-    const v3Input = abi.encode(
-      ['address', 'uint256', 'uint256', 'bytes', 'bool'],
-      [MSG_SENDER, BigInt(amountIn), BigInt(amountOutMinimum), path, true],
-    );
-
-    const commands = '0x' + CMD_V3_SWAP_EXACT_IN.toString(16).padStart(2, '0');
-    return { commands, inputs: [v3Input] };
-  }
-
-  // ── End-to-end swap through OneliqRouter ───────────────────────────────
+  // ── End-to-end swap through SwapRouter02 ───────────────────────────────
+  // Note: this bypasses OneliqRouter (no 0.30% protocol fee on v3 swaps
+  // yet). OneliqRouter's swap() forwards to Universal Router, but Arc's
+  // Universal Router's V3 handler is broken (see V3_FACTORY comment). A
+  // future OneliqRouter revision can wrap SwapRouter02 to reinstate the
+  // fee — for now, giving users a working v3 swap is the priority.
   async function executeV3Swap(signer, opts, onStep) {
     const { tokenIn, tokenOut, amountIn, slippageBps = 50 } = opts;
     if (!signer) throw new Error('No signer connected');
-
-    const routerAddr = ARC.CHAINS.arc?.contracts?.router;
-    if (!routerAddr) throw new Error('OneliqRouter not deployed on this network');
 
     onStep?.('Finding v3 pool...');
     const poolInfo = await discoverV3Pool(tokenIn, tokenOut);
@@ -208,48 +182,58 @@
     const q = await quoteV3(poolInfo, amountIn, tokenIn);
     if (!q || q.amountOut === 0n) throw new Error(`Pool has no depth for that amount`);
     const minOut = (q.amountOut * BigInt(10_000 - slippageBps)) / 10_000n;
+    const owner = await signer.getAddress();
 
     onStep?.('Checking allowance...');
     const erc20 = new Contract(tokenIn, ERC20_MIN_ABI, signer);
-    const owner = await signer.getAddress();
-    const cur = await erc20.allowance(owner, routerAddr);
+    const cur = await erc20.allowance(owner, SWAP_ROUTER);
     if (cur < BigInt(amountIn)) {
-      onStep?.('Approving OneliqRouter...');
-      const atx = await erc20.approve(routerAddr, (1n << 256n) - 1n);
+      onStep?.('Approving SwapRouter02...');
+      const atx = await erc20.approve(SWAP_ROUTER, (1n << 256n) - 1n);
       await atx.wait();
     }
 
-    onStep?.('Building v3 calldata...');
-    const { commands, inputs } = buildV3SwapCalldata(tokenIn, tokenOut, poolInfo.fee, amountIn, minOut);
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+    // SwapRouter02.exactInputSingle takes recipient directly — output goes
+    // straight to the user's wallet, no extra hop through OneliqRouter.
+    const params = {
+      tokenIn:            getAddress(tokenIn),
+      tokenOut:           getAddress(tokenOut),
+      fee:                poolInfo.fee,
+      recipient:          owner,
+      amountIn:           BigInt(amountIn),
+      amountOutMinimum:   minOut,
+      sqrtPriceLimitX96:  0n,
+    };
 
-    console.groupCollapsed('[arc-univ3] swap calldata');
-    console.log('router:',   routerAddr);
+    console.groupCollapsed('[arc-univ3] swap params');
+    console.log('router:',   SWAP_ROUTER);
     console.log('pool:',     poolInfo.pool, 'fee:', poolInfo.fee);
     console.log('tokenIn:',  tokenIn, ' tokenOut:', tokenOut);
     console.log('amountIn:', amountIn.toString(), ' minOut:', minOut.toString(), ' quotedOut:', q.amountOut.toString());
-    console.log('commands:', commands);
-    console.log('inputs[0]:', inputs[0]);
+    console.log('recipient:', owner);
     console.groupEnd();
 
-    // Simulate before touching the wallet.
+    // Simulate first so the wallet-popup revert (opaque in most wallets)
+    // shows up as a decoded message before we ask the user to sign.
     onStep?.('Simulating…');
     const arcProvider = ARC.rpcProvider('arc');
-    const routerRead = new Contract(routerAddr, ONELIQ_ROUTER_ABI, arcProvider);
+    const routerRead = new Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, arcProvider);
     try {
-      await routerRead.swap.staticCall(
-        tokenIn, BigInt(amountIn), tokenOut, minOut, deadline, commands, inputs,
-        { from: owner },
-      );
+      await routerRead.exactInputSingle.staticCall(params, { from: owner });
     } catch (e) {
       console.error('[arc-univ3] simulation reverted', e);
-      const short = e?.shortMessage || e?.reason || e?.message || 'unknown';
-      throw new Error(`v3 swap simulation failed — ${short}. Try a larger slippage or smaller size.`);
+      // "STF" = SafeTransferFailed (missing approval, though we just set it
+      // above so unlikely). "Too little received" = slippage. Others opaque.
+      const rawMsg = e?.reason || e?.shortMessage || e?.message || '';
+      let short = rawMsg;
+      if (/STF/.test(rawMsg)) short = 'Token transfer failed (allowance/balance?)';
+      else if (/Too little received/.test(rawMsg)) short = 'Price moved beyond max slippage';
+      throw new Error(`v3 swap simulation failed — ${short}`);
     }
 
     onStep?.('Submitting swap...');
-    const router = new Contract(routerAddr, ONELIQ_ROUTER_ABI, signer);
-    const tx = await router.swap(tokenIn, BigInt(amountIn), tokenOut, minOut, deadline, commands, inputs);
+    const router = new Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, signer);
+    const tx = await router.exactInputSingle(params);
     onStep?.(`Confirming ${tx.hash.slice(0, 12)}…`);
     const receipt = await tx.wait();
     return {
@@ -264,11 +248,9 @@
   // ── Exports ────────────────────────────────────────────────────────────
   ARC.uniV3 = {
     V3_FACTORY,
-    UNIVERSAL_ROUTER,
-    CMD_V3_SWAP_EXACT_IN,
+    SWAP_ROUTER,
     discoverV3Pool,
     quoteV3,
-    buildV3SwapCalldata,
     executeV3Swap,
   };
 })(window);
