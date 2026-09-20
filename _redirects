@@ -14,11 +14,13 @@
 /farm    /trade   302
 /deploy  /trade   301
 
-# Token detail page — /token/<address> → token.html?a=<address>.
+# Token detail page — /coin/<address> → token.html?a=<address>.
 # Uses status 200 (internal rewrite), not 301, so the URL stays clean and
-# browsers never cache a redirect. The path segment /token/<addr> is a
-# NEW pattern that was never used by the dropped Create-Token surface, so
-# nothing in a browser's 301 cache can intercept it.
+# browsers never cache a redirect. The /coin prefix is FRESH — no earlier
+# rule ever routed it, so even the most aggressive redirect cache can't
+# intercept. Old /token/<addr> is aliased to the same file for anyone
+# who bookmarked the previous URL scheme.
+/coin/*    /token.html?a=:splat   200
 /token/*   /token.html?a=:splat   200
 
 # Dropped surfaces — redirect to nearest live page

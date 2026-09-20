@@ -256,22 +256,30 @@
   const { Contract, getAddress, isAddress } = window.ethers;
 
   // ── Parse token address from URL ────────────────────────────────────
-  // Three URL shapes are accepted so links from anywhere in the app
-  // resolve, no matter which shape was in flight when the address bar
-  // was captured (query is preserved through CF's 200 rewrite; the path
-  // segment is what a plain <a href> uses):
-  //   /token/0x…               → path segment
-  //   /token?a=0x…             → short query
-  //   /token?address=0x…       → verbose query
+  // Four URL shapes accepted so links resolve no matter which was in
+  // flight when navigation happened:
+  //   /coin/0x…                → path segment (canonical, current)
+  //   /token/0x…               → path segment (legacy alias)
+  //   /coin?a=0x… / ?address=  → query, direct hit or bookmark
+  //   /token?a=0x…             → same, old scheme
   const params = new URLSearchParams(location.search);
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const pathAddr = pathParts[0] === 'token' && pathParts[1] ? pathParts[1] : '';
+  const pathHead = pathParts[0];
+  const pathAddr = (pathHead === 'coin' || pathHead === 'token') && pathParts[1] ? pathParts[1] : '';
   const rawAddr = (params.get('a') || params.get('address') || pathAddr || '').trim();
   if (!rawAddr || !isAddress(rawAddr)) {
-    // No address at all: they arrived here from a stale link or hit
-    // /token directly. Send them back to Explore instead of a dead-end.
-    console.warn('[token] no address in URL — redirecting to /explore', { rawAddr, pathParts, params: Object.fromEntries(params) });
-    location.replace('/explore');
+    // No address at all: diagnostic page so we (and the user) can see
+    // exactly which URL shape landed us here — better than a silent bounce.
+    console.warn('[token] no address in URL', { rawAddr, pathname: location.pathname, search: location.search, pathParts });
+    document.querySelector('.tk-body').innerHTML = `
+      <div style="padding:60px 24px;text-align:center;color:var(--muted);max-width:520px;margin:0 auto">
+        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">No token in URL</div>
+        <div style="font-size:13.5px;line-height:1.6;margin-bottom:16px">
+          Expected <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:var(--mono)">/coin/&lt;address&gt;</code> but this page loaded as
+          <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:var(--mono);word-break:break-all">${location.pathname}${location.search || ''}</code>.
+        </div>
+        <a href="/explore" style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:#001820;font-weight:700;border-radius:12px;text-decoration:none">← Back to Explore</a>
+      </div>`;
     return;
   }
   const TOKEN_ADDR = getAddress(rawAddr);

@@ -453,13 +453,11 @@
       return;
     }
     tbody.innerHTML = list.map((t, i) => tokenRowHtml(t, i)).join('');
-    // Row click → open the token detail page (chart + real stats + inline swap).
-    // Uses /token/<addr> so browsers' 301 cache from the old `/token → /trade`
-    // rule can't intercept — _redirects rewrites this to /token.html?a=<addr>.
-    // The addr guard is defensive: if a row somehow renders without a valid
-    // address (empty/undefined) the click is a no-op instead of navigating to
-    // /token/ (which CF's trailing-slash strip turns into just /token → the
-    // "no address" error we saw in the wild).
+    // Row click → open the token detail page. Uses /coin/<addr> — a fresh
+    // URL prefix that no earlier redirect rule ever touched, so browsers'
+    // 301 cache from previous versions can't intercept and strip the addr.
+    // Guard against empty/undefined data-addr so a click never emits /coin/
+    // (which CF's trailing-slash strip would turn into /coin → 404).
     tbody.querySelectorAll('tr[data-addr]').forEach(row => {
       row.onclick = () => {
         const addr = row.dataset.addr;
@@ -467,7 +465,9 @@
           console.warn('[explore] row is missing a valid address, ignoring click', { addr, row });
           return;
         }
-        location.href = `/token/${addr}`;
+        const url = `/coin/${addr}`;
+        console.debug('[explore] navigating to', url);
+        location.href = url;
       };
     });
     // Sort-indicator glyphs
