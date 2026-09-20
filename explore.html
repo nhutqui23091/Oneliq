@@ -453,11 +453,11 @@
       return;
     }
     tbody.innerHTML = list.map((t, i) => tokenRowHtml(t, i)).join('');
-    // Row click → open the token detail page. Uses /coin/<addr> — a fresh
-    // URL prefix that no earlier redirect rule ever touched, so browsers'
-    // 301 cache from previous versions can't intercept and strip the addr.
-    // Guard against empty/undefined data-addr so a click never emits /coin/
-    // (which CF's trailing-slash strip would turn into /coin → 404).
+    // Row click → open the token detail page. Uses Uniswap's exact URL
+    // shape (/explore/tokens/arc/<addr>) so the URL bar reads the same as
+    // app.uniswap.org and bookmarks translate cleanly between the two apps.
+    // The addr guard prevents an empty data-addr from emitting a truncated
+    // URL that CF's trailing-slash strip could collapse to something wrong.
     tbody.querySelectorAll('tr[data-addr]').forEach(row => {
       row.onclick = () => {
         const addr = row.dataset.addr;
@@ -465,7 +465,7 @@
           console.warn('[explore] row is missing a valid address, ignoring click', { addr, row });
           return;
         }
-        const url = `/coin/${addr}`;
+        const url = `/explore/tokens/arc/${addr}`;
         console.log('[explore] navigating to', url);
         location.href = url;
       };

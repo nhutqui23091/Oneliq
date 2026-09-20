@@ -256,27 +256,39 @@
   const { Contract, getAddress, isAddress } = window.ethers;
 
   // ── Parse token address from URL ────────────────────────────────────
-  // Four URL shapes accepted so links resolve no matter which was in
-  // flight when navigation happened:
-  //   /coin/0x…                → path segment (canonical, current)
-  //   /token/0x…               → path segment (legacy alias)
-  //   /coin?a=0x… / ?address=  → query, direct hit or bookmark
-  //   /token?a=0x…             → same, old scheme
+  // Five URL shapes accepted so a link resolves regardless of which
+  // build was in flight when navigation happened:
+  //   /explore/tokens/arc/0x…  → Uniswap-style (canonical from 2026-09-21)
+  //   /coin/0x…                → short alias
+  //   /token/0x…               → legacy alias
+  //   ?a=0x…                   → short query
+  //   ?address=0x…             → verbose query
   const params = new URLSearchParams(location.search);
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const pathHead = pathParts[0];
-  const pathAddr = (pathHead === 'coin' || pathHead === 'token') && pathParts[1] ? pathParts[1] : '';
+  let pathAddr = '';
+  if (pathParts[0] === 'explore' && pathParts[1] === 'tokens' && pathParts[2] === 'arc' && pathParts[3]) {
+    pathAddr = pathParts[3];
+  } else if ((pathParts[0] === 'coin' || pathParts[0] === 'token') && pathParts[1]) {
+    pathAddr = pathParts[1];
+  }
   const rawAddr = (params.get('a') || params.get('address') || pathAddr || '').trim();
   if (!rawAddr || !isAddress(rawAddr)) {
-    // No address at all: diagnostic page so we (and the user) can see
-    // exactly which URL shape landed us here — better than a silent bounce.
-    console.warn('[token] no address in URL', { rawAddr, pathname: location.pathname, search: location.search, pathParts });
+    // Landing here without an address means one of two things:
+    //   (a) fresh visit to bare /token from a stale bookmark, or
+    //   (b) the user's browser still holds an older explore.html cache
+    //       whose click emitted a URL that CF collapsed to /token.
+    // In BOTH cases the _headers rule for /token sends a Clear-Site-Data
+    // response, so by the time this script runs the browser has already
+    // wiped its origin cache. A cache-busted redirect back to /explore
+    // now guarantees a fresh fetch and — on the user's next click — the
+    // Uniswap-style URL that the new build emits. This is a one-shot
+    // recovery, NOT a loop: /explore serves the fresh build immediately.
+    console.warn('[token] no address in URL — bouncing to /explore with fresh fetch', { pathname: location.pathname, search: location.search });
     document.querySelector('.tk-body').innerHTML = `
-      <div style="padding:60px 24px;text-align:center;color:var(--muted);max-width:520px;margin:0 auto">
-        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">No token selected</div>
-        <div style="font-size:13.5px;line-height:1.6;margin-bottom:20px">Pick a token from Explore to see its chart and swap it.</div>
-        <a href="/explore" style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:#001820;font-weight:700;border-radius:12px;text-decoration:none">← Back to Explore</a>
+      <div style="padding:80px 24px;text-align:center;color:var(--muted);max-width:520px;margin:0 auto">
+        <div style="font-size:15px;color:var(--text);font-weight:600">Loading Explore…</div>
       </div>`;
+    setTimeout(() => location.replace('/explore?_r=' + Date.now()), 350);
     return;
   }
   const TOKEN_ADDR = getAddress(rawAddr);

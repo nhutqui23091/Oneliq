@@ -79,11 +79,20 @@
   Cache-Control: no-store, must-revalidate
 /blog
   Cache-Control: no-store, must-revalidate
+# /token bare = stale-cache landing (users whose browsers still hold an
+# older explore.html emitted /token as the click target). Response includes
+# Clear-Site-Data so the browser wipes its origin cache automatically —
+# next fetch of /explore is guaranteed fresh, no manual reload required.
+# Only /token bare gets Clear-Site-Data; the /token/<addr> pattern is a
+# real detail-page request and must not nuke the user's cache mid-session.
 /token
   Cache-Control: no-store, must-revalidate
+  Clear-Site-Data: "cache"
 /coin/*
   Cache-Control: no-store, must-revalidate
 /token/*
+  Cache-Control: no-store, must-revalidate
+/explore/tokens/arc/*
   Cache-Control: no-store, must-revalidate
 
 /assets/arc-core-v2.js

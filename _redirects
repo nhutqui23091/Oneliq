@@ -14,14 +14,15 @@
 /farm    /trade   302
 /deploy  /trade   301
 
-# Token detail page — /coin/<address> → token.html?a=<address>.
-# Uses status 200 (internal rewrite), not 301, so the URL stays clean and
-# browsers never cache a redirect. The /coin prefix is FRESH — no earlier
-# rule ever routed it, so even the most aggressive redirect cache can't
-# intercept. Old /token/<addr> is aliased to the same file for anyone
-# who bookmarked the previous URL scheme.
-/coin/*    /token.html?a=:splat   200
-/token/*   /token.html?a=:splat   200
+# Token detail page — three URL shapes all rewrite to token.html?a=<address>.
+# Status 200 = internal rewrite (URL stays clean; no 301 cache pollution).
+#
+#  - /explore/tokens/arc/<addr>  → Uniswap-style, canonical from 2026-09-21
+#  - /coin/<addr>                → short alias
+#  - /token/<addr>               → legacy alias for anyone with the old bookmark
+/explore/tokens/arc/*   /token.html?a=:splat   200
+/coin/*                 /token.html?a=:splat   200
+/token/*                /token.html?a=:splat   200
 
 # Dropped surfaces — redirect to nearest live page
 /vault   /balance 301
