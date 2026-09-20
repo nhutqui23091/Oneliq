@@ -55,6 +55,37 @@
 /
   Cache-Control: no-store, must-revalidate
 
+# CF Pages `_headers` matches the REQUEST URL, not the served file. So the
+# clean-URL versions of every app page (/trade, /explore, …) don't inherit
+# the `/*.html` cache header above and can end up stuck in browsers'
+# HTTP cache. List them explicitly so every app page revalidates.
+/explore
+  Cache-Control: no-store, must-revalidate
+/trade
+  Cache-Control: no-store, must-revalidate
+/balance
+  Cache-Control: no-store, must-revalidate
+/dashboard
+  Cache-Control: no-store, must-revalidate
+/history
+  Cache-Control: no-store, must-revalidate
+/agent
+  Cache-Control: no-store, must-revalidate
+/portal
+  Cache-Control: no-store, must-revalidate
+/ops
+  Cache-Control: no-store, must-revalidate
+/docs
+  Cache-Control: no-store, must-revalidate
+/blog
+  Cache-Control: no-store, must-revalidate
+/token
+  Cache-Control: no-store, must-revalidate
+/coin/*
+  Cache-Control: no-store, must-revalidate
+/token/*
+  Cache-Control: no-store, must-revalidate
+
 /assets/arc-core-v2.js
   Cache-Control: no-store, must-revalidate
 
