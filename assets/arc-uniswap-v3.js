@@ -53,6 +53,10 @@
     'function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)',
   ];
 
+  const ONELIQ_ROUTER_V2_ABI = [
+    'function swapV3(address tokenIn, uint256 amountIn, address tokenOut, uint256 minOut, uint256 deadline, uint24 poolFee, uint160 sqrtPriceLimitX96) returns (uint256 amountOut)',
+  ];
+
   // ── Pool discovery via DexScreener ─────────────────────────────────────
   // DexScreener knows every Uniswap v3 pool on Arc and returns its
   // pairAddress + labels. We pick the pair with the highest USD liquidity.
@@ -164,12 +168,12 @@
     };
   }
 
-  // ── End-to-end swap through SwapRouter02 ───────────────────────────────
-  // Note: this bypasses OneliqRouter (no 0.30% protocol fee on v3 swaps
-  // yet). OneliqRouter's swap() forwards to Universal Router, but Arc's
-  // Universal Router's V3 handler is broken (see V3_FACTORY comment). A
-  // future OneliqRouter revision can wrap SwapRouter02 to reinstate the
-  // fee — for now, giving users a working v3 swap is the priority.
+  // ── End-to-end swap through OneliqRouter.swapV3 ────────────────────────
+  // OneliqRouter (mainnet address in ARC.CHAINS.arc.contracts.router) has
+  // a swapV3 method that wraps SwapRouter02 internally and takes the 0.30%
+  // Oneliq fee. If the router in the config is the OLD v4-only deployment
+  // (no swapV3 method), we fall back to calling SwapRouter02 directly —
+  // safe for the transition window while users pick up the new bundle.
   async function executeV3Swap(signer, opts, onStep) {
     const { tokenIn, tokenOut, amountIn, slippageBps = 50 } = opts;
     if (!signer) throw new Error('No signer connected');
@@ -183,57 +187,86 @@
     if (!q || q.amountOut === 0n) throw new Error(`Pool has no depth for that amount`);
     const minOut = (q.amountOut * BigInt(10_000 - slippageBps)) / 10_000n;
     const owner = await signer.getAddress();
+    const routerAddr = ARC.CHAINS.arc?.contracts?.router;
+    if (!routerAddr) throw new Error('OneliqRouter not deployed on this network');
 
+    // Approval target = OneliqRouter (not SwapRouter02) — router pulls
+    // tokenIn via ERC-20 transferFrom, takes the fee, then internally
+    // approves SwapRouter02 for the net amount.
     onStep?.('Checking allowance...');
     const erc20 = new Contract(tokenIn, ERC20_MIN_ABI, signer);
-    const cur = await erc20.allowance(owner, SWAP_ROUTER);
+    const cur = await erc20.allowance(owner, routerAddr);
     if (cur < BigInt(amountIn)) {
-      onStep?.('Approving SwapRouter02...');
-      const atx = await erc20.approve(SWAP_ROUTER, (1n << 256n) - 1n);
+      onStep?.('Approving OneliqRouter...');
+      const atx = await erc20.approve(routerAddr, (1n << 256n) - 1n);
       await atx.wait();
     }
 
-    // SwapRouter02.exactInputSingle takes recipient directly — output goes
-    // straight to the user's wallet, no extra hop through OneliqRouter.
-    const params = {
-      tokenIn:            getAddress(tokenIn),
-      tokenOut:           getAddress(tokenOut),
-      fee:                poolInfo.fee,
-      recipient:          owner,
-      amountIn:           BigInt(amountIn),
-      amountOutMinimum:   minOut,
-      sqrtPriceLimitX96:  0n,
-    };
-
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
     console.groupCollapsed('[arc-univ3] swap params');
-    console.log('router:',   SWAP_ROUTER);
+    console.log('OneliqRouter:', routerAddr);
     console.log('pool:',     poolInfo.pool, 'fee:', poolInfo.fee);
     console.log('tokenIn:',  tokenIn, ' tokenOut:', tokenOut);
     console.log('amountIn:', amountIn.toString(), ' minOut:', minOut.toString(), ' quotedOut:', q.amountOut.toString());
-    console.log('recipient:', owner);
     console.groupEnd();
 
-    // Simulate first so the wallet-popup revert (opaque in most wallets)
-    // shows up as a decoded message before we ask the user to sign.
+    // Simulate through OneliqRouter first; on failure, fall back to
+    // SwapRouter02 direct (handles the case where the config still points
+    // at the old v4-only OneliqRouter without swapV3).
     onStep?.('Simulating…');
     const arcProvider = ARC.rpcProvider('arc');
-    const routerRead = new Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, arcProvider);
+    const routerRead = new Contract(routerAddr, ONELIQ_ROUTER_V2_ABI, arcProvider);
+    let useLegacyDirect = false;
     try {
-      await routerRead.exactInputSingle.staticCall(params, { from: owner });
+      await routerRead.swapV3.staticCall(
+        tokenIn, BigInt(amountIn), tokenOut, minOut, deadline, poolInfo.fee, 0n,
+        { from: owner },
+      );
     } catch (e) {
-      console.error('[arc-univ3] simulation reverted', e);
-      // "STF" = SafeTransferFailed (missing approval, though we just set it
-      // above so unlikely). "Too little received" = slippage. Others opaque.
-      const rawMsg = e?.reason || e?.shortMessage || e?.message || '';
-      let short = rawMsg;
-      if (/STF/.test(rawMsg)) short = 'Token transfer failed (allowance/balance?)';
-      else if (/Too little received/.test(rawMsg)) short = 'Price moved beyond max slippage';
-      throw new Error(`v3 swap simulation failed — ${short}`);
+      // OneliqRouter v1 lacks swapV3 → will revert with no data. Fall back
+      // to direct SwapRouter02 so v3 swaps still work while the bundle
+      // rolls out to every user.
+      const noSwapV3 = /function selector was not recognized|missing revert data|no matching function|not a function/i
+        .test(e?.shortMessage || e?.message || '');
+      if (noSwapV3) {
+        console.warn('[arc-univ3] router lacks swapV3, falling back to SwapRouter02 direct');
+        useLegacyDirect = true;
+      } else {
+        console.error('[arc-univ3] simulation reverted', e);
+        const rawMsg = e?.reason || e?.shortMessage || e?.message || '';
+        let short = rawMsg;
+        if (/STF/.test(rawMsg)) short = 'Token transfer failed (allowance/balance?)';
+        else if (/Too little received|InsufficientOutput/.test(rawMsg)) short = 'Price moved beyond max slippage';
+        throw new Error(`v3 swap simulation failed — ${short}`);
+      }
     }
 
     onStep?.('Submitting swap...');
-    const router = new Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, signer);
-    const tx = await router.exactInputSingle(params);
+    if (useLegacyDirect) {
+      // Direct SwapRouter02 fallback (old v4-only router path).
+      // Need SwapRouter02 approval instead of OneliqRouter approval.
+      const cur2 = await erc20.allowance(owner, SWAP_ROUTER);
+      if (cur2 < BigInt(amountIn)) {
+        onStep?.('Approving SwapRouter02 (fallback)…');
+        const atx = await erc20.approve(SWAP_ROUTER, (1n << 256n) - 1n);
+        await atx.wait();
+      }
+      const sr = new Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, signer);
+      const params = {
+        tokenIn: getAddress(tokenIn), tokenOut: getAddress(tokenOut),
+        fee: poolInfo.fee, recipient: owner,
+        amountIn: BigInt(amountIn), amountOutMinimum: minOut,
+        sqrtPriceLimitX96: 0n,
+      };
+      const tx = await sr.exactInputSingle(params);
+      onStep?.(`Confirming ${tx.hash.slice(0, 12)}…`);
+      const receipt = await tx.wait();
+      return { hash: tx.hash, receipt, quotedOut: q.amountOut, minOut, poolInfo };
+    }
+    const router = new Contract(routerAddr, ONELIQ_ROUTER_V2_ABI, signer);
+    const tx = await router.swapV3(
+      tokenIn, BigInt(amountIn), tokenOut, minOut, deadline, poolInfo.fee, 0n,
+    );
     onStep?.(`Confirming ${tx.hash.slice(0, 12)}…`);
     const receipt = await tx.wait();
     return {

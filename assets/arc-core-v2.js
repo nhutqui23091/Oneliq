@@ -213,9 +213,18 @@
       iconGrad: 'linear-gradient(135deg,#6C3FFF,#00CFFF)',
       gatewayDepositDisabled: true,
       contracts: {
-        // OneliqRouter mainnet (Uniswap v4 wrapper) — deployed 2026-09-16.
-        // Deploy tx: 0x0866fb4594300386dd930d8a8914cdcb5b70d60fcf1b5f02eb450b31b5e76713
-        router:              '0xB1Ed79ee288C4631176440b7f4e624C6B4f078F0',
+        // OneliqRouter mainnet — deployed 2026-09-20 from contracts/
+        // OneliqRouterV2.sol. Wraps BOTH Uniswap v4 (via Universal Router
+        // + Permit2) and Uniswap v3 (via SwapRouter02 directly, because
+        // Arc's UR v3 module is broken). Same 0.30% fee model.
+        // Deploy tx: 0xb32138d9c81574c82a15a8755acef6307f145d0803bfcc8ebe6da0928586ec19
+        router:              '0x3635F71daA996e22867647cC58358c5803133A69',
+        // Legacy v4-only router still callable (kept for anyone with a
+        // cached bundle); new sessions land on the address above.
+        routerV1:            '0xB1Ed79ee288C4631176440b7f4e624C6B4f078F0',
+        // Uniswap v3 SwapRouter02 on Arc — reached only via the new router
+        // now, but exposed here for anyone testing v3 directly.
+        uniV3SwapRouter:     '0x53bf6b0684ec7ef91e1387da3d1a1769bc5a6f77',
         // Uniswap v4 official Arc mainnet deployment
         uniV4PoolManager:    '0x8366a39CC670B4001A1121B8F6A443A643e40951',
         uniV4Quoter:         '0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94',
