@@ -512,27 +512,33 @@
     },
     ethereum: {
       USDC: { symbol:'USDC', name:'USD Coin', address:'0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      USDT: { symbol:'USDT', name:'Tether USD', address:'0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals:6, icon:'https://cryptologos.cc/logos/tether-usdt-logo.png' },
       ETH:  { symbol:'ETH',  name:'Ether', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     base: {
       USDC: { symbol:'USDC', name:'USD Coin (Base)', address:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      USDT: { symbol:'USDT', name:'Tether USD (Base)', address:'0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals:6, icon:'https://cryptologos.cc/logos/tether-usdt-logo.png' },
       ETH:  { symbol:'ETH',  name:'Base ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     avalanche: {
       USDC: { symbol:'USDC', name:'USD Coin (Avalanche)', address:'0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      USDT: { symbol:'USDT', name:'Tether USD (Avalanche)', address:'0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', decimals:6, icon:'https://cryptologos.cc/logos/tether-usdt-logo.png' },
       AVAX: { symbol:'AVAX', name:'Avalanche AVAX', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/avalanche-avax-logo.png' },
     },
     arbitrum: {
       USDC: { symbol:'USDC', name:'USD Coin (Arbitrum)', address:'0xaf88d065e77c8cC2239327C5EDb3A432268e5831', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      USDT: { symbol:'USDT', name:'Tether USD (Arbitrum)', address:'0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', decimals:6, icon:'https://cryptologos.cc/logos/tether-usdt-logo.png' },
       ETH:  { symbol:'ETH',  name:'Arbitrum ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     optimism: {
       USDC: { symbol:'USDC', name:'USD Coin (OP)', address:'0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
+      USDT: { symbol:'USDT', name:'Tether USD (OP)', address:'0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', decimals:6, icon:'https://cryptologos.cc/logos/tether-usdt-logo.png' },
       ETH:  { symbol:'ETH',  name:'OP ETH', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
     },
     polygon: {
       USDC: { symbol:'USDC', name:'USD Coin (Polygon)', address:'0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
-      POL:  { symbol:'POL',  name:'Polygon POL', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://cryptologos.cc/logos/polygon-matic-logo.png' },
+      USDT: { symbol:'USDT', name:'Tether USD (Polygon)', address:'0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals:6, icon:'https://cryptologos.cc/logos/tether-usdt-logo.png' },
+      POL:  { symbol:'POL',  name:'Polygon POL', address:'0x0000000000000000000000000000000000000000', decimals:18, isGas:true, icon:'https://assets.coingecko.com/coins/images/32440/small/polygon.png' },
     },
     unichain: {
       USDC: { symbol:'USDC', name:'USD Coin (Unichain)', address:'0x078D782b760474a361dDA0AF3839290b0EF57AD6', decimals:6, icon:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
