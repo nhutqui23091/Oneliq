@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="oneliq-discord-client-id" content="1514587016157859900"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; frame-src 'self' https://dexscreener.com https://www.dexscreener.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
+<meta name="description" content="Live Arc token detail — real price, real chart, real 24h stats. Swap directly against USDC on Arc mainnet."/>
+<title>Token · Explore | Oneliq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/assets/arc-ui.css?v=10.0.0"/>
+<style>
+/* ============================================================
+   TOKEN DETAIL — /token.html?a=0x…
+   Live price + chart (DexScreener embed) + real 24h stats +
+   inline swap against USDC. Nothing here is faked — every
+   number reads from DexScreener's Arc index and every quote
+   hits Uniswap v3/v4 on-chain via the same modules trade.html
+   uses.
+============================================================ */
+.tk-wrap{position:relative;z-index:2;max-width:1240px;margin:0 auto;padding:36px 32px 80px}
+
+.tk-crumb{font-size:13px;color:var(--muted);margin-bottom:20px}
+.tk-crumb a{color:var(--muted);text-decoration:none}
+.tk-crumb a:hover{color:var(--text)}
+.tk-crumb .sep{margin:0 8px;opacity:.5}
+.tk-crumb .cur{color:var(--arc1);font-weight:600}
+
+.tk-header{display:flex;align-items:center;gap:16px;padding:8px 0 18px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.tk-logo{width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--muted)}
+.tk-logo img{width:100%;height:100%;object-fit:cover;display:block}
+.tk-header-main{min-width:0;flex:1}
+.tk-name-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tk-name{font-family:var(--display);font-size:26px;font-weight:600;color:var(--text);letter-spacing:-.015em}
+.tk-sym{font-size:16px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.tk-addr-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.tk-addr{font-family:var(--mono);font-size:12.5px;color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:6px;background:var(--surface);border:1px solid var(--border);transition:all .12s}
+.tk-addr:hover{color:var(--text);border-color:var(--border2)}
+.tk-addr .cp{opacity:.7;margin-left:4px;font-size:11px}
+.tk-header-actions{display:flex;gap:8px}
+.tk-icon-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;text-decoration:none}
+.tk-icon-btn:hover{color:var(--text);border-color:var(--border2)}
+
+.tk-body{display:grid;grid-template-columns:1fr 380px;gap:28px;align-items:start}
+
+/* LEFT — price + chart + stats */
+.tk-left{min-width:0}
+.tk-price-row{margin-bottom:14px}
+.tk-price{font-family:var(--display);font-size:44px;font-weight:300;letter-spacing:-.025em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.tk-change{font-size:14px;margin-top:8px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.tk-change.pos{color:#00E5A0}
+.tk-change.neg{color:#ff6b7e}
+.tk-change.zero{color:var(--muted)}
+.tk-change .abs{color:inherit}
+.tk-change .pct{opacity:.85}
+
+.tk-chart-wrap{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;height:420px;margin-bottom:14px}
+.tk-chart-frame{width:100%;height:100%;border:0;display:block}
+.tk-chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);font-size:14px;padding:20px;text-align:center}
+.tk-chart-empty .t{color:var(--text);font-weight:600;margin-bottom:6px;font-size:15px}
+.tk-chart-empty .s{font-size:12.5px}
+
+.tk-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:14px}
+.tk-stat{padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.tk-stat-lbl{font-size:11.5px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.tk-stat-val{font-family:var(--mono);font-size:17px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.tk-stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.tk-stat .buys{color:#00E5A0}
+.tk-stat .sells{color:#ff6b7e}
+
+/* RIGHT — swap card */
+.tk-right{position:sticky;top:24px}
+.tk-swap{padding:18px;background:var(--surface);border:1px solid var(--border);border-radius:20px;backdrop-filter:blur(20px)}
+.tk-swap-tabs{display:flex;gap:6px;margin-bottom:14px;font-size:14px;font-weight:600}
+.tk-swap-tab{padding:6px 10px;background:none;border:none;color:var(--muted);cursor:pointer;border-radius:8px;font:inherit;transition:all .12s}
+.tk-swap-tab.active{color:var(--text);background:var(--surface2)}
+.tk-swap-tab.disabled{opacity:.45;cursor:not-allowed}
+
+.tk-leg{padding:14px 14px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;margin-bottom:6px}
+.tk-leg-hd{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:6px}
+.tk-leg-row{display:flex;align-items:center;gap:10px}
+.tk-amt{flex:1;min-width:0;background:none;border:none;color:var(--text);font-family:var(--display);font-size:26px;font-weight:400;letter-spacing:-.015em;outline:none;padding:0;font-variant-numeric:tabular-nums;width:100%}
+.tk-amt::placeholder{color:var(--muted);opacity:.55}
+.tk-tok-btn{display:inline-flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:22px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:14.5px;font-weight:600;cursor:default;flex-shrink:0}
+.tk-tok-btn img{width:22px;height:22px;border-radius:50%;background:var(--surface2)}
+.tk-tok-btn .caret{opacity:.55;font-size:11px;margin-left:2px}
+.tk-leg-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.tk-leg-foot .bal{cursor:pointer;transition:color .12s}
+.tk-leg-foot .bal:hover{color:var(--text)}
+.tk-leg-foot .max{margin-left:6px;font-size:10.5px;color:var(--arc1);font-weight:700;letter-spacing:.04em}
+
+.tk-flip{display:flex;align-items:center;justify-content:center;margin:-6px 0}
+.tk-flip-btn{width:34px;height:34px;border-radius:11px;background:var(--surface2);border:3px solid var(--surface);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .12s;position:relative;z-index:2}
+.tk-flip-btn:hover{color:var(--text);background:var(--surface)}
+
+.tk-quote-line{font-size:12px;color:var(--muted);margin-top:10px;text-align:center;min-height:16px}
+.tk-quote-line .venue{color:var(--arc1);font-weight:600}
+
+.tk-swap-btn{width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--arc1),var(--arc2));color:#001820;font:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px;transition:all .15s;letter-spacing:-.005em}
+.tk-swap-btn:hover:not(:disabled){filter:brightness(1.08)}
+.tk-swap-btn:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
+
+.tk-info-note{margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;gap:8px;font-size:11.5px;color:var(--muted);line-height:1.55}
+.tk-info-note .i{width:14px;height:14px;border-radius:50%;background:var(--surface);color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;border:1px solid var(--border);margin-top:1px}
+
+/* Skeleton shimmer */
+.tk-skel{display:inline-block;height:1em;min-width:60px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:tkShim 1.6s infinite;border-radius:4px;vertical-align:middle}
+@keyframes tkShim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+@media (max-width:920px){
+  .tk-body{grid-template-columns:1fr}
+  .tk-right{position:static}
+  .tk-chart-wrap{height:340px}
+  .tk-wrap{padding:24px 16px 60px}
+}
+</style>
+</head>
+<body>
+
+<main>
+  <div class="tk-wrap">
+    <div class="tk-crumb"><a href="/explore">Tokens</a> <span class="sep">›</span> <span class="cur" id="tk-crumb-sym">Loading…</span></div>
+
+    <div class="tk-header">
+      <div class="tk-logo" id="tk-logo">?</div>
+      <div class="tk-header-main">
+        <div class="tk-name-row">
+          <div class="tk-name" id="tk-name"><span class="tk-skel" style="width:140px"></span></div>
+          <div class="tk-sym" id="tk-sym"></div>
+        </div>
+        <div class="tk-addr-row">
+          <span class="tk-addr" id="tk-addr" title="Copy address">— <span class="cp">⧉</span></span>
+        </div>
+      </div>
+      <div class="tk-header-actions">
+        <a class="tk-icon-btn" id="tk-x" href="#" target="_blank" rel="noopener" title="View on X" style="display:none">𝕏</a>
+        <a class="tk-icon-btn" id="tk-explorer" href="#" target="_blank" rel="noopener" title="View on Arcscan">⧉</a>
+      </div>
+    </div>
+
+    <div class="tk-body">
+      <div class="tk-left">
+        <div class="tk-price-row">
+          <div class="tk-price" id="tk-price"><span class="tk-skel" style="width:180px;height:32px"></span></div>
+          <div class="tk-change" id="tk-change"></div>
+        </div>
+
+        <div class="tk-chart-wrap" id="tk-chart-wrap">
+          <div class="tk-chart-empty" id="tk-chart-loading">
+            <div class="t">Loading chart…</div>
+            <div class="s">Fetching the live pool from DexScreener.</div>
+          </div>
+        </div>
+
+        <div class="tk-stats" id="tk-stats"></div>
+      </div>
+
+      <div class="tk-right">
+        <div class="tk-swap">
+          <div class="tk-swap-tabs">
+            <button class="tk-swap-tab active" type="button">Swap</button>
+            <button class="tk-swap-tab disabled" type="button" title="Coming soon">Limit</button>
+            <button class="tk-swap-tab disabled" type="button" title="Coming soon">Buy</button>
+            <button class="tk-swap-tab disabled" type="button" title="Coming soon">Sell</button>
+          </div>
+
+          <div class="tk-leg" id="tk-leg-in">
+            <div class="tk-leg-hd" id="tk-in-hd">Sell</div>
+            <div class="tk-leg-row">
+              <input class="tk-amt" id="tk-in-amt" placeholder="0" inputmode="decimal" autocomplete="off"/>
+              <button class="tk-tok-btn" type="button">
+                <img id="tk-in-ico" alt=""/>
+                <span id="tk-in-sym">USDC</span>
+              </button>
+            </div>
+            <div class="tk-leg-foot">
+              <span id="tk-in-usd">$0</span>
+              <span class="bal" id="tk-in-bal">—</span>
+            </div>
+          </div>
+
+          <div class="tk-flip"><button class="tk-flip-btn" id="tk-flip" type="button" aria-label="Flip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button></div>
+
+          <div class="tk-leg" id="tk-leg-out">
+            <div class="tk-leg-hd">Buy</div>
+            <div class="tk-leg-row">
+              <input class="tk-amt" id="tk-out-amt" placeholder="0" readonly/>
+              <button class="tk-tok-btn" type="button">
+                <img id="tk-out-ico" alt=""/>
+                <span id="tk-out-sym">—</span>
+              </button>
+            </div>
+            <div class="tk-leg-foot">
+              <span id="tk-out-usd">$0</span>
+              <span class="bal" id="tk-out-bal">—</span>
+            </div>
+          </div>
+
+          <div class="tk-quote-line" id="tk-quote-line"></div>
+          <button class="tk-swap-btn" id="tk-swap-btn" disabled>Connect wallet</button>
+
+          <div class="tk-info-note" id="tk-info-note" style="display:none">
+            <div class="i">i</div>
+            <div id="tk-info-note-txt"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"
+        integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+<script src="/assets/appkit.bundle.js?v=1.0.1"></script>
+<script src="/assets/arc-core-v2.js?v=10.0.8"></script>
+<script src="/assets/arc-uniswap-v4.js?v=1.3.6"></script>
+<script src="/assets/arc-uniswap-v3.js?v=1.2.0"></script>
+<script src="/assets/arc-ui.js?v=10.0.4"></script>
+<script>
+(async () => {
+  await ArcUI.bootApp('explore');
+  const { CHAINS, TOKENS, ABIS, wallet, formatAmt, parseAmt, tokenBalance, isMainnet } = window.ARC;
+  const { Contract, getAddress, isAddress } = window.ethers;
+
+  // ── Parse token address from URL ────────────────────────────────────
+  // Accepts ?a=0x… (short) or ?address=0x… (verbose) so links from
+  // anywhere in the app work.
+  const params = new URLSearchParams(location.search);
+  const rawAddr = params.get('a') || params.get('address') || '';
+  if (!isAddress(rawAddr)) {
+    document.querySelector('.tk-body').innerHTML =
+      `<div style="padding:60px 20px;text-align:center;color:var(--muted)">Missing or invalid token address.<br><a href="/explore" style="color:var(--arc1)">Back to Explore</a></div>`;
+    return;
+  }
+  const TOKEN_ADDR = getAddress(rawAddr);
+
+  // ── State ──────────────────────────────────────────────────────────
+  const state = {
+    token: null,            // {address, symbol, name, decimals, icon, priceUsd}
+    topPair: null,          // deepest DexScreener pair for this token
+    allPairs: [],           // every Arc pair the token is in
+    venue: null,            // 'v3' | 'v4' | 'unknown' — based on top pair label
+    side: 'buy',            // 'buy' (USDC → token) | 'sell' (token → USDC)
+    amountIn: '',
+    quote: null,            // { amountOut:bigint, minOut:bigint, rate:number, venue, feeLabel }
+    quoting: false,
+    quoteSeq: 0,
+    balUsdc: 0n,
+    balTok: 0n,
+    slippageBps: 50,
+  };
+
+  // ── Real DexScreener load ──────────────────────────────────────────
+  async function loadDex() {
+    try {
+      const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDR}`);
+      if (!r.ok) return null;
+      const j = await r.json();
+      const pairs = (j.pairs || []).filter(p => p.chainId === 'arc');
+      if (!pairs.length) return null;
+      pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+      return pairs;
+    } catch { return null; }
+  }
+
+  // Pick the on-chain decimals for this token by asking its contract.
+  // DexScreener doesn't return decimals; assuming 18 works most of the
+  // time on EVM meme tokens but stables use 6 — we don't guess.
+  async function readOnchainDecimals() {
+    try {
+      const c = new Contract(TOKEN_ADDR, ABIS.erc20, ARC.rpcProvider('arc'));
+      const d = await c.decimals();
+      return Number(d);
+    } catch { return 18; }
+  }
+
+  // ── Chart iframe (real chart, live data) ───────────────────────────
+  // DexScreener's own embed. Zero maintenance, zero fake data. The theme
+  // and no-info/no-trades toggles keep the widget clean and matched to
+  // our dark surface.
+  function mountChart(pair) {
+    const wrap = document.getElementById('tk-chart-wrap');
+    if (!pair?.pairAddress) {
+      wrap.innerHTML = `<div class="tk-chart-empty"><div class="t">No pool found for this token</div><div class="s">DexScreener has no Arc pair for ${TOKEN_ADDR.slice(0,10)}… yet.</div></div>`;
+      return;
+    }
+    const src = `https://dexscreener.com/arc/${pair.pairAddress}?embed=1&theme=dark&trades=0&info=0`;
+    wrap.innerHTML = `<iframe class="tk-chart-frame" id="tk-chart-frame" src="${src}" allowfullscreen loading="lazy"></iframe>`;
+  }
+
+  // ── Render header + stats (all real, from DexScreener) ─────────────
+  function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  function fmtUsd(n, d = 2) {
+    if (n == null || !isFinite(n)) return '—';
+    if (n === 0) return '$0';
+    const abs = Math.abs(n);
+    if (abs >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+    if (abs >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+    if (abs >= 1)   return '$' + n.toFixed(d);
+    if (abs >= 0.01)  return '$' + n.toFixed(4);
+    if (abs >= 0.0001) return '$' + n.toFixed(6);
+    return '$' + n.toExponential(2);
+  }
+  function fmtInt(n) {
+    if (n == null || !isFinite(n)) return '—';
+    return Math.round(n).toLocaleString('en-US');
+  }
+
+  function renderHeader() {
+    const t = state.token;
+    document.getElementById('tk-crumb-sym').textContent = t?.symbol || 'Token';
+    document.title = `${t?.symbol || 'Token'} · Explore | Oneliq`;
+    const logo = document.getElementById('tk-logo');
+    if (t?.icon) {
+      const img = new Image();
+      img.src = t.icon;
+      img.onerror = () => { logo.textContent = (t.symbol[0] || '?').toUpperCase(); };
+      logo.innerHTML = '';
+      logo.appendChild(img);
+    } else {
+      logo.textContent = (t?.symbol?.[0] || '?').toUpperCase();
+    }
+    document.getElementById('tk-name').textContent = t?.name || '(unnamed)';
+    document.getElementById('tk-sym').textContent = t?.symbol || '';
+    const short = `${TOKEN_ADDR.slice(0,6)}…${TOKEN_ADDR.slice(-4)}`;
+    const addrEl = document.getElementById('tk-addr');
+    addrEl.innerHTML = `${short} <span class="cp">⧉</span>`;
+    addrEl.onclick = () => {
+      navigator.clipboard.writeText(TOKEN_ADDR).catch(() => {});
+      addrEl.innerHTML = `Copied <span class="cp">✓</span>`;
+      setTimeout(() => { addrEl.innerHTML = `${short} <span class="cp">⧉</span>`; }, 1400);
+    };
+
+    const expl = document.getElementById('tk-explorer');
+    expl.href = CHAINS.arc.explorerAddr(TOKEN_ADDR);
+
+    // Twitter link — DexScreener sometimes reports socials on the pair
+    const tw = (state.topPair?.info?.socials || []).find(s => (s.type||'').toLowerCase() === 'twitter');
+    const xBtn = document.getElementById('tk-x');
+    if (tw?.url) { xBtn.href = tw.url; xBtn.style.display = ''; }
+  }
+
+  function renderPrice() {
+    const p = state.topPair;
+    if (!p) return;
+    const price = Number(p.priceUsd) || 0;
+    document.getElementById('tk-price').textContent = fmtUsd(price, price >= 1 ? 4 : 6);
+    const ch24 = Number(p.priceChange?.h24 ?? 0);
+    const cls = ch24 > 0 ? 'pos' : ch24 < 0 ? 'neg' : 'zero';
+    const arrow = ch24 > 0 ? '▲' : ch24 < 0 ? '▼' : '·';
+    const absMove = price * ch24 / 100;
+    const absStr = Math.abs(absMove) >= 0.01 ? fmtUsd(Math.abs(absMove), 4) : `$${Math.abs(absMove).toFixed(6)}`;
+    document.getElementById('tk-change').className = 'tk-change ' + cls;
+    document.getElementById('tk-change').innerHTML = `<span>${arrow}</span> <span class="abs">${absStr}</span> <span class="pct">(${Math.abs(ch24).toFixed(2)}%)</span>`;
+  }
+
+  function renderStats() {
+    // Aggregate real stats across all pairs the token appears in.
+    const pairs = state.allPairs;
+    let vol24 = 0, tvl = 0, buys = 0, sells = 0;
+    let mcap = 0, fdv = 0;
+    for (const p of pairs) {
+      vol24 += Number(p.volume?.h24 || 0);
+      tvl   += Number(p.liquidity?.usd || 0);
+      buys  += Number(p.txns?.h24?.buys || 0);
+      sells += Number(p.txns?.h24?.sells || 0);
+    }
+    // Market cap / FDV: report the deepest pair's number so we don't
+    // double-count. DexScreener returns `marketCap` when circulating
+    // supply is known, `fdv` always (fully diluted).
+    mcap = Number(state.topPair?.marketCap || 0);
+    fdv  = Number(state.topPair?.fdv || 0);
+    const totals = [
+      { lbl: 'Market cap',    val: mcap ? fmtUsd(mcap) : '—', sub: 'From top pool' },
+      { lbl: 'FDV',           val: fdv  ? fmtUsd(fdv)  : '—', sub: 'Fully diluted' },
+      { lbl: '24h Volume',    val: fmtUsd(vol24) },
+      { lbl: 'TVL',           val: fmtUsd(tvl),         sub: `${pairs.length} pool${pairs.length===1?'':'s'}` },
+      { lbl: 'Buys / Sells (24h)', val: `<span class="buys">${fmtInt(buys)}</span> / <span class="sells">${fmtInt(sells)}</span>` },
+      { lbl: 'Top pool',      val: state.venue ? state.venue.toUpperCase() : '—', sub: state.topPair?.dexId || 'unknown' },
+    ];
+    document.getElementById('tk-stats').innerHTML = totals.map(t =>
+      `<div class="tk-stat"><div class="tk-stat-lbl">${esc(t.lbl)}</div><div class="tk-stat-val">${t.val}</div>${t.sub ? `<div class="tk-stat-sub">${esc(t.sub)}</div>` : ''}</div>`
+    ).join('');
+  }
+
+  // ── Swap card ──────────────────────────────────────────────────────
+  // Two-token model: USDC (Arc native gas, 18 dec / 6 pool) + THIS token.
+  // Direction toggles between 'buy' (USDC → token) and 'sell' (token → USDC).
+  const USDC = TOKENS.arc.USDC;
+  function inTok()  { return state.side === 'buy' ? USDC : state.token; }
+  function outTok() { return state.side === 'buy' ? state.token : USDC; }
+
+  function renderPickers() {
+    const inT = inTok(), outT = outTok();
+    document.getElementById('tk-in-sym').textContent  = inT?.symbol || '—';
+    document.getElementById('tk-out-sym').textContent = outT?.symbol || '—';
+    document.getElementById('tk-in-hd').textContent   = 'Sell';
+    const setIco = (id, tok) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (tok?.icon) { el.src = tok.icon; el.style.display = ''; }
+      else el.style.display = 'none';
+    };
+    setIco('tk-in-ico',  inT);
+    setIco('tk-out-ico', outT);
+  }
+
+  function _tokUsdc(t) { return t?.symbol === 'USDC' ? 1 : (t?.priceUsd || 0); }
+  function usdFor(tok, amtBig) {
+    if (!tok || !amtBig) return 0;
+    const s = parseFloat(formatAmt(amtBig, tok.decimals));
+    return s * (_tokUsdc(tok) || 0);
+  }
+
+  function refreshBalances() {
+    if (!wallet.address) {
+      document.getElementById('tk-in-bal').textContent  = 'Connect wallet';
+      document.getElementById('tk-out-bal').textContent = '';
+      return;
+    }
+    const inT = inTok(), outT = outTok();
+    const inBal  = state.side === 'buy' ? state.balUsdc : state.balTok;
+    const outBal = state.side === 'buy' ? state.balTok  : state.balUsdc;
+    document.getElementById('tk-in-bal').innerHTML  = `${formatAmt(inBal,  inT.decimals, 4)} ${esc(inT.symbol)} <span class="max" id="tk-in-max">MAX</span>`;
+    document.getElementById('tk-out-bal').textContent = `${formatAmt(outBal, outT.decimals, 4)} ${outT.symbol}`;
+    const maxBtn = document.getElementById('tk-in-max');
+    if (maxBtn) maxBtn.onclick = (e) => {
+      e.stopPropagation();
+      const dispMax = formatAmt(inBal, inT.decimals);
+      // Reserve a hair of gas if the input IS the native USDC — Arc uses
+      // USDC as gas, so paying it all leaves nothing for the swap tx.
+      let usable = inBal;
+      if (inT.isGasToken) {
+        const reserve = (10n ** BigInt(inT.decimals)) / 10n; // ~0.1 USDC
+        usable = inBal > reserve ? inBal - reserve : 0n;
+      }
+      document.getElementById('tk-in-amt').value = formatAmt(usable, inT.decimals);
+      state.amountIn = document.getElementById('tk-in-amt').value;
+      triggerQuote();
+    };
+  }
+
+  async function loadBalances() {
+    if (!wallet.address || !state.token) return;
+    try {
+      const [u, t] = await Promise.all([
+        tokenBalance('arc', USDC,       wallet.address).catch(() => 0n),
+        tokenBalance('arc', state.token, wallet.address).catch(() => 0n),
+      ]);
+      state.balUsdc = u; state.balTok = t;
+      refreshBalances();
+    } catch {}
+  }
+
+  // ── Quote (uses same modules as trade.html) ────────────────────────
+  let quoteTimer = null;
+  function triggerQuote() { clearTimeout(quoteTimer); quoteTimer = setTimeout(runQuote, 220); }
+
+  async function runQuote() {
+    const seq = ++state.quoteSeq;
+    const inT = inTok(), outT = outTok();
+    const val = document.getElementById('tk-in-amt').value.trim();
+    if (!val || !state.token) { paintQuote(null); return; }
+    let amt;
+    try { amt = parseAmt(val, inT.decimals); } catch { paintQuote(null); return; }
+    if (amt <= 0n) { paintQuote(null); return; }
+
+    // Instant preview from cached DexScreener prices (real numbers, just
+    // may lag the pool by a few seconds). We overwrite with the on-chain
+    // quote as soon as the Uniswap Quoter returns.
+    const pIn  = _tokUsdc(inT);
+    const pOut = _tokUsdc(outT);
+    if (pIn && pOut) {
+      const inFloat  = Number(amt) / (10 ** inT.decimals);
+      const outFloat = inFloat * pIn / pOut;
+      document.getElementById('tk-out-amt').value = outFloat.toFixed(6);
+      document.getElementById('tk-quote-line').innerHTML =
+        `1 ${esc(inT.symbol)} ≈ ${(pIn/pOut).toFixed(6)} ${esc(outT.symbol)} · <span class="venue">${state.venue ? state.venue.toUpperCase() : 'Uniswap'}</span> · fetching on-chain quote…`;
+    }
+
+    try {
+      // Same scale logic as trade.html: Arc USDC is 18-dec UI, 6-dec pool.
+      const dIn  = inT.decimals  - (inT.cctpDecimals  ?? inT.decimals);
+      const dOut = outT.decimals - (outT.cctpDecimals ?? outT.decimals);
+      const poolIn = dIn > 0 ? amt / (10n ** BigInt(dIn)) : amt;
+
+      let poolOut = 0n, venueUsed = state.venue || 'v4', feeLabel = 'Uniswap pool';
+      if (state.venue === 'v3' && ARC.uniV3) {
+        const poolInfo = await ARC.uniV3.discoverV3Pool(inT.address, outT.address);
+        if (!poolInfo) throw new Error('v3 pool not found');
+        const q = await ARC.uniV3.quoteV3(poolInfo, poolIn, inT.address);
+        if (!q || q.amountOut === 0n) throw new Error('no depth');
+        poolOut = BigInt(q.amountOut);
+        venueUsed = 'v3';
+        feeLabel  = `Uniswap v3 · ${(poolInfo.fee / 10000).toFixed(4)}%`;
+      } else if (ARC.uniV4) {
+        const best = await ARC.uniV4.bestQuote(inT.address, outT.address, poolIn);
+        if (!best) throw new Error('no v4 pool');
+        poolOut = BigInt(best.amountOut);
+        venueUsed = 'v4';
+        feeLabel  = `Uniswap v4`;
+      }
+      const out = dOut > 0 ? poolOut * (10n ** BigInt(dOut)) : poolOut;
+      if (seq !== state.quoteSeq) return; // stale
+      const slip = BigInt(state.slippageBps);
+      const minOut = out - (out * slip) / 10000n;
+      const inFloat  = Number(amt) / (10 ** inT.decimals);
+      const outFloat = Number(out) / (10 ** outT.decimals);
+      const rate = inFloat > 0 ? outFloat / inFloat : 0;
+      state.quote = { amountOut: out, minOut, rate, venue: venueUsed, feeLabel };
+      document.getElementById('tk-out-amt').value = formatAmt(out, outT.decimals, 6);
+      document.getElementById('tk-out-usd').textContent = fmtUsd(usdFor(outT, out));
+      document.getElementById('tk-in-usd').textContent  = fmtUsd(usdFor(inT, amt));
+      document.getElementById('tk-quote-line').innerHTML =
+        `1 ${esc(inT.symbol)} ≈ ${rate.toFixed(6)} ${esc(outT.symbol)} · <span class="venue">${venueUsed.toUpperCase()}</span> · ${esc(feeLabel)}`;
+      refreshSwapBtn();
+    } catch (e) {
+      if (seq !== state.quoteSeq) return;
+      state.quote = null;
+      document.getElementById('tk-out-amt').value = '';
+      document.getElementById('tk-quote-line').textContent = 'No route on Arc for this pair right now.';
+      refreshSwapBtn();
+    }
+  }
+
+  function paintQuote(q) {
+    document.getElementById('tk-out-amt').value = '';
+    document.getElementById('tk-out-usd').textContent = '$0';
+    document.getElementById('tk-in-usd').textContent  = '$0';
+    document.getElementById('tk-quote-line').textContent = '';
+    state.quote = q;
+    refreshSwapBtn();
+  }
+
+  function refreshSwapBtn() {
+    const btn = document.getElementById('tk-swap-btn');
+    const inT = inTok();
+    if (!wallet.address) {
+      btn.disabled = false;
+      btn.textContent = 'Connect wallet';
+      btn.onclick = () => wallet.connect().catch(() => {});
+      return;
+    }
+    const val = document.getElementById('tk-in-amt').value.trim();
+    if (!val) { btn.disabled = true; btn.textContent = 'Enter an amount'; btn.onclick = null; return; }
+    let amt;
+    try { amt = parseAmt(val, inT.decimals); } catch { btn.disabled = true; btn.textContent = 'Enter an amount'; return; }
+    if (amt <= 0n) { btn.disabled = true; btn.textContent = 'Enter an amount'; return; }
+    const inBal = state.side === 'buy' ? state.balUsdc : state.balTok;
+    if (amt > inBal) { btn.disabled = true; btn.textContent = `Not enough ${inT.symbol}`; btn.onclick = null; return; }
+    if (!state.quote) { btn.disabled = true; btn.textContent = 'Fetching quote…'; btn.onclick = null; return; }
+    btn.disabled = false;
+    btn.textContent = `Swap ${inT.symbol} → ${outTok().symbol}`;
+    btn.onclick = runSwap;
+  }
+
+  async function runSwap() {
+    const btn = document.getElementById('tk-swap-btn');
+    const inT = inTok(), outT = outTok();
+    if (!state.quote) return;
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Switching to Arc…';
+      await wallet.ensureChain('arc');
+
+      const val = document.getElementById('tk-in-amt').value.trim();
+      const amt = parseAmt(val, inT.decimals);
+      const dIn = inT.decimals - (inT.cctpDecimals ?? inT.decimals);
+      const poolIn = dIn > 0 ? amt / (10n ** BigInt(dIn)) : amt;
+
+      btn.textContent = 'Confirm in wallet…';
+      const useV3 = state.quote.venue === 'v3';
+      const exec = useV3 ? ARC.uniV3.executeV3Swap : ARC.uniV4.executeSwap;
+      const result = await exec(wallet.signer, {
+        tokenIn:  inT.address,
+        tokenOut: outT.address,
+        amountIn: poolIn,
+        slippageBps: state.slippageBps,
+      }, (msg) => { btn.textContent = msg; });
+
+      const txUrl = CHAINS.arc.explorerTx(result.hash);
+      ArcUI.toast('success', 'Swap complete', `Tx ${result.hash.slice(0,10)}…`);
+      const note = document.getElementById('tk-info-note');
+      const noteTxt = document.getElementById('tk-info-note-txt');
+      note.style.display = '';
+      noteTxt.innerHTML = `Confirmed on Arc — <a href="${txUrl}" target="_blank" rel="noopener" style="color:var(--arc1)">view tx ↗</a>`;
+      document.getElementById('tk-in-amt').value = '';
+      paintQuote(null);
+      try { ARC.track('trade', 'arc', parseFloat(val) || 0, result.hash, 'trade'); } catch {}
+      await loadBalances();
+    } catch (e) {
+      const msg = window.ARC?.explainError ? ARC.explainError(e) : (e?.message || String(e));
+      ArcUI.toast('error', 'Swap failed', msg);
+    } finally {
+      refreshSwapBtn();
+    }
+  }
+
+  // ── Wire flip + input ──────────────────────────────────────────────
+  document.getElementById('tk-flip').onclick = () => {
+    state.side = state.side === 'buy' ? 'sell' : 'buy';
+    document.getElementById('tk-in-amt').value = '';
+    document.getElementById('tk-out-amt').value = '';
+    state.amountIn = '';
+    renderPickers();
+    refreshBalances();
+    paintQuote(null);
+  };
+  document.getElementById('tk-in-amt').oninput = (e) => {
+    state.amountIn = e.target.value;
+    triggerQuote();
+  };
+
+  // Wallet subscription: repaint balances + button whenever address/chain
+  // changes. `wallet.on(cb)` fires with the latest snapshot every time
+  // AppKit reports a state change.
+  try { wallet.on(() => { loadBalances(); refreshSwapBtn(); }); } catch {}
+  // AppKit sometimes attaches address after boot completes. Poll briefly
+  // as a fallback so the button flips to "Swap …" without a manual refresh.
+  const pollWallet = setInterval(() => {
+    if (wallet.address) { clearInterval(pollWallet); loadBalances(); refreshSwapBtn(); }
+  }, 500);
+  setTimeout(() => clearInterval(pollWallet), 8000);
+
+  // ── Bootstrap: load DexScreener → render everything ────────────────
+  if (!(isMainnet && isMainnet())) {
+    document.querySelector('.tk-body').innerHTML =
+      `<div style="padding:60px 20px;text-align:center;color:var(--muted)">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Token detail is mainnet-only</div>
+        <div style="font-size:13px">Switch to Arc Mainnet from the header, then open this link again.</div>
+      </div>`;
+    return;
+  }
+
+  const pairs = await loadDex();
+  if (!pairs) {
+    document.querySelector('.tk-body').innerHTML =
+      `<div style="padding:60px 20px;text-align:center;color:var(--muted)">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">No pool found for this token</div>
+        <div style="font-size:13px">DexScreener has no Arc pair for <span style="font-family:var(--mono)">${TOKEN_ADDR.slice(0,10)}…</span> yet.</div>
+        <div style="margin-top:14px"><a href="/explore" style="color:var(--arc1)">← Back to Explore</a></div>
+      </div>`;
+    return;
+  }
+  state.allPairs = pairs;
+  state.topPair = pairs[0];
+  // Figure out which venue the top pool is on so quoting hits the right
+  // Uniswap module. DexScreener labels v3/v4 in `labels[]` or `dexId`.
+  const labels = (state.topPair.labels || []).map(l => String(l).toLowerCase());
+  const dexId  = String(state.topPair.dexId || '').toLowerCase();
+  if (labels.includes('v3') || dexId.includes('v3')) state.venue = 'v3';
+  else if (labels.includes('v4') || dexId.includes('v4') || dexId === 'uniswap') state.venue = 'v4';
+  else state.venue = 'v4'; // default: OneliqRouter v4 path
+
+  // Which side of the pair IS our token?
+  const baseIsUs = state.topPair.baseToken?.address?.toLowerCase() === TOKEN_ADDR.toLowerCase();
+  const meta = baseIsUs ? state.topPair.baseToken : state.topPair.quoteToken;
+  const decimals = await readOnchainDecimals();
+  state.token = {
+    address: TOKEN_ADDR,
+    symbol: meta?.symbol || '?',
+    name: meta?.name || meta?.symbol || 'Unknown',
+    decimals,
+    icon: state.topPair.info?.imageUrl || null,
+    priceUsd: Number(state.topPair.priceUsd) || 0,
+  };
+
+  renderHeader();
+  renderPrice();
+  renderStats();
+  mountChart(state.topPair);
+  renderPickers();
+  refreshBalances();
+  refreshSwapBtn();
+
+  if (wallet.address) loadBalances();
+})();
+</script>
+</body>
+</html>

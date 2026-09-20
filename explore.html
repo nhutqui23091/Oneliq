@@ -442,11 +442,11 @@
       return;
     }
     tbody.innerHTML = list.map((t, i) => tokenRowHtml(t, i)).join('');
-    // Row click → open Trade preselected with this token address
+    // Row click → open the token detail page (chart + real stats + inline swap)
     tbody.querySelectorAll('tr[data-addr]').forEach(row => {
       row.onclick = () => {
         const addr = row.dataset.addr;
-        location.href = `/trade?token=${encodeURIComponent(addr)}`;
+        location.href = `/token.html?a=${encodeURIComponent(addr)}`;
       };
     });
     // Sort-indicator glyphs
