@@ -277,6 +277,11 @@
         messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // Uniswap v3 official Base deployment
+        uniV3Factory:        '0x33128a8fC17869897dcE68Ed026d694621f6FDfD',
+        uniV3QuoterV2:       '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a',
+        uniV3SwapRouter02:   '0x2626664c2603336E57B271c5C0b26F421741e481',
+        weth9:               '0x4200000000000000000000000000000000000006',
       },
     },
     avalanche: {
@@ -295,6 +300,11 @@
         messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // Uniswap v3 official Avalanche deployment
+        uniV3Factory:        '0x740b1c1de25031C31FF4fC9A62f554A55cdC1baD',
+        uniV3QuoterV2:       '0xbe0F5544EC67e9B3b2D979aaA43f18Fd87E6257F',
+        uniV3SwapRouter02:   '0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE',
+        weth9:               '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7',
       },
     },
     arbitrum: {
@@ -313,6 +323,11 @@
         messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // Uniswap v3 official Arbitrum deployment
+        uniV3Factory:        '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+        uniV3QuoterV2:       '0x61fFE014bA17989E743c5F6cB21bF9697530B21e',
+        uniV3SwapRouter02:   '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+        weth9:               '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
       },
     },
     optimism: {
@@ -331,6 +346,11 @@
         messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // Uniswap v3 official OP deployment
+        uniV3Factory:        '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+        uniV3QuoterV2:       '0x61fFE014bA17989E743c5F6cB21bF9697530B21e',
+        uniV3SwapRouter02:   '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+        weth9:               '0x4200000000000000000000000000000000000006',
       },
     },
     polygon: {
@@ -349,6 +369,11 @@
         messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // Uniswap v3 official Polygon deployment (weth9 slot = WPOL/WMATIC)
+        uniV3Factory:        '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+        uniV3QuoterV2:       '0x61fFE014bA17989E743c5F6cB21bF9697530B21e',
+        uniV3SwapRouter02:   '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+        weth9:               '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
       },
     },
     unichain: {
@@ -367,6 +392,11 @@
         messageTransmitterV2:'0x81D40F21F12A8F0E3252Bccb954D722d4c464B64',
         gatewayWallet:       '0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE',
         gatewayMinter:       '0x2222222d7164433c4C09B0b0D809a9b52C04C205',
+        // Uniswap v3 official Unichain deployment
+        uniV3Factory:        '0x1F98400000000000000000000000000000000003',
+        uniV3QuoterV2:       '0x385A5cf5F83e99f7BB2852b6A19C3538b9FA7658',
+        uniV3SwapRouter02:   '0x73855d06DE49d0fe4A9c42636Ba96c62da12FF9C',
+        weth9:               '0x4200000000000000000000000000000000000006',
       },
     },
   };

@@ -552,11 +552,12 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
         crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
 <script src="/assets/appkit.bundle.js?v=1.0.1"></script>
-<script src="/assets/arc-core-v2.js?v=10.0.7"></script>
+<script src="/assets/arc-core-v2.js?v=10.0.8"></script>
 <script src="/assets/arc-ui.js?v=10.0.3"></script>
 <script src="/assets/arc-gateway.js?v=10.0.0"></script>
 <script src="/assets/arc-uniswap-v4.js?v=1.3.6"></script>
 <script src="/assets/arc-uniswap-v3.js?v=1.2.0"></script>
+<script src="/assets/arc-uniswap-cross.js?v=1.0.0"></script>
 
 <!-- Circle App Kit config (kit key injected at build time by Cloudflare Pages,
      file is gitignored locally so dev paste their own key from arc-appkit-config.js.example) -->
@@ -734,17 +735,30 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     return liq;
   }
 
+  // Maps our chain keys to DexScreener's chainId slugs. Only mainnet chains
+  // have DexScreener coverage — testnet + Arc use "arc" (Arc-specific index).
+  const DXS_CHAIN_SLUG = {
+    arc: 'arc',
+    ethereum: 'ethereum',
+    base: 'base',
+    arbitrum: 'arbitrum',
+    optimism: 'optimism',
+    polygon: 'polygon',
+    avalanche: 'avalanche',
+    unichain: 'unichain',
+  };
+
   async function fetchDexScreenerInfo(chainKey, addr) {
-    // Only Arc mainnet is supported by DexScreener under chainId "arc". For
-    // other chains we return null and the caller keeps the letter avatar.
-    if (chainKey !== 'arc' || !ARC.isMainnet || !ARC.isMainnet()) return null;
+    if (!ARC.isMainnet || !ARC.isMainnet()) return null;
+    const slug = DXS_CHAIN_SLUG[chainKey];
+    if (!slug) return null;
     const cached = _loadDexsCache(chainKey, addr);
     if (cached) return cached;
     try {
       const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`);
       if (!r.ok) return null;
       const j = await r.json();
-      const pairs = (j?.pairs || []).filter(p => p.chainId === 'arc');
+      const pairs = (j?.pairs || []).filter(p => p.chainId === slug);
       if (!pairs.length) return null;
       // Pick the highest-liquidity pair for the most representative price.
       pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
@@ -1558,10 +1572,31 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     let runSym = srcSym;
     const steps = [];
 
-    // STEP A: pre-swap on Arc if source is non-USDC (e.g. EURC wallet on Arc → bridge to Sepolia)
+    // Emits the right swap step for the chain we're on: Arc has its own
+    // OneliqRouter path (v3/v4 both), every other chain hits Uniswap v3
+    // SwapRouter02 directly via ARC.uniCross.
+    function emitSwap(chain, tIn, tOut) {
+      if (chain === 'arc') {
+        steps.push({ type: 'swap', chain: 'arc', tIn, tOut });
+      } else {
+        if (!CHAINS[chain]?.contracts?.uniV3SwapRouter02) {
+          throw new Error(`No Uniswap v3 configured on ${chainShort(chain)}`);
+        }
+        steps.push({ type: 'swap-cross', chain, tIn, tOut });
+      }
+    }
+
+    // STEP A: pre-swap on the source chain if we're starting from a non-USDC
+    // token. Arc uses OneliqRouter; other chains use SwapRouter02.
     if (runSym !== 'USDC') {
-      if (runChain !== 'arc') throw new Error('Non-USDC source supported only on Arc');
-      steps.push({ type: 'swap', chain: 'arc', tIn: runSym, tOut: 'USDC' });
+      // Same-chain case: swap DIRECTLY to the destination token — skip
+      // the "→ USDC → dst" detour. Skip if the destination is also non-USDC
+      // on a different chain (rare, handled below by pre-swap-to-USDC).
+      if (runChain === dstChain && dstSym !== 'USDC') {
+        emitSwap(runChain, runSym, dstSym);
+        return steps;
+      }
+      emitSwap(runChain, runSym, 'USDC');
       runSym = 'USDC';
     }
 
@@ -1584,10 +1619,9 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       runSym = 'USDC';
     }
 
-    // STEP C: post-swap on Arc if destination wants non-USDC
+    // STEP C: post-swap on the destination chain if it wants non-USDC.
     if (dstSym !== 'USDC') {
-      if (runChain !== 'arc') throw new Error('Non-USDC destination supported only on Arc');
-      steps.push({ type: 'swap', chain: 'arc', tIn: 'USDC', tOut: dstSym });
+      emitSwap(runChain, 'USDC', dstSym);
     }
 
     // STEP D: pure transfer when nothing else needed but recipient differs
@@ -1620,6 +1654,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       else if (s.type === 'gateway-multi-spend') nodes.push(`<span class="route-step" style="background:rgba(244,200,154,.15);border-color:rgba(244,200,154,.45);font-weight:700;color:var(--c-amber)">⚡ Unified Multi-burn → ${chainShort(s.dst)}</span>`);
       else if (s.type === 'cctp-bridge') nodes.push(`<span class="route-step">CCTP ${chainShort(s.src)}→${chainShort(s.dst)}</span>`);
       else if (s.type === 'swap') nodes.push(`<span class="route-step">Swap ${s.tIn}→${s.tOut} on Arc</span>`);
+      else if (s.type === 'swap-cross') nodes.push(`<span class="route-step">Swap ${s.tIn}→${s.tOut} on ${chainShort(s.chain)}</span>`);
       else if (s.type === 'transfer') nodes.push(`<span class="route-step">Transfer on ${chainShort(s.chain)}</span>`);
     }
     nodes.push('<span class="route-arrow">→</span>');
@@ -1769,6 +1804,18 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           totalSec += 5;
           fees.push(sw.feeLabel || 'pool');
           lastSwap = sw;
+        } else if (step.type === 'swap-cross') {
+          const tInTok = TOKENS[step.chain]?.[step.tIn];
+          const tOutTok = TOKENS[step.chain]?.[step.tOut];
+          if (!tInTok || !tOutTok) throw new Error(`Token ${step.tIn}/${step.tOut} not registered on ${chainShort(step.chain)}`);
+          const q = await ARC.uniCross.quoteCross(step.chain, tInTok, tOutTok, runAmt);
+          runAmt = q.amountOut;
+          runTokSym = step.tOut;
+          totalSec += 10;
+          fees.push(q.feeLabel || 'Uniswap v3 pool');
+          // Stash fee tier on the step so execute() reuses the same pool.
+          step._fee = q.fee;
+          lastSwap = { amountOut: q.amountOut, impact: null };
         } else if (step.type === 'transfer') {
           totalSec += 5;
           fees.push('gas only');
@@ -1845,27 +1892,31 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
   }
 
   function estimateUSD(amount, token) {
-    // Stablecoin assumption for USDC/EURC; ETH rough $2400 on Sepolia (display only)
+    // Stablecoin assumption for USDC/USDT/EURC; ETH rough $3500, native chain
+    // tokens (AVAX/POL) get rough placeholders that DexScreener overwrites
+    // as soon as a real pool price comes back for that address.
     const s = parseFloat(formatAmt(amount, token.decimals));
-    // Custom Arc tokens: use DexScreener-cached USD price when available
-    // (attached in fetchDexScreenerInfo / import flow).
     if (typeof token.priceUsd === 'number') return (s * token.priceUsd).toFixed(2);
-    if (token.symbol === 'USDC') return s.toFixed(2);
+    if (token.symbol === 'USDC' || token.symbol === 'USDT') return s.toFixed(2);
     if (token.symbol === 'EURC') return (s * 1.08).toFixed(2);
-    if (token.symbol === 'ETH') return (s * 2400).toFixed(2);
+    if (token.symbol === 'ETH')  return (s * 3500).toFixed(2);
+    if (token.symbol === 'AVAX') return (s * 40).toFixed(2);
+    if (token.symbol === 'POL')  return (s * 0.6).toFixed(2);
     if (token.custom) return '';
     return s.toFixed(2);
   }
 
   // Returns the "priceUsd" number for a token, or null when unknown. Used
   // for the instant DexScreener-based rate preview shown before the real
-  // Uniswap v4 Quoter answers — matches Uniswap's <1s rate flash.
+  // Uniswap Quoter answers — matches Uniswap's <1s rate flash.
   function tokenUsdPrice(token) {
     if (!token) return null;
     if (typeof token.priceUsd === 'number') return token.priceUsd;
-    if (token.symbol === 'USDC') return 1;
+    if (token.symbol === 'USDC' || token.symbol === 'USDT') return 1;
     if (token.symbol === 'EURC') return 1.08;
-    if (token.symbol === 'ETH')  return 2400;
+    if (token.symbol === 'ETH')  return 3500;
+    if (token.symbol === 'AVAX') return 40;
+    if (token.symbol === 'POL')  return 0.6;
     return null;
   }
   // Fire DexScreener lookups for any token missing a priceUsd, then call
@@ -2313,9 +2364,10 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       else if (s.type === 'gateway-multi-spend') label = `⚡ Unified spend → ${chainShort(s.dst)}`;
       else if (s.type === 'cctp-bridge') label = `Bridge ${state.fromToken.symbol}: ${chainShort(s.src)} → ${chainShort(s.dst)}`;
       else if (s.type === 'swap') label = `Swap ${s.tIn} → ${s.tOut}`;
+      else if (s.type === 'swap-cross') label = `Swap ${s.tIn} → ${s.tOut} on ${chainShort(s.chain)}`;
       else if (s.type === 'transfer') label = `Transfer ${state.fromToken.symbol}`;
     } else {
-      const types = steps.map(s => s.type === 'gateway-spend' ? '⚡Gateway' : s.type === 'cctp-bridge' ? 'CCTP' : s.type === 'swap' ? 'Swap' : 'Transfer');
+      const types = steps.map(s => s.type === 'gateway-spend' ? '⚡Gateway' : s.type === 'cctp-bridge' ? 'CCTP' : (s.type === 'swap' || s.type === 'swap-cross') ? 'Swap' : 'Transfer');
       label = `${types.join(' + ')} → ${state.toToken.symbol} (${chainShort(state.dst.chainKey)})`;
     }
     btn.disabled = false; btn.textContent = label; btn.onclick = execute;
@@ -2352,12 +2404,13 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
       if (s.type === 'gateway-spend')      label = `Gateway burn · ${chainShort(s.src)} → ${chainShort(s.dst)}`;
       else if (s.type === 'cctp-burn')     label = `CCTP burn · ${chainShort(s.src)} → ${chainShort(s.dst)}`;
       else if (s.type === 'swap')          label = `Swap ${s.tIn}→${s.tOut} on ${chainShort(s.chain)}`;
+      else if (s.type === 'swap-cross')    label = `Swap ${s.tIn}→${s.tOut} on ${chainShort(s.chain)} (Uniswap v3)`;
       else                                 label = `${s.type} on ${chainShort(s.chain || s.src)}`;
       return `<div class="row"><span class="k">Step ${n}</span><span class="v">${label}</span></div>`;
     }).join('');
     const recipShort = recipient.slice(0, 6) + '…' + recipient.slice(-4);
     const isOwnWallet = recipient.toLowerCase() === wallet.address.toLowerCase();
-    const signCount = steps.filter(s => s.type === 'gateway-spend' || s.type === 'cctp-burn' || s.type === 'swap').length;
+    const signCount = steps.filter(s => s.type === 'gateway-spend' || s.type === 'cctp-burn' || s.type === 'swap' || s.type === 'swap-cross').length;
     const recipientHtml = isOwnWallet
       ? `<span class="v">Your wallet</span>`
       : `<span class="v warn">${recipShort} (external)</span>`;
@@ -2503,6 +2556,32 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
           runChain = 'arc';
           runTokSym = step.tOut;
         }
+        else if (step.type === 'swap-cross') {
+          await wallet.ensureChain(step.chain);
+          const tInTok = TOKENS[step.chain][step.tIn];
+          const tOutTok = TOKENS[step.chain][step.tOut];
+          const inputStr = formatAmt(runAmt, tInTok.decimals);
+          modal.set(stepId, 'active', `Swap ${step.tIn} → ${step.tOut} on ${chainShort(step.chain)}…`);
+          // Balance-before on the OUTPUT side (native if isGas, ERC-20 otherwise)
+          // so we can measure the exact delta after settlement.
+          const balBefore = await tokenBalance(step.chain, tOutTok, wallet.address).catch(() => 0n);
+          // Re-quote right before signing so the min-out floor tracks any
+          // price move between plan-time and execute-time.
+          const q2 = await ARC.uniCross.quoteCross(step.chain, tInTok, tOutTok, runAmt);
+          const slip = BigInt(state.slippageBps);
+          const minOut = q2.amountOut - (q2.amountOut * slip) / 10000n;
+          const result = await ARC.uniCross.executeCross(wallet.signer, step.chain, {
+            tokenIn: tInTok, tokenOut: tOutTok,
+            amountIn: runAmt, minOut,
+            fee: q2.fee, recipient: stepRecipient,
+          }, (msg) => modal.set(stepId, 'active', msg));
+          lastTxHash = result.hash; lastTxChain = step.chain;
+          modal.set(stepId, 'done', `<a href="${CHAINS[step.chain].explorerTx(result.hash)}" target="_blank" rel="noopener" style="color:var(--arc2)">${shortAddr(result.hash)} ↗</a>`);
+          pushActivity({ kind: 'swap', chain: step.chain, hash: result.hash, status: 'done', text: `${inputStr} ${step.tIn} → ${step.tOut} on ${chainShort(step.chain)} (Uniswap v3)` });
+          const balAfter = await tokenBalance(step.chain, tOutTok, wallet.address).catch(() => balBefore);
+          runAmt = balAfter > balBefore ? (balAfter - balBefore) : q2.amountOut;
+          runChain = step.chain; runTokSym = step.tOut;
+        }
         else if (step.type === 'transfer') {
           await wallet.ensureChain(step.chain);
           const tok = TOKENS[step.chain][step.token];
@@ -2545,6 +2624,7 @@ main.trade-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-d
     if (s.type === 'gateway-multi-spend') return `⚡ Unified Gateway → ${chainShort(s.dst)}`;
     if (s.type === 'cctp-bridge') return `CCTP burn+mint ${chainShort(s.src)} → ${chainShort(s.dst)}`;
     if (s.type === 'swap') return `Swap ${s.tIn} → ${s.tOut} on Arc`;
+    if (s.type === 'swap-cross') return `Swap ${s.tIn} → ${s.tOut} on ${chainShort(s.chain)} · Uniswap v3`;
     if (s.type === 'transfer') return `Transfer on ${chainShort(s.chain)}`;
     return 'Step';
   }
