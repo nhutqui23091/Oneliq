@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="oneliq-discord-client-id" content="1514587016157859900"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; frame-src 'self' https://dexscreener.com https://www.dexscreener.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://api.geckoterminal.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; frame-src 'self' https://dexscreener.com https://www.dexscreener.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
@@ -57,11 +57,30 @@
 .tk-change .abs{color:inherit}
 .tk-change .pct{opacity:.85}
 
-.tk-chart-wrap{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;height:420px;margin-bottom:14px}
-.tk-chart-frame{width:100%;height:100%;border:0;display:block}
-.tk-chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);font-size:14px;padding:20px;text-align:center}
+/* Aspect-ratio matches the SVG viewBox (900 × 380) so preserveAspectRatio
+   "none" doesn't stretch text or the line. Clamped so the card never
+   collapses below ~220px on narrow screens or balloons past 520px on
+   ultrawide. */
+.tk-chart-wrap{position:relative;background:transparent;border:none;border-radius:16px;overflow:hidden;width:100%;aspect-ratio:900 / 380;min-height:240px;max-height:520px;margin-bottom:14px}
+.tk-chart-svg{width:100%;height:100%;display:block}
+.tk-chart-line{fill:none;stroke:var(--arc1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(77,214,219,.35))}
+.tk-chart-area{fill:url(#tk-chart-grad);opacity:.9}
+.tk-chart-axis{fill:var(--muted);font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums}
+.tk-chart-axis-line{stroke:var(--border);stroke-width:1;stroke-dasharray:2 3;opacity:.5}
+.tk-chart-dot{fill:var(--arc1);stroke:var(--bg,#0B1636);stroke-width:2}
+/* Fallback iframe is deliberately over-extended by 44px so the DexScreener
+   "Tracked by" watermark falls below the wrap's visible area. Combined with
+   the wrap's overflow:hidden the footer is clipped. */
+.tk-chart-fallback-frame{position:absolute;top:0;left:0;width:100%;height:calc(100% + 44px);border:0;display:block}
+.tk-chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);font-size:14px;padding:20px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px}
 .tk-chart-empty .t{color:var(--text);font-weight:600;margin-bottom:6px;font-size:15px}
 .tk-chart-empty .s{font-size:12.5px}
+
+/* Timeframe pill row — matches Uniswap's compact chip cluster */
+.tk-tf-row{display:flex;align-items:center;justify-content:flex-start;gap:6px;margin-bottom:14px;flex-wrap:wrap;padding:4px;background:var(--surface);border:1px solid var(--border);border-radius:14px;width:fit-content}
+.tk-tf-btn{padding:7px 14px;border-radius:10px;border:none;background:transparent;color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;letter-spacing:.02em;transition:all .12s}
+.tk-tf-btn:hover{color:var(--text)}
+.tk-tf-btn.active{color:var(--text);background:var(--surface2)}
 
 .tk-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:14px}
 .tk-stat{padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
@@ -151,8 +170,17 @@
         <div class="tk-chart-wrap" id="tk-chart-wrap">
           <div class="tk-chart-empty" id="tk-chart-loading">
             <div class="t">Loading chart…</div>
-            <div class="s">Fetching the live pool from DexScreener.</div>
+            <div class="s">Fetching on-chain OHLCV from GeckoTerminal.</div>
           </div>
+        </div>
+
+        <div class="tk-tf-row" id="tk-tf-row" role="tablist" aria-label="Timeframe">
+          <button class="tk-tf-btn" data-tf="1H" type="button">1H</button>
+          <button class="tk-tf-btn active" data-tf="1D" type="button">1D</button>
+          <button class="tk-tf-btn" data-tf="1W" type="button">1W</button>
+          <button class="tk-tf-btn" data-tf="1M" type="button">1M</button>
+          <button class="tk-tf-btn" data-tf="1Y" type="button">1Y</button>
+          <button class="tk-tf-btn" data-tf="ALL" type="button">All</button>
         </div>
 
         <div class="tk-stats" id="tk-stats"></div>
@@ -279,18 +307,171 @@
     } catch { return 18; }
   }
 
-  // ── Chart iframe (real chart, live data) ───────────────────────────
-  // DexScreener's own embed. Zero maintenance, zero fake data. The theme
-  // and no-info/no-trades toggles keep the widget clean and matched to
-  // our dark surface.
-  function mountChart(pair) {
+  // ── Chart engine (Uniswap-style SVG line, real OHLCV from GeckoTerminal) ──
+  // GeckoTerminal's public API returns candles for the pool that DexScreener
+  // already told us is the deepest. We reduce each candle to its close and
+  // render a smooth SVG polyline with a gradient fill under it — same look
+  // as app.uniswap.org/explore/tokens/<chain>/<addr>.
+  //
+  // Nothing is faked: if GeckoTerminal has no data for this pool on Arc
+  // (network unindexed, cold pool) we fall through to DexScreener's own
+  // iframe as a last-resort real-data view.
+  const TF_MAP = {
+    '1H':  { timeframe: 'minute', aggregate: 1,  limit: 60  },
+    '1D':  { timeframe: 'minute', aggregate: 15, limit: 96  },
+    '1W':  { timeframe: 'hour',   aggregate: 4,  limit: 42  },
+    '1M':  { timeframe: 'day',    aggregate: 1,  limit: 30  },
+    '1Y':  { timeframe: 'day',    aggregate: 1,  limit: 365 },
+    'ALL': { timeframe: 'day',    aggregate: 1,  limit: 1000 },
+  };
+  let currentTf = '1D';
+
+  async function fetchOhlcv(poolAddr, tf) {
+    const cfg = TF_MAP[tf] || TF_MAP['1D'];
+    const url = `https://api.geckoterminal.com/api/v2/networks/arc/pools/${poolAddr}/ohlcv/${cfg.timeframe}?aggregate=${cfg.aggregate}&limit=${cfg.limit}&currency=usd`;
+    try {
+      const r = await fetch(url, { headers: { 'Accept': 'application/json;version=20230302' } });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const list = j?.data?.attributes?.ohlcv_list || [];
+      // GeckoTerminal returns newest → oldest; reverse to chronological.
+      return list.slice().reverse().map(row => ({
+        t: Number(row[0]),
+        o: Number(row[1]), h: Number(row[2]),
+        l: Number(row[3]), c: Number(row[4]),
+        v: Number(row[5]),
+      })).filter(d => isFinite(d.c) && d.c > 0);
+    } catch { return null; }
+  }
+
+  function _priceLbl(v) {
+    if (v == null) return '';
+    if (v >= 1)     return '$' + v.toFixed(2);
+    if (v >= 0.01)  return '$' + v.toFixed(4);
+    if (v >= 0.0001) return '$' + v.toFixed(6);
+    return '$' + v.toExponential(2);
+  }
+  function _timeLbl(ts, tf) {
+    const d = new Date(ts * 1000);
+    if (tf === '1H' || tf === '1D') {
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${M[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  // Cardinal-spline smoothing: replaces polyline segments with cubic
+  // Béziers whose control points are derived from neighbours. Uniswap
+  // uses a similar smoothing — a straight polyline reads too jagged on
+  // 5-min meme candles.
+  function smoothPath(pts) {
+    if (pts.length < 2) return '';
+    if (pts.length === 2) return `M${pts[0].x},${pts[0].y} L${pts[1].x},${pts[1].y}`;
+    const tension = 0.5;
+    let d = `M${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6 * tension;
+      const cp1y = p1.y + (p2.y - p0.y) / 6 * tension;
+      const cp2x = p2.x - (p3.x - p1.x) / 6 * tension;
+      const cp2y = p2.y - (p3.y - p1.y) / 6 * tension;
+      d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
+  }
+
+  function renderSvgChart(container, data, tf) {
+    if (!data || data.length < 2) {
+      container.innerHTML = `<div class="tk-chart-empty"><div class="t">Not enough data for this window</div><div class="s">Try a shorter timeframe.</div></div>`;
+      return;
+    }
+    const W = 900, H = 380;
+    const padL = 8, padR = 68, padT = 22, padB = 28;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const closes = data.map(d => d.c);
+    let min = Math.min(...closes), max = Math.max(...closes);
+    // Pad the y-range so extremes don't clip to the frame edge.
+    const range = max - min || max * 0.01 || 1;
+    min -= range * 0.06;
+    max += range * 0.06;
+    if (min < 0) min = 0;
+    const xFor = (i) => padL + (data.length === 1 ? chartW / 2 : (i / (data.length - 1)) * chartW);
+    const yFor = (v) => padT + chartH - ((v - min) / (max - min || 1)) * chartH;
+    const pts = data.map((d, i) => ({ x: xFor(i), y: yFor(d.c) }));
+    const path = smoothPath(pts);
+    // Area = same path + line down to baseline
+    const baseY = padT + chartH;
+    const area = path + ` L${pts[pts.length-1].x},${baseY} L${pts[0].x},${baseY} Z`;
+
+    // 5 y-axis ticks, evenly spaced from min to max
+    const yTicks = Array.from({ length: 5 }, (_, i) => {
+      const pct = i / 4;
+      const y = padT + chartH - pct * chartH;
+      const val = min + pct * (max - min);
+      return { y, val };
+    });
+
+    // 5 x-axis labels, evenly spaced
+    const xTicksN = 5;
+    const xTicks = Array.from({ length: xTicksN }, (_, i) => {
+      const idx = Math.round((i / (xTicksN - 1)) * (data.length - 1));
+      return { x: xFor(idx), lbl: _timeLbl(data[idx].t, tf) };
+    });
+
+    const last = pts[pts.length - 1];
+    const lastVal = data[data.length - 1].c;
+    const up = lastVal >= data[0].c;
+    const stroke = up ? '#00E5A0' : '#ff6b7e';
+
+    container.innerHTML = `
+      <svg class="tk-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="tk-chart-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="${stroke}" stop-opacity="0.32"/>
+            <stop offset="70%" stop-color="${stroke}" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="${stroke}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${yTicks.map(t => `<line class="tk-chart-axis-line" x1="${padL}" x2="${W - padR}" y1="${t.y}" y2="${t.y}"/>`).join('')}
+        <path class="tk-chart-area" d="${area}" fill="url(#tk-chart-grad)"/>
+        <path class="tk-chart-line" d="${path}" stroke="${stroke}"/>
+        <circle class="tk-chart-dot" cx="${last.x}" cy="${last.y}" r="4" fill="${stroke}"/>
+        ${yTicks.map(t => `<text class="tk-chart-axis" x="${W - padR + 8}" y="${t.y + 4}" text-anchor="start">${_priceLbl(t.val)}</text>`).join('')}
+        ${xTicks.map(t => `<text class="tk-chart-axis" x="${t.x}" y="${H - 8}" text-anchor="middle">${t.lbl}</text>`).join('')}
+      </svg>
+    `;
+  }
+
+  function mountChartFallback(pair) {
+    // If GeckoTerminal has no coverage for this pool, fall back to
+    // DexScreener's iframe. Still real data — just uses their own chart
+    // instead of our SVG. Info + trades stripped for a clean surface.
     const wrap = document.getElementById('tk-chart-wrap');
-    if (!pair?.pairAddress) {
+    const src = `https://dexscreener.com/arc/${pair.pairAddress}?embed=1&theme=dark&trades=0&info=0`;
+    wrap.innerHTML = `<iframe class="tk-chart-fallback-frame" src="${src}" allowfullscreen loading="lazy"></iframe>`;
+  }
+
+  async function loadAndRenderChart(tf) {
+    currentTf = tf;
+    const wrap = document.getElementById('tk-chart-wrap');
+    if (!state.topPair?.pairAddress) {
       wrap.innerHTML = `<div class="tk-chart-empty"><div class="t">No pool found for this token</div><div class="s">DexScreener has no Arc pair for ${TOKEN_ADDR.slice(0,10)}… yet.</div></div>`;
       return;
     }
-    const src = `https://dexscreener.com/arc/${pair.pairAddress}?embed=1&theme=dark&trades=0&info=0`;
-    wrap.innerHTML = `<iframe class="tk-chart-frame" id="tk-chart-frame" src="${src}" allowfullscreen loading="lazy"></iframe>`;
+    wrap.innerHTML = `<div class="tk-chart-empty"><div class="t">Loading chart…</div><div class="s">Fetching on-chain OHLCV.</div></div>`;
+    const data = await fetchOhlcv(state.topPair.pairAddress, tf);
+    if (!data || data.length < 2) {
+      // Honest fallback — GeckoTerminal might not index this pool yet.
+      mountChartFallback(state.topPair);
+      return;
+    }
+    renderSvgChart(wrap, data, tf);
   }
 
   // ── Render header + stats (all real, from DexScreener) ─────────────
@@ -674,10 +855,18 @@
   renderHeader();
   renderPrice();
   renderStats();
-  mountChart(state.topPair);
   renderPickers();
   refreshBalances();
   refreshSwapBtn();
+
+  // Kick off the chart with the default 1D window + wire the timeframe pills.
+  loadAndRenderChart('1D');
+  document.querySelectorAll('#tk-tf-row .tk-tf-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('#tk-tf-row .tk-tf-btn').forEach(b => b.classList.toggle('active', b === btn));
+      loadAndRenderChart(btn.dataset.tf);
+    };
+  });
 
   if (wallet.address) loadBalances();
 })();

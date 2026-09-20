@@ -11,10 +11,15 @@
 
 # /farm and /deploy used to point at a dropped Create-Token surface, which
 # meant a 301 straight into a 404 — send them to the nearest live surface.
-# NOTE: `/token` USED to redirect here, but /token.html is now the token
-# detail page linked from /explore, so that redirect is gone.
 /farm    /trade   302
 /deploy  /trade   301
+
+# Token detail page — /token/<address> → token.html?a=<address>.
+# Uses status 200 (internal rewrite), not 301, so the URL stays clean and
+# browsers never cache a redirect. The path segment /token/<addr> is a
+# NEW pattern that was never used by the dropped Create-Token surface, so
+# nothing in a browser's 301 cache can intercept it.
+/token/*   /token.html?a=:splat   200
 
 # Dropped surfaces — redirect to nearest live page
 /vault   /balance 301

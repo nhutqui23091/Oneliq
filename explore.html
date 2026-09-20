@@ -453,11 +453,13 @@
       return;
     }
     tbody.innerHTML = list.map((t, i) => tokenRowHtml(t, i)).join('');
-    // Row click → open the token detail page (chart + real stats + inline swap)
+    // Row click → open the token detail page (chart + real stats + inline swap).
+    // Uses /token/<addr> so browsers' 301 cache from the old `/token → /trade`
+    // rule can't intercept — _redirects rewrites this to /token.html?a=<addr>.
     tbody.querySelectorAll('tr[data-addr]').forEach(row => {
       row.onclick = () => {
         const addr = row.dataset.addr;
-        location.href = `/token?a=${encodeURIComponent(addr)}`;
+        location.href = `/token/${addr}`;
       };
     });
     // Sort-indicator glyphs
@@ -531,6 +533,66 @@
   }
   document.getElementById('ex-tbody').innerHTML = skelRows(10);
 
+  // ── On-chain TVL (read straight from Arc RPC) ────────────────────────
+  // "Total Oneliq TVL" is USDC+EURC actually sitting in Uniswap pools on
+  // Arc — read live from the wrapper's balanceOf(). No DexScreener sum,
+  // no fabrication — every number here is a real bigint from Arc RPC.
+  //
+  // Uniswap v4 aggregates all v4 pool liquidity into one PoolManager
+  // contract, so a single balanceOf(PoolManager) gives the v4 total.
+  // Uniswap v3 stores liquidity per pool, so we walk the pool addresses
+  // DexScreener found for us and read balanceOf on each.
+  async function fetchOnchainTvl(pairs) {
+    try {
+      const c = ARC.CHAINS.arc?.contracts;
+      const usdcAddr = ARC.TOKENS.arc?.USDC?.address;
+      const eurcAddr = ARC.TOKENS.arc?.EURC?.address;
+      const poolManager = c?.uniV4PoolManager;
+      if (!usdcAddr || !poolManager) return null;
+
+      const provider = ARC.rpcProvider('arc');
+      const erc = ['function balanceOf(address) view returns (uint256)'];
+      const usdc = new ethers.Contract(usdcAddr, erc, provider);
+      const eurc = eurcAddr ? new ethers.Contract(eurcAddr, erc, provider) : null;
+
+      // Collect every distinct pool contract we know about on Arc: the v4
+      // PoolManager sentinel + every unique DexScreener pair address that
+      // parses as a v3 pool. De-dup by address so we don't double-count if
+      // DexScreener lists a pool twice.
+      const v3Addrs = new Set();
+      for (const p of pairs) {
+        const dexId = (p.dexId || '').toLowerCase();
+        const labels = (p.labels || []).map(l => String(l).toLowerCase());
+        if ((labels.includes('v3') || dexId.includes('v3')) && p.pairAddress) {
+          v3Addrs.add(p.pairAddress);
+        }
+      }
+
+      // Fire every balanceOf in parallel. Wrapping in Promise.allSettled
+      // means a single flaky RPC read doesn't blank the total.
+      const targets = [poolManager, ...v3Addrs];
+      const usdcCalls = targets.map(a => usdc.balanceOf(a).then(x => x).catch(() => 0n));
+      const eurcCalls = eurc ? targets.map(a => eurc.balanceOf(a).then(x => x).catch(() => 0n)) : [];
+      const [usdcResults, eurcResults] = await Promise.all([
+        Promise.all(usdcCalls),
+        Promise.all(eurcCalls),
+      ]);
+      let usdcTotal = 0n, eurcTotal = 0n;
+      for (const b of usdcResults) usdcTotal += b;
+      for (const b of eurcResults) eurcTotal += b;
+
+      // Arc's USDC/EURC wrappers both report 6-decimal balances on the
+      // ERC-20 face (matches CCTP canonical). Convert to USD directly:
+      // USDC = $1, EURC ≈ $1.08 (rough, mirrors the trade page).
+      const usdcUsd = Number(usdcTotal) / 1e6;
+      const eurcUsd = Number(eurcTotal) / 1e6 * 1.08;
+      return usdcUsd + eurcUsd;
+    } catch (e) {
+      console.warn('[explore] on-chain TVL read failed:', e?.message || e);
+      return null;
+    }
+  }
+
   try {
     // Only mainnet has DexScreener coverage for chainId "arc". Testnet users
     // still see the page shell but with a friendly empty state.
@@ -539,10 +601,13 @@
         fetchSearchArc(),
         fetchTokens(SEED_ADDRS),
       ]);
-      const { tokens, totalVol24, totalTvl } = aggregate([...searched, ...seeded]);
+      const allPairs = [...searched, ...seeded];
+      const { tokens, totalVol24 } = aggregate(allPairs);
       state.tokens = tokens;
       state.totalVol24 = totalVol24;
-      state.totalTvl = totalTvl;
+      // TVL comes from Arc RPC, not the DexScreener sum — user's ask.
+      const onchainTvl = await fetchOnchainTvl(allPairs);
+      state.totalTvl = onchainTvl != null ? onchainTvl : 0;
     } else {
       state.tokens = [];
     }
