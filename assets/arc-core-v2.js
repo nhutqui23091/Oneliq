@@ -1221,10 +1221,14 @@
     try {
       const address = wallet.address;
       if (!address || !row) return;
-      // Writing is worth one signature prompt (once a day). If the user
-      // declines, the receipt still lives in localStorage — never let a
-      // failed mirror surface as an error next to a completed transaction.
-      const auth = await sessionHeaders({ interactive: true, address });
+      // Non-interactive: sync only if the user already holds a valid
+      // session token (from opening /history or another surface that
+      // signs them in). Prompting for SIWE right after a swap adds a
+      // surprise third signature next to the approve + swap the user
+      // just did — trade tools should never chain sign requests. Local
+      // copy is always written; cross-device sync activates as soon as
+      // the user signs in from /history.
+      const auth = await sessionHeaders({ interactive: false, address });
       if (!auth.Authorization) return;
       await fetch(`${HISTORY_API}/push`, {
         method: 'POST',
