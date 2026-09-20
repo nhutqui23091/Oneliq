@@ -725,19 +725,42 @@
       failed.push(res);
     }
 
-    // All candidates failed. Build a user-friendly diagnosis from what we
-    // saw. If every failure was hook-gated with no revert data → the token
-    // only trades through its launchpad UI. If any hook = 0x0 also failed →
-    // likely thin liquidity at this size.
+    // All candidates failed. Before giving up, ask DexScreener what pools
+    // this pair ACTUALLY trades on — most memes on Arc live in Uniswap v3
+    // which our v4-only router can't reach. Surface that in the message so
+    // the user knows this is a coverage gap, not a broken token.
+    onStep?.('Diagnosing…');
+    let v3Hint = '';
+    try {
+      const dxUrl = `https://api.dexscreener.com/latest/dex/tokens/${tokenIn},${tokenOut}`;
+      const dxRes = await fetch(dxUrl);
+      if (dxRes.ok) {
+        const dxJson = await dxRes.json();
+        const pairs = (dxJson?.pairs || []).filter(p =>
+          p.chainId === 'arc'
+          && ((p.baseToken?.address?.toLowerCase() === tokenIn.toLowerCase()  && p.quoteToken?.address?.toLowerCase() === tokenOut.toLowerCase())
+           || (p.baseToken?.address?.toLowerCase() === tokenOut.toLowerCase() && p.quoteToken?.address?.toLowerCase() === tokenIn.toLowerCase())));
+        const v3s = pairs.filter(p => (p.labels || []).includes('v3'));
+        const v4s = pairs.filter(p => (p.labels || []).includes('v4'));
+        const v3TopLiq = Math.max(0, ...v3s.map(p => p.liquidity?.usd || 0));
+        const v4TopLiq = Math.max(0, ...v4s.map(p => p.liquidity?.usd || 0));
+        if (v3TopLiq > 1000 && v4TopLiq < 1000) {
+          v3Hint = ` — this pair primarily trades on Uniswap v3 ($${Math.round(v3TopLiq).toLocaleString()} liquidity there vs ~$${Math.round(v4TopLiq)} on v4). V3 routing is on the roadmap; for now use another meme with v4 liquidity (AKARII, ARGUS).`;
+        }
+      }
+    } catch { /* ignore diagnostic failure */ }
+
     const anyNoHookFailed = failed.some(f => (f.poolKey.hooks || '').toLowerCase() === '0x0000000000000000000000000000000000000000');
     const allHookGated  = failed.every(f => (f.poolKey.hooks || '').toLowerCase() !== '0x0000000000000000000000000000000000000000');
     const nSel = failed.filter(f => f.shortSel || f.directSel).length;
 
     let msg;
-    if (allHookGated && nSel === 0) {
+    if (v3Hint) {
+      msg = `Swap not supported on Uniswap v4${v3Hint}`;
+    } else if (allHookGated && nSel === 0) {
       msg = `This token only trades through its launchpad. Every Uniswap v4 pool we tried is hook-gated and rejected the swap. Try trading on the token's own site, then deposit back here.`;
     } else if (anyNoHookFailed && nSel === 0) {
-      msg = `Not enough liquidity in this pool for that amount. Try a smaller size — quote says ~${(Number(candidates[0].amountOut) / 1e6).toFixed(4)} out but the pool couldn't fill it.`;
+      msg = `The v4 pool we found quoted an output but the on-chain swap reverted — the pool is likely empty or malformed. Try another token with real liquidity.`;
     } else {
       const top = failed[0];
       msg = `Swap simulation failed — ${top.decoded}${top.directOk ? ' (Universal Router would accept — likely a Permit2/router flow bug)' : ''}. Tried ${failed.length} pool${failed.length > 1 ? 's' : ''}.`;
