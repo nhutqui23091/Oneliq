@@ -256,13 +256,22 @@
   const { Contract, getAddress, isAddress } = window.ethers;
 
   // ── Parse token address from URL ────────────────────────────────────
-  // Accepts ?a=0x… (short) or ?address=0x… (verbose) so links from
-  // anywhere in the app work.
+  // Three URL shapes are accepted so links from anywhere in the app
+  // resolve, no matter which shape was in flight when the address bar
+  // was captured (query is preserved through CF's 200 rewrite; the path
+  // segment is what a plain <a href> uses):
+  //   /token/0x…               → path segment
+  //   /token?a=0x…             → short query
+  //   /token?address=0x…       → verbose query
   const params = new URLSearchParams(location.search);
-  const rawAddr = params.get('a') || params.get('address') || '';
-  if (!isAddress(rawAddr)) {
-    document.querySelector('.tk-body').innerHTML =
-      `<div style="padding:60px 20px;text-align:center;color:var(--muted)">Missing or invalid token address.<br><a href="/explore" style="color:var(--arc1)">Back to Explore</a></div>`;
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const pathAddr = pathParts[0] === 'token' && pathParts[1] ? pathParts[1] : '';
+  const rawAddr = (params.get('a') || params.get('address') || pathAddr || '').trim();
+  if (!rawAddr || !isAddress(rawAddr)) {
+    // No address at all: they arrived here from a stale link or hit
+    // /token directly. Send them back to Explore instead of a dead-end.
+    console.warn('[token] no address in URL — redirecting to /explore', { rawAddr, pathParts, params: Object.fromEntries(params) });
+    location.replace('/explore');
     return;
   }
   const TOKEN_ADDR = getAddress(rawAddr);
