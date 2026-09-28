@@ -324,6 +324,11 @@
       rec.vol24 += Number(p.volume?.h24) || 0;
       rec.vol1h += Number(p.volume?.h1)  || 0;
       rec.liquidity += liq;
+      // DexScreener hangs info.imageUrl off the pair's BASE token, so take
+      // the first one we see rather than only the deepest pool's — a token
+      // that's base in one thin pair and quote everywhere else would
+      // otherwise render as a letter avatar.
+      if (isBase && !rec.icon && p.info?.imageUrl) rec.icon = p.info.imageUrl;
       // Pull the token-level price/FDV from the deepest pool that quotes IT
       // as the base — otherwise "USDC price" would flip to whatever meme pair
       // ranks first.
@@ -366,6 +371,31 @@
     }
 
     return { tokens: [...byTok.values()], totalVol24, totalTvl };
+  }
+
+  // Second pass for logos the search results couldn't supply. The search
+  // endpoint returns a slice of pairs, so a token can show up only as the
+  // QUOTE side — and DexScreener attaches info.imageUrl to the BASE token
+  // alone. Looking the address up directly returns every pair it trades in,
+  // including the ones where it IS the base, which carry the logo.
+  // /tokens/ takes up to 30 comma-separated addresses per call.
+  async function enrichMissingIcons(tokens) {
+    const missing = tokens.filter(t => !t.icon && t.address);
+    if (!missing.length) return;
+    const CH = 30;
+    for (let i = 0; i < missing.length; i += CH) {
+      const slice = missing.slice(i, i + CH);
+      const j = await _fetchJson(`${DXS_BASE}/tokens/${slice.map(t => t.address).join(',')}`);
+      if (!j?.pairs) continue;
+      for (const p of j.pairs) {
+        if (p.chainId !== 'arc') continue;
+        const img = p.info?.imageUrl;
+        const base = p.baseToken?.address?.toLowerCase();
+        if (!img || !base) continue;
+        const rec = slice.find(t => t.address.toLowerCase() === base);
+        if (rec && !rec.icon) rec.icon = img;
+      }
+    }
   }
 
   // ── Categorisation ──────────────────────────────────────────────────
@@ -613,6 +643,7 @@
       const { tokens, totalVol24 } = aggregate(allPairs);
       state.tokens = tokens;
       state.totalVol24 = totalVol24;
+      await enrichMissingIcons(state.tokens);
       // TVL comes from Arc RPC, not the DexScreener sum — user's ask.
       const onchainTvl = await fetchOnchainTvl(allPairs);
       state.totalTvl = onchainTvl != null ? onchainTvl : 0;
