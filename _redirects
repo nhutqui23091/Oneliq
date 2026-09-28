@@ -14,15 +14,10 @@
 /farm    /trade   302
 /deploy  /trade   301
 
-# Token detail page — three URL shapes all rewrite to token.html?a=<address>.
-# Status 200 = internal rewrite (URL stays clean; no 301 cache pollution).
-#
-#  - /explore/tokens/arc/<addr>  → Uniswap-style, canonical from 2026-09-21
-#  - /coin/<addr>                → short alias
-#  - /token/<addr>               → legacy alias for anyone with the old bookmark
-/explore/tokens/arc/*   /token.html?a=:splat   200
-/coin/*                 /token.html?a=:splat   200
-/token/*                /token.html?a=:splat   200
+# Token detail page routing is handled by Pages Functions now — see
+# functions/coin/[address].js, functions/token/[address].js, and
+# functions/explore/tokens/arc/[address].js. _redirects rewrites here
+# would trip CF Pages' .html clean-URL 308 that strips query strings.
 
 # Dropped surfaces — redirect to nearest live page
 /vault   /balance 301
