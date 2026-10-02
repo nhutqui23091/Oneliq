@@ -430,6 +430,8 @@
           liquidity: 0,
           icon: null,
           _bestLiq: 0,   // pick most-liquid pair's price/FDV as the token-level number
+          _bestQuoteLiq: 0,  // …and the deepest quote-side pool, as a fallback
+          _quotePriceUsd: 0,
           pairs: [],
         };
         byTok.set(key, rec);
@@ -457,19 +459,29 @@
         };
         if (p.info?.imageUrl) rec.icon = p.info.imageUrl;
       }
+      // A quote-side pool still prices us exactly: priceUsd is the base in
+      // dollars, priceNative the base in quote, so the ratio is the quote in
+      // dollars. Remember the deepest one for tokens that are never the base.
+      if (!isBase && liq > rec._bestQuoteLiq) {
+        const px = Number(p.priceUsd), nat = Number(p.priceNative);
+        if (isFinite(px) && isFinite(nat) && nat > 0) {
+          rec._bestQuoteLiq = liq;
+          rec._quotePriceUsd = px / nat;
+        }
+      }
     };
     for (const p of uniqPairs) {
       addSide(p.baseToken, p, true);
       addSide(p.quoteToken, p, false);
     }
 
-    // Fill missing prices on quote-only tokens (USDC) from the best pool
-    // they're in — treating the pool's price as $1 for anchors.
+    // A token that is the quote side of every pool it trades in never reaches
+    // the isBase branch above. Read its price out of the pool rather than
+    // assuming a dollar by ticker: Arc already carries a copycat trading under
+    // the USDC symbol (UpSideDownCat, 0x8E98A62a…), and that shortcut
+    // published it at $1.00.
     for (const rec of byTok.values()) {
-      if (rec.priceUsd) continue;
-      if (rec.symbol === 'USDC' || rec.symbol === 'USDT' || rec.symbol === 'DAI') {
-        rec.priceUsd = 1;
-      }
+      if (!rec.priceUsd && rec._quotePriceUsd) rec.priceUsd = rec._quotePriceUsd;
     }
 
     // Fallback icons for anchor stables. USDC/EURC are the quote side in

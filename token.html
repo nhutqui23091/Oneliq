@@ -315,6 +315,7 @@
   const state = {
     token: null,            // {address, symbol, name, decimals, icon, priceUsd}
     topPair: null,          // deepest DexScreener pair for this token
+    basis: null,            // where price/FDV come from — see priceBasis()
     allPairs: [],           // every Arc pair the token is in
     venue: null,            // 'v3' | 'v4' | 'unknown' — based on top pair label
     side: 'buy',            // 'buy' (USDC → token) | 'sell' (token → USDC)
@@ -636,18 +637,47 @@
     if (tw?.url) { xBtn.href = tw.url; xBtn.style.display = ''; }
   }
 
+  // DexScreener hangs priceUsd, priceChange, fdv and marketCap off the pair's
+  // BASE token alone — the same trap resolveIcon() works around for artwork.
+  // On Arc, USDC is the quote side of all 30 pools it trades in, so reading
+  // the deepest pair straight put cirBTC's $84,812.30, its FDV and its 24h
+  // move on the page under USDC's name.
+  //
+  // Take the numbers from the deepest pool where we ARE the base. When no such
+  // pool exists the USD price is still recoverable exactly — priceUsd is the
+  // base in dollars and priceNative is the base in quote, so their ratio is
+  // the quote in dollars — but the base-token stats are not. Those stay blank
+  // instead of borrowed.
+  function priceBasis(pairs, topPair) {
+    const me = TOKEN_ADDR.toLowerCase();
+    const asBase = (pairs || []).find(p => p.baseToken?.address?.toLowerCase() === me);
+    if (asBase) return { pair: asBase, priceUsd: Number(asBase.priceUsd) || 0, ownStats: true };
+    const px = Number(topPair?.priceUsd), nat = Number(topPair?.priceNative);
+    const derived = (isFinite(px) && isFinite(nat) && nat > 0) ? px / nat : 0;
+    return { pair: null, priceUsd: derived, ownStats: false };
+  }
+
   function renderPrice() {
-    const p = state.topPair;
-    if (!p) return;
-    const price = Number(p.priceUsd) || 0;
+    const b = state.basis;
+    if (!b) return;
+    const price = b.priceUsd || 0;
     document.getElementById('tk-price').textContent = fmtUsd(price, price >= 1 ? 4 : 6);
-    const ch24 = Number(p.priceChange?.h24 ?? 0);
+    const el = document.getElementById('tk-change');
+    if (!b.ownStats) {
+      // Every pool quotes this token rather than pricing it, so DexScreener
+      // publishes no 24h move for it. Say that instead of showing the other
+      // side's number.
+      el.className = 'tk-change zero';
+      el.innerHTML = '<span class="pct">No 24h change published for this token</span>';
+      return;
+    }
+    const ch24 = Number(b.pair.priceChange?.h24 ?? 0);
     const cls = ch24 > 0 ? 'pos' : ch24 < 0 ? 'neg' : 'zero';
     const arrow = ch24 > 0 ? '▲' : ch24 < 0 ? '▼' : '·';
     const absMove = price * ch24 / 100;
     const absStr = Math.abs(absMove) >= 0.01 ? fmtUsd(Math.abs(absMove), 4) : `$${Math.abs(absMove).toFixed(6)}`;
-    document.getElementById('tk-change').className = 'tk-change ' + cls;
-    document.getElementById('tk-change').innerHTML = `<span>${arrow}</span> <span class="abs">${absStr}</span> <span class="pct">(${Math.abs(ch24).toFixed(2)}%)</span>`;
+    el.className = 'tk-change ' + cls;
+    el.innerHTML = `<span>${arrow}</span> <span class="abs">${absStr}</span> <span class="pct">(${Math.abs(ch24).toFixed(2)}%)</span>`;
   }
 
   function renderStats() {
@@ -661,14 +691,16 @@
       buys  += Number(p.txns?.h24?.buys || 0);
       sells += Number(p.txns?.h24?.sells || 0);
     }
-    // Market cap / FDV: report the deepest pair's number so we don't
-    // double-count. DexScreener returns `marketCap` when circulating
-    // supply is known, `fdv` always (fully diluted).
-    mcap = Number(state.topPair?.marketCap || 0);
-    fdv  = Number(state.topPair?.fdv || 0);
+    // Market cap / FDV: one pool's number, so we don't double-count — and it
+    // has to be a pool where we're the BASE, because that is the token those
+    // figures describe. See priceBasis(). No such pool means DexScreener
+    // publishes neither for us; blank beats the other side's.
+    const statPair = state.basis?.ownStats ? state.basis.pair : null;
+    mcap = Number(statPair?.marketCap || 0);
+    fdv  = Number(statPair?.fdv || 0);
     const totals = [
-      { lbl: 'Market cap',    val: mcap ? fmtUsd(mcap) : '—', sub: 'From top pool' },
-      { lbl: 'FDV',           val: fdv  ? fmtUsd(fdv)  : '—', sub: 'Fully diluted' },
+      { lbl: 'Market cap',    val: mcap ? fmtUsd(mcap) : '—', sub: mcap ? 'From top pool' : 'Not published' },
+      { lbl: 'FDV',           val: fdv  ? fmtUsd(fdv)  : '—', sub: fdv ? 'Fully diluted' : 'Not published' },
       { lbl: '24h Volume',    val: fmtUsd(vol24) },
       { lbl: 'TVL',           val: fmtUsd(tvl),         sub: `${pairs.length} pool${pairs.length===1?'':'s'}` },
       { lbl: 'Buys / Sells (24h)', val: `<span class="buys">${fmtInt(buys)}</span> / <span class="sells">${fmtInt(sells)}</span>` },
@@ -951,6 +983,7 @@
   // Which side of the pair IS our token?
   const baseIsUs = state.topPair.baseToken?.address?.toLowerCase() === TOKEN_ADDR.toLowerCase();
   const meta = baseIsUs ? state.topPair.baseToken : state.topPair.quoteToken;
+  state.basis = priceBasis(pairs, state.topPair);
   const [decimals, icon] = await Promise.all([readOnchainDecimals(), resolveIcon(pairs)]);
   state.token = {
     address: TOKEN_ADDR,
@@ -958,7 +991,7 @@
     name: meta?.name || meta?.symbol || 'Unknown',
     decimals,
     icon,
-    priceUsd: Number(state.topPair.priceUsd) || 0,
+    priceUsd: state.basis.priceUsd,
   };
 
   renderHeader();
