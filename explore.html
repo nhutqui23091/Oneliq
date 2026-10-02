@@ -240,6 +240,7 @@
 
   // ── DexScreener fetchers ────────────────────────────────────────────
   const DXS_BASE = 'https://api.dexscreener.com/latest/dex';
+  const GT_BASE  = 'https://api.geckoterminal.com/api/v2/networks/arc';
   async function _fetchJson(url) {
     try {
       const r = await fetch(url);
@@ -264,18 +265,84 @@
     return [...all.values()];
   }
   async function fetchTokens(addrs) {
-    // /tokens/:addrs supports up to 30 comma-separated addresses. We only
-    // seed 2 today, so one call is enough — but we chunk defensively.
-    const out = [];
+    // /tokens/:addrs supports up to 30 comma-separated addresses. Chunk and
+    // fire the chunks together — the discovery pass below feeds this a few
+    // dozen addresses, so serialising them would cost seconds of page load.
     const CH = 30;
-    for (let i = 0; i < addrs.length; i += CH) {
-      const chunk = addrs.slice(i, i + CH).join(',');
-      const j = await _fetchJson(`${DXS_BASE}/tokens/${chunk}`);
-      for (const p of (j?.pairs || [])) {
-        if (p.chainId === 'arc') out.push(p);
-      }
+    const chunks = [];
+    for (let i = 0; i < addrs.length; i += CH) chunks.push(addrs.slice(i, i + CH).join(','));
+    const results = await Promise.all(chunks.map(c => _fetchJson(`${DXS_BASE}/tokens/${c}`)));
+    const out = [];
+    for (const j of results) {
+      for (const p of (j?.pairs || [])) if (p.chainId === 'arc') out.push(p);
     }
     return out;
+  }
+
+  // ── Token discovery via GeckoTerminal ───────────────────────────────
+  // DexScreener's /search is relevance-ranked, so it returns a slice of Arc
+  // and silently drops pools whose names don't match the seed queries —
+  // that is why the table listed 51 tokens while app.uniswap.org listed 68.
+  // GeckoTerminal's pool index is exhaustive per network and, with
+  // ?include=base_token,quote_token, hands back each pool's two tokens
+  // WITH their artwork in the same response. Measured on Arc: 114 tokens,
+  // 104 of them carrying an image — the same coin-images.coingecko.com
+  // assets Uniswap renders, because GeckoTerminal is CoinGecko's DEX arm.
+  //
+  // We use it for discovery + icons only; prices, volume and FDV still come
+  // from DexScreener so the table keeps one consistent set of numbers.
+  // GeckoTerminal numbers pools identically to DexScreener (same v3 address
+  // / v4 pool id), so a converted pool de-dups against a DexScreener pair by
+  // address and the header totals still count each pool exactly once.
+  const GT_PAGES = 6;   // 20 pools per page, ordered by liquidity
+  const _n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
+
+  async function fetchGeckoArc() {
+    const icons = new Map();   // lowercased token address → icon | null
+    const meta  = new Map();   // GeckoTerminal token id ("arc_0x…") → {address,symbol,name}
+    const pairs = [];
+    const pages = await Promise.all(
+      Array.from({ length: GT_PAGES }, (_, i) =>
+        _fetchJson(`${GT_BASE}/pools?include=base_token,quote_token&page=${i + 1}`))
+    );
+    for (const j of pages) {
+      for (const inc of (j?.included || [])) {
+        if (inc.type !== 'token') continue;
+        const a = inc.attributes || {};
+        const addr = String(a.address || '').toLowerCase();
+        if (!/^0x[0-9a-f]{40}$/.test(addr)) continue;
+        meta.set(inc.id, { address: a.address, symbol: a.symbol || '?', name: a.name || a.symbol || 'Unknown' });
+        const img = a.image_url && !/missing\.png$/i.test(a.image_url) ? a.image_url : null;
+        if (!icons.has(addr) || (img && !icons.get(addr))) icons.set(addr, img);
+      }
+    }
+    // Second sweep: build pairs now that every token id is known.
+    for (const j of pages) {
+      for (const p of (j?.data || [])) {
+        const a = p.attributes || {}, rel = p.relationships || {};
+        const base  = meta.get(rel.base_token?.data?.id);
+        const quote = meta.get(rel.quote_token?.data?.id);
+        if (!a.address || !base || !quote) continue;
+        const dexId = String(rel.dex?.data?.id || 'uniswap');
+        pairs.push({
+          pairAddress: a.address,
+          chainId: 'arc',
+          dexId,
+          // fetchOnchainTvl() keys off this to spot v3 pools; the GeckoTerminal
+          // dex id reads "uniswap-v3-arc" / "uniswap-v4-arc".
+          labels: dexId.includes('v3') ? ['v3'] : dexId.includes('v4') ? ['v4'] : [],
+          baseToken: base,
+          quoteToken: quote,
+          priceUsd: a.base_token_price_usd,
+          fdv: _n(a.fdv_usd),
+          priceChange: { h1: _n(a.price_change_percentage?.h1), h24: _n(a.price_change_percentage?.h24) },
+          volume: { h1: _n(a.volume_usd?.h1), h24: _n(a.volume_usd?.h24) },
+          liquidity: { usd: _n(a.reserve_in_usd) },
+          info: null,   // artwork travels in `icons`, not on the pair
+        });
+      }
+    }
+    return { icons, pairs };
   }
 
   // ── Pair aggregation ────────────────────────────────────────────────
@@ -416,7 +483,6 @@
   // Whatever is still blank after this genuinely has no logo published
   // anywhere: app.uniswap.org's own API returns project.logoUrl = null for
   // the same addresses, so Uniswap renders a letter avatar there too.
-  const GT_BASE = 'https://api.geckoterminal.com/api/v2/networks/arc';
   async function enrichIconsGecko(tokens) {
     const missing = tokens.filter(t => !t.icon && /^0x[0-9a-fA-F]{40}$/.test(t.address || ''));
     if (!missing.length) return;
@@ -673,14 +739,33 @@
     // Only mainnet has DexScreener coverage for chainId "arc". Testnet users
     // still see the page shell but with a friendly empty state.
     if (ARC.isMainnet && ARC.isMainnet()) {
-      const [searched, seeded] = await Promise.all([
+      // Discover the full Arc token set from GeckoTerminal, then pull those
+      // tokens' pools from DexScreener so every row still carries the same
+      // price/volume/FDV numbers as before — GeckoTerminal only widens WHICH
+      // tokens we ask about, it never supplies the figures.
+      const [searched, seeded, gecko] = await Promise.all([
         fetchSearchArc(),
         fetchTokens(SEED_ADDRS),
+        fetchGeckoArc(),
       ]);
-      const allPairs = [...searched, ...seeded];
+      const universe = gecko.icons;
+      // Ask DexScreener about every token GeckoTerminal found, so tokens it
+      // DOES index keep their richer DexScreener figures.
+      const discovered = universe.size ? await fetchTokens([...universe.keys()]) : [];
+      // aggregate() de-dups by pairAddress and both indexes label pools the
+      // same way, so an overlapping pool is counted once. DexScreener pairs
+      // come first and therefore win; GeckoTerminal only fills the gaps.
+      const allPairs = [...searched, ...seeded, ...discovered, ...gecko.pairs];
       const { tokens, totalVol24 } = aggregate(allPairs);
       state.tokens = tokens;
       state.totalVol24 = totalVol24;
+      // Icons: GeckoTerminal already handed us artwork for most of the
+      // universe in the discovery call — apply that first, for free.
+      for (const t of state.tokens) {
+        if (t.icon) continue;
+        const img = universe.get((t.address || '').toLowerCase());
+        if (img) t.icon = img;
+      }
       await enrichMissingIcons(state.tokens);
       await enrichIconsGecko(state.tokens);
       // TVL comes from Arc RPC, not the DexScreener sum — user's ask.
