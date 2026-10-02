@@ -96,8 +96,13 @@
 .ex-pct-arrow{font-size:9px;line-height:1}
 
 /* Sparkline placeholder — DexScreener free API doesn't return a price
-   series, so we render a simple 24h up/down trend line (color-only). */
+   series, so we render a simple 24h up/down trend line (color-only).
+   The polyline strokes currentColor, so the tone class below is the only
+   thing that decides its colour and a theme switch repaints it for free. */
 .ex-spark{display:inline-block;width:70px;height:24px;vertical-align:middle}
+.ex-spark.pos{color:#00E5A0}
+.ex-spark.neg{color:#ff6b7e}
+.ex-spark.flat{color:#8b9dc3}
 
 /* Loading + empty states */
 .ex-skel-row td{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.02),rgba(255,255,255,.05),rgba(255,255,255,.02));background-size:200% 100%;animation:exShim 1.6s infinite}
@@ -119,7 +124,23 @@
   .ex-table thead th:nth-child(6), .ex-table tbody td:nth-child(6){display:none}
   .ex-tools .ex-search{width:150px}
 }
+
+/* ── LIGHT THEME ──────────────────────────────────────────────
+   Everything above reads colour tokens, so light mode comes for free.
+   These are the handful of values that hard-code a dark assumption:
+   neon gain/loss that washes out on white, a black drop shadow, and a
+   white-on-white shimmer. --green/--red are the ink-side accents
+   arc-theme.css already defines. */
+:root[data-theme="light"] .ex-pct.pos,
+:root[data-theme="light"] .ex-spark.pos{color:var(--green)}
+:root[data-theme="light"] .ex-pct.neg,
+:root[data-theme="light"] .ex-spark.neg{color:var(--red)}
+:root[data-theme="light"] .ex-spark.flat{color:var(--muted)}
+:root[data-theme="light"] .ex-time-menu{box-shadow:0 12px 32px rgba(15,23,42,.16)}
+:root[data-theme="light"] .ex-skel-row td{background:linear-gradient(90deg,rgba(15,23,42,.03),rgba(15,23,42,.08),rgba(15,23,42,.03));background-size:200% 100%}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=4"/>
+<script src="/assets/arc-theme.js?v=4"></script>
 </head>
 <body>
 
@@ -556,17 +577,19 @@
         <td><span class="ex-pct ${cls(ch1)}"><span class="ex-pct-arrow">${arrow(ch1)}</span>${fmtPct(Math.abs(ch1))}</span></td>
         <td><span class="ex-pct ${cls(ch24)}"><span class="ex-pct-arrow">${arrow(ch24)}</span>${fmtPct(Math.abs(ch24))}</span></td>
         <td>${t.fdv ? fmtUsd(t.fdv) : '—'}</td>
-        <td>${fmtUsd(volNum)}${spark ? ` <span class="ex-spark">${spark}</span>` : ''}</td>
+        <td>${fmtUsd(volNum)}${spark ? ` <span class="ex-spark ${sparkTone(ch24)}">${spark}</span>` : ''}</td>
       </tr>`;
   }
+  // stroke="currentColor" on purpose: the tone class carries the colour, so a
+  // theme switch repaints the spark without re-rendering the table.
   function sparkSvg(ch24) {
     const w = 70, h = 24;
     const up = ch24 > 0, flat = ch24 === 0;
-    const color = flat ? '#8b9dc3' : (up ? '#00E5A0' : '#ff6b7e');
     const y1 = up ? h * 0.8 : (flat ? h * 0.5 : h * 0.25);
     const y2 = up ? h * 0.2 : (flat ? h * 0.5 : h * 0.75);
-    return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><polyline points="2,${y1} ${w-2},${y2}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+    return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><polyline points="2,${y1} ${w-2},${y2}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
   }
+  function sparkTone(ch24) { return ch24 === 0 ? 'flat' : (ch24 > 0 ? 'pos' : 'neg'); }
 
   function sortTokens(arr) {
     const key = state.sort.key;

@@ -53,8 +53,11 @@
 .tk-price-row{margin-bottom:14px}
 .tk-price{font-family:var(--display);font-size:44px;font-weight:300;letter-spacing:-.025em;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
 .tk-change{font-size:14px;margin-top:8px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
-.tk-change.pos{color:#00E5A0}
-.tk-change.neg{color:#ff6b7e}
+/* Gain/loss accent. Also read by the chart renderer (getPropertyValue), which
+   has to bake the colour into SVG attributes. */
+:root{--tk-up:#00E5A0;--tk-down:#ff6b7e}
+.tk-change.pos{color:var(--tk-up)}
+.tk-change.neg{color:var(--tk-down)}
 .tk-change.zero{color:var(--muted)}
 .tk-change .abs{color:inherit}
 .tk-change .pct{opacity:.85}
@@ -89,8 +92,8 @@
 .tk-stat-lbl{font-size:11.5px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .tk-stat-val{font-family:var(--mono);font-size:17px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
 .tk-stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
-.tk-stat .buys{color:#00E5A0}
-.tk-stat .sells{color:#ff6b7e}
+.tk-stat .buys{color:var(--tk-up)}
+.tk-stat .sells{color:var(--tk-down)}
 
 /* RIGHT — swap card */
 .tk-right{position:sticky;top:24px}
@@ -137,7 +140,20 @@
   .tk-chart-wrap{height:340px}
   .tk-wrap{padding:24px 16px 60px}
 }
+
+/* ── LIGHT THEME ──────────────────────────────────────────────
+   The page is token-driven, so this is only the set of values that assume a
+   dark canvas: neon gain/loss, a cyan glow, a white shimmer, and the CTA —
+   near-black type on the darkened light-mode gradient fails contrast, so it
+   takes the same solid-ink treatment as .btn-primary in arc-ui.css. */
+:root[data-theme="light"]{--tk-up:#12965A;--tk-down:#D62B4E}
+:root[data-theme="light"] .tk-chart-line{filter:drop-shadow(0 1px 2px rgba(15,23,42,.14))}
+:root[data-theme="light"] .tk-skel{background:linear-gradient(90deg,rgba(15,23,42,.04),rgba(15,23,42,.09),rgba(15,23,42,.04));background-size:200% 100%}
+:root[data-theme="light"] .tk-swap-btn{background:#0B1220;color:#FFFFFF}
+:root[data-theme="light"] .tk-swap-btn:disabled{background:var(--surface2);color:var(--muted)}
 </style>
+<link rel="stylesheet" href="/assets/arc-theme.css?v=4"/>
+<script src="/assets/arc-theme.js?v=4"></script>
 </head>
 <body>
 
@@ -379,6 +395,9 @@
     'ALL': { timeframe: 'day',    aggregate: 1,  limit: 1000 },
   };
   let currentTf = '1D';
+  // Last series actually drawn, so a theme switch can repaint the chart in the
+  // new accent without re-fetching OHLCV.
+  let lastChart = null;
 
   async function fetchOhlcv(poolAddr, tf) {
     const cfg = TF_MAP[tf] || TF_MAP['1D'];
@@ -481,7 +500,12 @@
     const last = pts[pts.length - 1];
     const lastVal = data[data.length - 1].c;
     const up = lastVal >= data[0].c;
-    const stroke = up ? '#00E5A0' : '#ff6b7e';
+    // The stroke also feeds the area gradient's stop-color, which can't take
+    // currentColor reliably, so the accent is read from a token instead of
+    // hard-coded — light mode swaps it for the ink-side green/red.
+    const css = getComputedStyle(document.documentElement);
+    const stroke = css.getPropertyValue(up ? '--tk-up' : '--tk-down').trim()
+      || (up ? '#00E5A0' : '#ff6b7e');
 
     container.innerHTML = `
       <svg class="tk-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -507,7 +531,8 @@
     // DexScreener's iframe. Still real data — just uses their own chart
     // instead of our SVG. Info + trades stripped for a clean surface.
     const wrap = document.getElementById('tk-chart-wrap');
-    const src = `https://dexscreener.com/arc/${pair.pairAddress}?embed=1&theme=dark&trades=0&info=0`;
+    const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const src = `https://dexscreener.com/arc/${pair.pairAddress}?embed=1&theme=${theme}&trades=0&info=0`;
     wrap.innerHTML = `<iframe class="tk-chart-fallback-frame" src="${src}" allowfullscreen loading="lazy"></iframe>`;
   }
 
@@ -522,11 +547,23 @@
     const data = await fetchOhlcv(state.topPair.pairAddress, tf);
     if (!data || data.length < 2) {
       // Honest fallback — GeckoTerminal might not index this pool yet.
+      lastChart = null;
       mountChartFallback(state.topPair);
       return;
     }
+    lastChart = { data, tf };
     renderSvgChart(wrap, data, tf);
   }
+
+  // Repaint on a theme switch. The SVG bakes its accent into stroke/fill
+  // attributes, and the DexScreener fallback bakes it into the iframe URL, so
+  // neither follows CSS on its own.
+  window.addEventListener('arc:theme', () => {
+    const wrap = document.getElementById('tk-chart-wrap');
+    if (!wrap) return;
+    if (lastChart) renderSvgChart(wrap, lastChart.data, lastChart.tf);
+    else if (state.topPair && wrap.querySelector('.tk-chart-fallback-frame')) mountChartFallback(state.topPair);
+  });
 
   // ── Render header + stats (all real, from DexScreener) ─────────────
   function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
