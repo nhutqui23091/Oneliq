@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="oneliq-discord-client-id" content="1514587016157859900"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://api.geckoterminal.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; frame-src 'self' https://dexscreener.com https://www.dexscreener.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://cdn.jsdelivr.net https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.reown.com; img-src 'self' data: blob: https://cryptologos.cc https://assets.coingecko.com https://coin-images.coingecko.com https://assets.geckoterminal.com https://cdn.dexscreener.com https://dd.dexscreener.com https://*.walletconnect.com https://walletconnect.org https://*.reown.com; connect-src 'self' https://cloudflareinsights.com https://rpc.testnet.arc.network https://rpc.mainnet.arc.io https://iris-api-sandbox.circle.com https://iris-api.circle.com https://gateway-api-testnet.circle.com https://gateway-api.circle.com https://*.circle.com https://api.circle.com https://api.dexscreener.com https://api.geckoterminal.com https://esm.sh https://rpc.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org https://verify.walletconnect.com https://api.web3modal.org https://pulse.walletconnect.org https://explorer-api.walletconnect.com https://*.reown.com; frame-src 'self' https://dexscreener.com https://www.dexscreener.com; base-uri 'self'; form-action 'self'; object-src 'none'"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" type="image/png" href="/assets/logos/mark-oneliq.png"/>
@@ -320,6 +320,32 @@
       pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
       return pairs;
     } catch { return null; }
+  }
+
+  // Resolve this token's logo. DexScreener hangs info.imageUrl off the
+  // pair's BASE token alone, so the top pool's imageUrl belongs to US only
+  // when we are that pool's base — otherwise it is the other side's artwork.
+  // Order: any pool where we're base → our own registry → GeckoTerminal's
+  // independent token metadata. Null means no logo is published anywhere
+  // (Uniswap's own API returns null for the same tokens) and the header
+  // falls back to the letter avatar.
+  async function resolveIcon(pairs) {
+    const me = TOKEN_ADDR.toLowerCase();
+    for (const p of pairs) {
+      if (p.baseToken?.address?.toLowerCase() === me && p.info?.imageUrl) return p.info.imageUrl;
+    }
+    const known = ARC.TOKENS?.arc
+      ? Object.values(ARC.TOKENS.arc).find(t => t.address && t.address.toLowerCase() === me)
+      : null;
+    if (known?.icon) return known.icon;
+    try {
+      const r = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${TOKEN_ADDR}`);
+      if (r.ok) {
+        const img = (await r.json())?.data?.attributes?.image_url;
+        if (img && !/missing\.png$/i.test(img)) return img;
+      }
+    } catch {}
+    return null;
   }
 
   // Pick the on-chain decimals for this token by asking its contract.
@@ -868,13 +894,13 @@
   // Which side of the pair IS our token?
   const baseIsUs = state.topPair.baseToken?.address?.toLowerCase() === TOKEN_ADDR.toLowerCase();
   const meta = baseIsUs ? state.topPair.baseToken : state.topPair.quoteToken;
-  const decimals = await readOnchainDecimals();
+  const [decimals, icon] = await Promise.all([readOnchainDecimals(), resolveIcon(pairs)]);
   state.token = {
     address: TOKEN_ADDR,
     symbol: meta?.symbol || '?',
     name: meta?.name || meta?.symbol || 'Unknown',
     decimals,
-    icon: state.topPair.info?.imageUrl || null,
+    icon,
     priceUsd: Number(state.topPair.priceUsd) || 0,
   };
 
