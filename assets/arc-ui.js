@@ -522,8 +522,8 @@
     {
       title: 'Products',
       items: [
-        { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
         { id: 'explore',   label: 'Explore',   icon: '◉', href: '/explore' },
+        { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
         { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
         { id: 'agent',     label: 'Oneliq AI', icon: '✦', href: '/agent'   },
         // History lives inside the Dashboard now (Recent activity card, with a
@@ -626,21 +626,20 @@
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M9 3L5 7l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            <img class="arc-side-toggle-mark" src="/assets/logos/oneliq-mark-gradient.png" alt="" aria-hidden="true" width="26" height="26"/>
           </button>
           <button class="arc-side-close" type="button" aria-label="Close menu">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           </button>
-        </div>
-        <div class="arc-side-network" style="padding:6px 12px 10px;border-bottom:1px solid var(--border)">
-          ${networkSwitcherHtml()}
         </div>
         <nav class="arc-side-nav">${sectionsHtml}</nav>
         <div class="arc-side-foot">
           ${window.ArcTheme ? ArcTheme.buttonHtml() : ''}
           <button id="arc-wallet-btn" class="wallet-btn disconnected" title="Connect Wallet">Connect Wallet</button>
         </div>`;
-      // Wire the sidebar network switcher (moved to head, above nav).
-      wireNetworkSwitcher();
+      // No network switcher in the app shell: Arc Mainnet is the only network
+      // the app runs on, so the pill was pure chrome. Marketing pages keep it
+      // via renderNav(); ARC.setNetwork() still works from the console.
 
       // Mobile close button
       const closeBtn = side.querySelector('.arc-side-close');
@@ -688,6 +687,10 @@
   // App-shell variant: left sidebar + content area. Sets body.arc-app so
   // pages can style around the sidebar's reserved width.
   async function bootApp(activeTab) {
+    // The app shell no longer carries a network switcher, so a stale testnet
+    // opt-in left in localStorage would strand the page on testnet with no way
+    // back. Snap it to mainnet (one reload, then it's a no-op) before painting.
+    if (ARC.isTestnet && ARC.isTestnet()) { ARC.setNetwork('mainnet'); return; }
     renderAurora();
     document.body.classList.add('arc-app');
     renderSidebar(activeTab);
