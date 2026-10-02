@@ -527,7 +527,10 @@
     const CH = 30;
     for (let i = 0; i < missing.length; i += CH) {
       const slice = missing.slice(i, i + CH);
-      const j = await _fetchJson(`${GT_BASE}/tokens/multi/${slice.map(t => t.address).join(',')}`);
+      // One attempt only. This pass runs before renderTable(), and it is pure
+      // upside — everything still blank here has no artwork at any index, so
+      // backing off would buy a blank table for a second to change nothing.
+      const j = await _fetchJson(`${GT_BASE}/tokens/multi/${slice.map(t => t.address).join(',')}`, 1);
       for (const d of (j?.data || [])) {
         const a = d.attributes || {};
         const img = a.image_url;
