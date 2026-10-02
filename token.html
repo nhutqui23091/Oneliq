@@ -32,6 +32,8 @@
 .tk-header{display:flex;align-items:center;gap:16px;padding:8px 0 18px;border-bottom:1px solid var(--border);margin-bottom:24px}
 .tk-logo{width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--muted)}
 .tk-logo img{width:100%;height:100%;object-fit:cover;display:block}
+/* Same placeholder rule as the Explore table: ticker stub, flat circle. */
+.tk-logo.fallback{background:var(--surface2);border-color:transparent;font-size:14px;font-weight:650;letter-spacing:.3px;color:var(--muted)}
 .tk-header-main{min-width:0;flex:1}
 .tk-name-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .tk-name{font-family:var(--display);font-size:26px;font-weight:600;color:var(--text);letter-spacing:-.015em}
@@ -550,14 +552,19 @@
     document.getElementById('tk-crumb-sym').textContent = t?.symbol || 'Token';
     document.title = `${t?.symbol || 'Token'} · Explore | Oneliq`;
     const logo = document.getElementById('tk-logo');
+    // Uniswap's placeholder: the first three characters of the ticker, case
+    // intact (ARCMAN → "ARC"), not a single uppercased initial.
+    const stub = (String(t?.symbol || '').trim() || '?').slice(0, 3);
+    const showStub = () => { logo.classList.add('fallback'); logo.textContent = stub; };
     if (t?.icon) {
       const img = new Image();
       img.src = t.icon;
-      img.onerror = () => { logo.textContent = (t.symbol[0] || '?').toUpperCase(); };
+      img.onerror = showStub;
+      logo.classList.remove('fallback');
       logo.innerHTML = '';
       logo.appendChild(img);
     } else {
-      logo.textContent = (t?.symbol?.[0] || '?').toUpperCase();
+      showStub();
     }
     document.getElementById('tk-name').textContent = t?.name || '(unnamed)';
     document.getElementById('tk-sym').textContent = t?.symbol || '';

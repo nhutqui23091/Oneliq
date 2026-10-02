@@ -78,6 +78,11 @@
 
 .ex-tok{display:flex;align-items:center;gap:12px;min-width:0}
 .ex-tok-ico{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted)}
+/* Placeholder for a token no index publishes artwork for. Uniswap shows the
+   first three characters of the ticker in a plain circle; we match that, so
+   ARCMAN reads "ARC" instead of a lone "A" shared by every Arc-prefixed
+   token. Flat fill, no ring — a ring reads as a cropped logo. */
+.ex-tok-ico.fallback{background:var(--surface2);border-color:transparent;font-size:9.5px;font-weight:650;letter-spacing:.2px;color:var(--muted);text-transform:none}
 .ex-tok-ico img{width:100%;height:100%;object-fit:cover;display:block}
 .ex-tok-meta{min-width:0}
 .ex-tok-name{font-weight:600;color:var(--text);font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
@@ -510,10 +515,24 @@
   }
 
   // ── Rendering ───────────────────────────────────────────────────────
+  // The text Uniswap puts in a logo-less token's circle: the first three
+  // characters of the TICKER with its casing intact — ARCMAN → "ARC",
+  // EXIT → "EXI", bCRCL → "bCR", PP → "PP". Taking one uppercased letter
+  // instead collapses every Arc* token to the same "A".
+  function tickerStub(sym) {
+    const s = String(sym || '').trim();
+    return s ? s.slice(0, 3) : '?';
+  }
+
   function tokenRowHtml(t, i) {
+    // parent-text (not text) so a logo that 404s lands in the same styled
+    // circle as a token that never had one — otherwise the letters drop in
+    // as a bare text node at the img's font size.
+    const fb = escapeHtml(tickerStub(t.symbol));
     const iconHtml = t.icon
-      ? `<img src="${escapeHtml(t.icon)}" alt="" data-imgfallback="text" data-fb-text="${escapeHtml(t.symbol[0] || '?')}"/>`
-      : escapeHtml((t.symbol[0] || '?').toUpperCase());
+      ? `<img src="${escapeHtml(t.icon)}" alt="" data-imgfallback="parent-text" data-fb-text="${fb}"/>`
+      : fb;
+    const icoCls = t.icon ? 'ex-tok-ico' : 'ex-tok-ico fallback';
     const volNum = state.timeWindow === 'h1' ? t.vol1h : t.vol24;
     const ch1 = t.priceChange?.h1  ?? 0;
     const ch24 = t.priceChange?.h24 ?? 0;
@@ -526,7 +545,7 @@
         <td>${i + 1}</td>
         <td>
           <div class="ex-tok">
-            <div class="ex-tok-ico">${iconHtml}</div>
+            <div class="${icoCls}">${iconHtml}</div>
             <div class="ex-tok-meta">
               <div class="ex-tok-name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</div>
               <div class="ex-tok-sym">${escapeHtml(t.symbol)}</div>
