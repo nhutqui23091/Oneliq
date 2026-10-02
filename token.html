@@ -327,12 +327,30 @@
     slippageBps: 50,
   };
 
+  // Both indexes rate-limit anonymous callers, and GeckoTerminal's limiter
+  // answers from an edge that sends no Access-Control-Allow-Origin — so a 429
+  // arrives as a thrown CORS error rather than a status. Treating that as "no
+  // data" is what made a rate-limited load look like an unindexed pool and
+  // drop the chart to the DexScreener iframe. Back off and retry; a real 4xx
+  // still returns on the first try.
+  const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  async function _getJson(url, init, tries = 3) {
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await fetch(url, init);
+        if (r.ok) return await r.json();
+        if (r.status !== 429 && r.status < 500) return null;
+      } catch { /* network blip, or a rate limit wearing a CORS mask */ }
+      if (i < tries - 1) await _sleep(500 * Math.pow(2, i) + Math.random() * 400);
+    }
+    return null;
+  }
+
   // ── Real DexScreener load ──────────────────────────────────────────
   async function loadDex() {
     try {
-      const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDR}`);
-      if (!r.ok) return null;
-      const j = await r.json();
+      const j = await _getJson(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDR}`);
+      if (!j) return null;
       const pairs = (j.pairs || []).filter(p => p.chainId === 'arc');
       if (!pairs.length) return null;
       pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
@@ -356,13 +374,9 @@
       ? Object.values(ARC.TOKENS.arc).find(t => t.address && t.address.toLowerCase() === me)
       : null;
     if (known?.icon) return known.icon;
-    try {
-      const r = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${TOKEN_ADDR}`);
-      if (r.ok) {
-        const img = (await r.json())?.data?.attributes?.image_url;
-        if (img && !/missing\.png$/i.test(img)) return img;
-      }
-    } catch {}
+    const j = await _getJson(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${TOKEN_ADDR}`);
+    const img = j?.data?.attributes?.image_url;
+    if (img && !/missing\.png$/i.test(img)) return img;
     return null;
   }
 
@@ -403,9 +417,8 @@
     const cfg = TF_MAP[tf] || TF_MAP['1D'];
     const url = `https://api.geckoterminal.com/api/v2/networks/arc/pools/${poolAddr}/ohlcv/${cfg.timeframe}?aggregate=${cfg.aggregate}&limit=${cfg.limit}&currency=usd`;
     try {
-      const r = await fetch(url, { headers: { 'Accept': 'application/json;version=20230302' } });
-      if (!r.ok) return null;
-      const j = await r.json();
+      const j = await _getJson(url, { headers: { 'Accept': 'application/json;version=20230302' } });
+      if (!j) return null;
       const list = j?.data?.attributes?.ohlcv_list || [];
       // GeckoTerminal returns newest → oldest; reverse to chronological.
       return list.slice().reverse().map(row => ({

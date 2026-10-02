@@ -267,12 +267,24 @@
   // ── DexScreener fetchers ────────────────────────────────────────────
   const DXS_BASE = 'https://api.dexscreener.com/latest/dex';
   const GT_BASE  = 'https://api.geckoterminal.com/api/v2/networks/arc';
-  async function _fetchJson(url) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) return null;
-      return await r.json();
-    } catch { return null; }
+  // Both indexes rate-limit anonymous callers, and GeckoTerminal's limiter
+  // answers from an edge that sends no Access-Control-Allow-Origin — so a 429
+  // reaches us as a thrown CORS error, not a status. Swallowing that silently
+  // was costing whole pages of /pools, which shows up as a quietly shorter
+  // token table rather than an error. Back off and retry instead; a real 4xx
+  // still returns immediately so a missing pool doesn't cost three round trips.
+  const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  async function _fetchJson(url, tries = 3) {
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) return await r.json();
+        if (r.status !== 429 && r.status < 500) return null;
+      } catch { /* network blip, or a rate limit wearing a CORS mask */ }
+      // Jittered, so six parallel page fetches don't all retry in lockstep.
+      if (i < tries - 1) await _sleep(500 * Math.pow(2, i) + Math.random() * 400);
+    }
+    return null;
   }
   async function fetchSearchArc() {
     // The `search` endpoint ranks pairs by relevance; we hit it with a few
