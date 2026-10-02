@@ -209,8 +209,14 @@ body.arc-side-collapsed aside.arc-side{width:var(--side-w-c)}
 .arc-side-logo{height:38px;width:auto;display:block;flex-shrink:0;user-select:none;-webkit-user-drag:none}
 /* !important because the light-theme logo swap in arc-theme.css is itself
    !important (it has to beat an inline display:none). Collapsing the rail
-   must win over the swap in both themes. */
-body.arc-side-collapsed .arc-side-brand .arc-side-logo{display:none !important}
+   must win over the swap in both themes.
+   Desktop-only on purpose: below 900px the rail is a drawer that ignores the
+   collapsed class entirely, so an unscoped rule left the drawer header blank
+   for anyone whose last desktop state was collapsed. Scoping it here keeps the
+   theme swap in arc-theme.css as the only thing deciding which wordmark shows. */
+@media(min-width:901px){
+  body.arc-side-collapsed .arc-side-brand .arc-side-logo{display:none !important}
+}
 .arc-side-pill{font-size:8.5px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;color:var(--arc2);padding:2px 7px;border:1px solid rgba(77,214,219,.32);border-radius:20px;background:rgba(77,214,219,.10);line-height:1.2}
 /* flex:0 matters: the brand keeps flex:1 while expanded, and a grown-but-empty
    brand would shove the toggle off the rail's centre line once collapsed. */
