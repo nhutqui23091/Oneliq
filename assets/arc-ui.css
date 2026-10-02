@@ -212,8 +212,10 @@ body.arc-side-collapsed aside.arc-side{width:var(--side-w-c)}
    must win over the swap in both themes. */
 body.arc-side-collapsed .arc-side-brand .arc-side-logo{display:none !important}
 .arc-side-pill{font-size:8.5px;font-family:var(--mono);font-weight:700;letter-spacing:.18em;color:var(--arc2);padding:2px 7px;border:1px solid rgba(77,214,219,.32);border-radius:20px;background:rgba(77,214,219,.10);line-height:1.2}
-body.arc-side-collapsed .arc-side-brand{opacity:0;pointer-events:none;width:0;height:0;overflow:hidden}
-body.arc-side-collapsed .arc-side-head{justify-content:center;padding:20px 0 18px;min-height:64px}
+/* flex:0 matters: the brand keeps flex:1 while expanded, and a grown-but-empty
+   brand would shove the toggle off the rail's centre line once collapsed. */
+body.arc-side-collapsed .arc-side-brand{opacity:0;pointer-events:none;flex:0 0 auto;width:0;height:0;overflow:hidden}
+body.arc-side-collapsed .arc-side-head{justify-content:center;gap:0;padding:20px 0 18px;min-height:64px}
 
 /* Toggle. Expanded it's a chevron in a chip; collapsed the chip gives way to
    the Oneliq "O" mark, so the rail keeps a brand anchor and the thing you
@@ -291,8 +293,8 @@ body.arc-side-open .arc-side-backdrop{opacity:1;pointer-events:auto}
   body.arc-side-open aside.arc-side{transform:translateX(0)}
   .arc-side-hamb{display:flex}
   /* Force-expand drawer regardless of collapsed class */
-  body.arc-side-collapsed .arc-side-brand{opacity:1;pointer-events:auto;width:auto;height:auto;overflow:visible}
-  body.arc-side-collapsed .arc-side-head{justify-content:space-between;padding:20px 16px 18px 22px;min-height:84px}
+  body.arc-side-collapsed .arc-side-brand{opacity:1;pointer-events:auto;flex:1;width:auto;height:auto;overflow:visible}
+  body.arc-side-collapsed .arc-side-head{justify-content:space-between;gap:10px;padding:20px 16px 18px 22px;min-height:84px}
   body.arc-side-collapsed .arc-side-label,
   body.arc-side-collapsed .arc-side-badge,
   body.arc-side-collapsed .arc-side-chain-label{opacity:1;pointer-events:auto;width:auto;padding:0;margin:0}
