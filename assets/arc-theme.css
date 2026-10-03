@@ -26,17 +26,24 @@
   --text:#0B1220; --muted:#5A6478; --muted-soft:#6E7889;
 
   /* Accents darkened to hold contrast on white. Same hues, more ink.
-     The green pair carries gain/loss and "ok" labels as body-size text, so it
-     is set to clear 4.5:1 on every light surface the app paints — #FFFFFF,
-     --bg #F7F8FA, --surface2 #EFF1F5 and the docs code block #F3F5F9 — which
-     the old #12965A missed at 3.79/3.57/3.35/3.48. --arc4 and --green are the
-     same colour by design; keep them in step. */
-  --arc1:#0E9AA7;
+     Every accent that carries body-size text clears 4.5:1 on all four light
+     surfaces the app paints — #FFFFFF, --bg #F7F8FA, --surface2 #EFF1F5 and
+     the docs code block #F3F5F9:
+
+         arc1   #0E9AA7 → #0A757F   3.39/3.19/3.00/3.10 → 5.43/5.11/4.81/4.98
+         arc3   #B0762E → #8F5E22   3.83/3.61/3.39/3.51 → 5.54/5.21/4.90/5.07
+         arc4   #12965A → #0F7A4A   3.79/3.57/3.35/3.48 → 5.38/5.06/4.76/4.93
+
+     Pairs that were one colour stay one colour: --arc4 with --green, --arc3
+     with --peach. Where a token backs a gradient button or pill instead of
+     painting text, it carries white or --bg on top, so darkening only helps
+     there too. */
+  --arc1:#0A757F;
   --arc2:#2C5BE0;
-  --arc3:#B0762E;
+  --arc3:#8F5E22;
   --arc4:#0F7A4A;
 
-  --peach:#B0762E; --sand:#8A7550; --deep:#0B1220;
+  --peach:#8F5E22; --sand:#8A7550; --deep:#0B1220;
   --green:#0F7A4A; --red:#D62B4E; --yellow:#9A6B10; --gold:#B4700A;
 
   --tint:15,23,42;
