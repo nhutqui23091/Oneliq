@@ -303,7 +303,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <a class="side-link" href="#architecture">Architecture</a>
       <a class="side-link" href="#quick-start">Quick start</a>
       <a class="side-link" href="#wallet-setup">Wallet setup</a>
-      <a class="side-link" href="#get-testnet-usdc">Get testnet USDC</a>
+      <a class="side-link" href="#get-usdc">Get USDC on Arc</a>
     </div>
     <div class="side-section">
       <div class="side-title">Products</div>
@@ -351,9 +351,9 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       every live product surface, the on-chain contract registry, the proxy API, and the security baseline.
     </p>
     <div class="docs-meta">
-      <span class="pill"><span class="dot"></span> Public Beta · Arc Testnet</span>
-      <span class="pill">Version 0.10.0</span>
-      <span class="pill">Updated 2026-08-11</span>
+      <span class="pill"><span class="dot"></span> Live · Arc Mainnet</span>
+      <span class="pill">Version 0.11.0</span>
+      <span class="pill">Updated 2026-10-03</span>
     </div>
 
     <div class="card-grid">
@@ -385,7 +385,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </p>
     <table class="docs-table">
       <tr><th style="width:24%">Surface</th><th>What it does</th><th style="width:22%">Built on</th></tr>
-      <tr><td><strong>Trade</strong></td><td>Spend USDC anywhere - swap inside Arc (USDC ⇄ EURC) or bridge cross-chain. One panel, one source picker (wallet + Gateway pre-deposits), one destination. The output can be parked straight into your Unified Balance.</td><td>OneliqRouter → Circle Curve pool + CCTP V2</td></tr>
+      <tr><td><strong>Trade</strong></td><td>Spend USDC anywhere - swap inside Arc (USDC ⇄ EURC) or bridge cross-chain. One panel, one source picker (wallet + Gateway pre-deposits), one destination. The output can be parked straight into your Unified Balance.</td><td>OneliqRouter → Uniswap v4/v3 + CCTP V2</td></tr>
       <tr><td><strong>Unified Balance</strong></td><td>One USDC balance across every supported chain. Deposit from any chain, spend instantly on Arc - no bridge clicks, no wrapped tokens. Batch Pay and Consolidate sit on top of the same engine.</td><td>Circle Gateway V1</td></tr>
       <tr><td><strong>Oneliq AI</strong> <em style="color:var(--peach);font-size:12px">preview</em></td><td>Describe what you want in plain language; the assistant drafts the automation rule, the swap, or the cross-chain payment and hands it to you to sign. Daily safety cap, revocable anytime.</td><td>Cloudflare Workers AI + Circle Programmable Wallets</td></tr>
       <tr><td><strong>Portal</strong></td><td>Daily on-chain check-in with Star Points, streaks, badges, referrals, and a live leaderboard - the loyalty layer over everything else.</td><td>OneliqCheckIn on Arc L1</td></tr>
@@ -460,7 +460,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 
     <h3 class="docs-h3">What "non-custodial" means in practice</h3>
     <ul class="docs-ul">
-      <li>Every state-changing user action is a transaction signed by <em>your</em> wallet - against Circle's Gateway, CCTP, or the Curve pool, or against one of our two published contracts.</li>
+      <li>Every state-changing user action is a transaction signed by <em>your</em> wallet - against Circle's Gateway or CCTP, against a Uniswap pool on Arc, or against one of our two published contracts.</li>
       <li>Oneliq has no privileged role on any Circle or Arc contract: no <code>owner</code>, no <code>admin</code>, no upgrade path.</li>
       <li>Of our own two, <strong>OneliqCheckIn</strong> is fully immutable - no owner, no admin, and it moves no funds. <strong>OneliqRouter</strong> does have an owner, deliberately limited to two things: changing the swap fee (hard-capped at <strong>1%</strong> in the bytecode, currently 0.30%) and withdrawing the fees the router has collected. It cannot touch a user balance, because it only holds the USDC in flight inside the swap transaction itself. Read the verified source on the Arc explorer.</li>
       <li>The agent runner moves funds only along the rules you signed, via a Circle Programmable Wallet you authorized via EIP-2612 permit. You can pause or revoke any agent in one click - that yanks the permit and stops every future execution.</li>
@@ -473,15 +473,15 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 
     <ol class="steps">
       <li><strong>Install a wallet.</strong> MetaMask, Rabby, Coinbase Wallet, Frame, or any EIP-6963-compliant browser wallet. See <a href="#wallets">Supported wallets</a>.</li>
-      <li><strong>Add Arc Testnet.</strong> Open <a href="/trade">oneliq.xyz/trade</a>, click <em>Connect</em>, and approve the network prompt. Manual params are in the <a href="#network-info">Network info</a> table below.</li>
-      <li><strong>Get testnet USDC.</strong> Use the <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">Circle faucet</a> on your address. Arc uses USDC as native gas, so one faucet drip covers both spending and gas fees. The same USDC works for Trade, Balance, and Agent.</li>
-      <li><strong>Open <a href="/balance">Balance</a>.</strong> Deposit USDC from any supported chain (Sepolia, Base, Fuji, Arbitrum, OP, Polygon, Unichain) into the Gateway. Your unified balance updates in seconds.</li>
+      <li><strong>Add Arc Mainnet.</strong> Open <a href="/trade">oneliq.xyz/trade</a>, click <em>Connect</em>, and approve the network prompt. Manual params are in the <a href="#network-info">Network info</a> table below.</li>
+      <li><strong>Get USDC onto Arc.</strong> Arc uses USDC as native gas, so the same balance pays fees and funds whatever you do with it. There is no faucet on mainnet - bring USDC in from a chain you already hold it on. See <a href="#get-usdc">Get USDC on Arc</a>.</li>
+      <li><strong>Open <a href="/balance">Balance</a>.</strong> Deposit USDC from any supported chain (Ethereum, Base, Avalanche, Arbitrum, OP, Polygon, Unichain) into the Gateway. Your unified balance updates in seconds.</li>
       <li><strong>Spend from <a href="/balance">Balance</a>.</strong> Pick a destination chain and recipient. Multi-source unified spend pulls from N chains in one signature and mints native USDC on the destination. <a href="/trade">Trade</a> is the surface for swapping and bridging instead.</li>
     </ol>
 
     <div class="callout">
       <div class="callout-title">Tip</div>
-      <div class="callout-body">For fastest testnet deposits, use Avalanche Fuji as your source chain - Gateway credits show up in ~30 seconds. Ethereum Sepolia takes 12–15 minutes (two beacon-chain epochs of finality).</div>
+      <div class="callout-body">Gateway credits a deposit once the source chain reaches the finality it requires, so the source chain sets the wait. Avalanche is the quickest of the supported set; Ethereum is the slowest, because it waits two beacon-chain epochs. Both are a one-time cost - once the USDC is in your unified balance, spending from it is instant.</div>
     </div>
 
     <!-- ─── WALLET SETUP ─── -->
@@ -497,50 +497,52 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       JWT, no session token issued by Oneliq.
     </p>
 
-    <h3 class="docs-h3">Adding Arc Testnet manually</h3>
+    <h3 class="docs-h3">Adding Arc Mainnet manually</h3>
     <p class="docs-p">If your wallet doesn't auto-prompt or you prefer to add the network by hand:</p>
     <table class="docs-table">
       <tr><th>Field</th><th>Value</th></tr>
-      <tr><td>Network name</td><td>Arc Testnet</td></tr>
-      <tr><td>RPC URL</td><td><code>https://rpc.testnet.arc.network</code></td></tr>
-      <tr><td>Chain ID</td><td class="num"><code>5042002</code> (<code>0x4cef52</code>)</td></tr>
+      <tr><td>Network name</td><td>Arc Mainnet</td></tr>
+      <tr><td>RPC URL</td><td><code>https://rpc.mainnet.arc.io</code></td></tr>
+      <tr><td>Chain ID</td><td class="num"><code>5042</code> (<code>0x13b2</code>)</td></tr>
       <tr><td>Currency symbol</td><td><code>USDC</code></td></tr>
-      <tr><td>Block explorer</td><td><a href="https://testnet.arcscan.app" target="_blank" rel="noopener noreferrer">testnet.arcscan.app</a></td></tr>
+      <tr><td>Block explorer</td><td><a href="https://explorer.arc.io" target="_blank" rel="noopener noreferrer">explorer.arc.io</a></td></tr>
     </table>
 
-    <!-- ─── GET TESTNET USDC ─── -->
-    <h2 class="docs-h2" id="get-testnet-usdc">Get testnet USDC</h2>
+    <!-- ─── GET USDC ON ARC ─── -->
+    <h2 class="docs-h2" id="get-usdc">Get USDC on Arc</h2>
     <p class="docs-p">
-      Arc Testnet uses <strong>USDC as the native gas token</strong>. You need USDC for both transaction
-      fees and for whatever you want to do with it (deposit, swap, agent funding). One faucet call covers both.
+      Arc uses <strong>USDC as the native gas token</strong>, so a single balance pays transaction fees
+      and funds everything else - deposits, swaps, agent funding. Mainnet has no faucet: USDC has to come
+      from a chain you already hold it on. Three routes, in the order most people want them:
     </p>
     <ol class="steps">
-      <li>Visit <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">faucet.circle.com</a>.</li>
-      <li>Select <strong>Arc Testnet</strong> from the network dropdown.</li>
-      <li>Paste your wallet address - delivery is typically under 30 seconds.</li>
-      <li>Faucets are rate-limited per-address per-day. If you hit the limit, come back tomorrow or grab USDC on Sepolia / Base / Fuji and use <a href="#balance">Unified Balance</a> to make it spendable on Arc.</li>
+      <li><strong>Unified Balance (recommended).</strong> Open <a href="/balance">Balance</a>, deposit USDC from any supported chain into Circle Gateway, then spend to Arc. The spend mints native USDC on Arc, which is exactly the balance that pays gas. This is the path that works even with an empty Arc wallet, because <a href="#balance">Gateway's forwarder</a> can mint for you without you holding Arc gas first.</li>
+      <li><strong>Trade (CCTP V2).</strong> Open <a href="/trade">Trade</a>, pick a source chain and Arc as the destination. Burns on the source, attests, mints on Arc.</li>
+      <li><strong>Circle's own bridge.</strong> <a href="https://bridge.usdc.com" target="_blank" rel="noopener noreferrer">bridge.usdc.com</a> lists Arc as a destination if you would rather not use Oneliq for the first hop.</li>
     </ol>
 
     <div class="callout warn">
-      <div class="callout-title">Testnet only</div>
-      <div class="callout-body">Every asset on this network is a testnet token with no monetary value. <strong>Never send mainnet USDC or real funds to a testnet address</strong> - they are unrecoverable.</div>
+      <div class="callout-title">This is mainnet</div>
+      <div class="callout-body">Every balance here is real money and every transaction is final. Check the chain ID is <code>5042</code> before you sign, and send only to addresses you control. Arc still has a <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">testnet faucet</a> if you want to rehearse a flow first - switch the network on that page, not here.</div>
     </div>
 
     <!-- ─── TRADE ─── -->
     <h2 class="docs-h2" id="trade">Trade</h2>
     <p class="docs-p">
       The <a href="/trade"><code>/trade</code></a> page is the spend surface. It unifies same-chain
-      swap (USDC ⇄ EURC on Arc via OneliqRouter into Circle's Curve pool) and cross-chain bridging (USDC anywhere via
+      swap (any Arc pair via OneliqRouter into Uniswap) and cross-chain bridging (USDC anywhere via
       CCTP V2) into a single panel. Source picker shows your wallet balances plus your Circle Gateway
       pre-deposits, ranked so the path with the lowest friction floats to the top.
     </p>
 
     <h3 class="docs-h3">Same-chain swap (Arc internal)</h3>
     <p class="docs-p">
-      USDC ⇄ EURC swaps on Arc route through our own <strong>OneliqRouter</strong> contract, which
-      forwards the trade into Circle's Curve StableSwap pool and takes a transparent 0.30% on-chain
-      protocol fee (hard-capped at 1%). Circle App Kit Swap remains integrated for quoting/routing.
-      Quote latency is debounced at 150 ms on the source-amount input.
+      Swaps that stay on Arc route through our own <strong>OneliqRouter</strong> contract, which
+      forwards the trade into <strong>Uniswap</strong> - v4 through the Universal Router and Permit2,
+      or v3 through SwapRouter02 - and takes a transparent 0.30% on-chain protocol fee, hard-capped at
+      1%. The quote comes from the Uniswap quoter for whichever version holds the deeper pool, and is
+      debounced at 150 ms on the source-amount input. <a href="/explore">Explore</a> lists every Arc
+      pool the router can reach.
     </p>
 
     <h3 class="docs-h3">Cross-chain spend (CCTP V2)</h3>
@@ -564,7 +566,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 
     <div class="callout warn">
       <div class="callout-title">Latency is dominated by the slowest chain</div>
-      <div class="callout-body">Arc has sub-second deterministic finality, so an Arc → other-chain bridge waits only on the destination's finality clock. An Ethereum Sepolia → Arc bridge waits 13+ minutes for two beacon-chain epochs before Circle issues the attestation. Fast-finality mode short-circuits this for supported pairs.</div>
+      <div class="callout-body">Arc has sub-second deterministic finality, so an Arc → other-chain bridge waits only on the destination's finality clock. An Ethereum → Arc bridge waits 13+ minutes for two beacon-chain epochs before Circle issues the attestation. Fast-finality mode short-circuits this for supported pairs.</div>
     </div>
 
     <!-- ─── BALANCE ─── -->
@@ -586,10 +588,10 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 
     <h4 class="docs-h4">Deposit flow</h4>
     <ol class="steps">
-      <li><strong>Select a source chain</strong> with a USDC balance (Sepolia, Base, Arbitrum, OP, Polygon Amoy, Fuji, Unichain).</li>
+      <li><strong>Select a source chain</strong> with a USDC balance (Ethereum, Base, Arbitrum, OP, Polygon, Avalanche, Unichain).</li>
       <li><strong>Approve</strong> the GatewayWallet to pull USDC (one-time per chain per token).</li>
       <li><strong>Deposit</strong> - your USDC moves from your wallet into the <code>GatewayWallet</code> contract on that chain.</li>
-      <li><strong>Done.</strong> Your unified balance updates in seconds (Fuji ~30s, Sepolia ~12-15 min). Spendable everywhere Gateway is supported.</li>
+      <li><strong>Done.</strong> Your unified balance updates once the source chain finalises - quickest on Avalanche, slowest on Ethereum, which waits two beacon-chain epochs. Spendable everywhere Gateway is supported.</li>
     </ol>
 
     <h4 class="docs-h4">Spend flow (mint on Arc)</h4>
@@ -672,7 +674,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     <h3 class="docs-h3">Withdrawals</h3>
     <p class="docs-p">
       Withdrawals are two-step. You <em>initiate</em> a withdrawal on the source chain, which queues
-      it through Gateway's safety delay (~minutes on testnet). Then you <em>finalize</em> to receive
+      it through Gateway's safety delay. Then you <em>finalize</em> to receive
       USDC back in your wallet. The pending list shows everything in flight with countdown timers.
     </p>
 
@@ -921,85 +923,108 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </p>
 
     <!-- ─── NETWORK INFO ─── -->
-    <h2 class="docs-h2" id="network-info">Network info - Arc Testnet</h2>
+    <h2 class="docs-h2" id="network-info">Network info - Arc Mainnet</h2>
     <table class="docs-table">
       <tr><th>Field</th><th>Value</th></tr>
-      <tr><td>Chain ID</td><td class="num"><code>5042002</code> (<code>0x4cef52</code>)</td></tr>
-      <tr><td>RPC URL</td><td><code>https://rpc.testnet.arc.network</code></td></tr>
+      <tr><td>Chain ID</td><td class="num"><code>5042</code> (<code>0x13b2</code>)</td></tr>
+      <tr><td>RPC URL</td><td><code>https://rpc.mainnet.arc.io</code></td></tr>
       <tr><td>Currency</td><td><code>USDC</code> (18-decimal native gas)</td></tr>
-      <tr><td>Explorer</td><td><a href="https://testnet.arcscan.app" target="_blank" rel="noopener noreferrer">testnet.arcscan.app</a></td></tr>
-      <tr><td>Faucet</td><td><a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">faucet.circle.com</a></td></tr>
+      <tr><td>Explorer</td><td><a href="https://explorer.arc.io" target="_blank" rel="noopener noreferrer">explorer.arc.io</a></td></tr>
       <tr><td>Finality</td><td>Sub-second deterministic</td></tr>
       <tr><td>CCTP domain</td><td class="num"><code>26</code></td></tr>
       <tr><td>EVM compatibility</td><td>Full (Solidity, Foundry, Hardhat, Viem, ethers)</td></tr>
     </table>
+    <p class="docs-p" style="font-size:13px;color:var(--muted)">
+      Arc Testnet (chain ID <code>5042002</code>, <code>rpc.testnet.arc.network</code>, CCTP domain
+      <code>26</code>) is still reachable for rehearsal, with USDC from
+      <a href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">faucet.circle.com</a>.
+      Mainnet is the default everywhere in the app.
+    </p>
 
     <!-- ─── SUPPORTED CHAINS ─── -->
     <h2 class="docs-h2" id="supported-chains">Supported chains</h2>
     <p class="docs-p">
-      Oneliq surfaces eight testnets - Arc as the home chain plus seven external chains for
+      Oneliq surfaces eight mainnets - Arc as the home chain plus seven external chains for
       Unified Balance, CCTP bridging, and the Oneliq AI.
     </p>
     <table class="docs-table">
-      <tr><th>Chain</th><th>Chain ID</th><th>CCTP domain</th><th>RPC</th><th>Role</th></tr>
-      <tr><td><strong>Arc Testnet</strong></td><td class="num"><code>5042002</code></td><td class="num"><code>26</code></td><td><code>rpc.testnet.arc.network</code></td><td>Home - Trade, Mint destination, Portal check-in</td></tr>
-      <tr><td>Ethereum Sepolia</td><td class="num"><code>11155111</code></td><td class="num"><code>0</code></td><td><code>ethereum-sepolia-rpc.publicnode.com</code></td><td>Gateway · CCTP · Agent</td></tr>
-      <tr><td>Base Sepolia</td><td class="num"><code>84532</code></td><td class="num"><code>6</code></td><td><code>sepolia.base.org</code></td><td>Gateway · CCTP · Agent</td></tr>
-      <tr><td>Avalanche Fuji</td><td class="num"><code>43113</code></td><td class="num"><code>1</code></td><td><code>api.avax-test.network</code></td><td>Gateway · CCTP · Agent · <em>fastest</em></td></tr>
-      <tr><td>Arbitrum Sepolia</td><td class="num"><code>421614</code></td><td class="num"><code>3</code></td><td><code>sepolia-rollup.arbitrum.io</code></td><td>Gateway · CCTP · Agent</td></tr>
-      <tr><td>OP Sepolia</td><td class="num"><code>11155420</code></td><td class="num"><code>2</code></td><td><code>optimism-sepolia.publicnode.com</code></td><td>Gateway · CCTP · Agent</td></tr>
-      <tr><td>Polygon Amoy</td><td class="num"><code>80002</code></td><td class="num"><code>7</code></td><td><code>rpc-amoy.polygon.technology</code></td><td>Gateway · CCTP · Agent</td></tr>
-      <tr><td>Unichain Sepolia</td><td class="num"><code>1301</code></td><td class="num"><code>10</code></td><td><code>sepolia.unichain.org</code></td><td>Gateway · CCTP · Agent</td></tr>
+      <tr><th>Chain</th><th>Chain ID</th><th>CCTP domain</th><th>USDC</th><th>Role</th></tr>
+      <tr><td><strong>Arc Mainnet</strong></td><td class="num"><code>5042</code></td><td class="num"><code>26</code></td><td><code>native gas</code></td><td>Home - Trade, Mint destination, Portal check-in</td></tr>
+      <tr><td>Ethereum</td><td class="num"><code>1</code></td><td class="num"><code>0</code></td><td><code>0xA0b8…eB48</code></td><td>Gateway · CCTP · Agent</td></tr>
+      <tr><td>Base</td><td class="num"><code>8453</code></td><td class="num"><code>6</code></td><td><code>0x8335…2913</code></td><td>Gateway · CCTP · Agent · Uniswap v3</td></tr>
+      <tr><td>Avalanche C-Chain</td><td class="num"><code>43114</code></td><td class="num"><code>1</code></td><td><code>0xB97E…8a6E</code></td><td>Gateway · CCTP · Agent</td></tr>
+      <tr><td>Arbitrum One</td><td class="num"><code>42161</code></td><td class="num"><code>3</code></td><td><code>0xaf88…5831</code></td><td>Gateway · CCTP · Agent</td></tr>
+      <tr><td>OP Mainnet</td><td class="num"><code>10</code></td><td class="num"><code>2</code></td><td><code>0x0b2C…Ff85</code></td><td>Gateway · CCTP · Agent</td></tr>
+      <tr><td>Polygon PoS</td><td class="num"><code>137</code></td><td class="num"><code>7</code></td><td><code>0x3c49…3359</code></td><td>Gateway · CCTP · Agent</td></tr>
+      <tr><td>Unichain</td><td class="num"><code>130</code></td><td class="num"><code>10</code></td><td><code>0x078D…7AD6</code></td><td>Gateway · CCTP · Agent</td></tr>
     </table>
 
     <!-- ─── CONTRACTS ─── -->
     <h2 class="docs-h2" id="contracts">Contract addresses</h2>
-    <p class="docs-p">All contracts Oneliq interacts with on Arc Testnet (chain ID 5042002):</p>
+    <p class="docs-p">All contracts Oneliq interacts with on Arc Mainnet (chain ID 5042). Every address below is
+      readable on <a href="https://explorer.arc.io" target="_blank" rel="noopener noreferrer">explorer.arc.io</a>.</p>
 
     <h3 class="docs-h3">Tokens</h3>
     <table class="docs-table">
       <tr><th>Token</th><th>Address</th><th>Decimals</th><th>Issuer</th></tr>
       <tr><td><strong>USDC</strong> (native gas)</td><td><code>0x3600000000000000000000000000000000000000</code></td><td class="num">18 / 6 (CCTP)</td><td>Circle / Arc</td></tr>
-      <tr><td><strong>EURC</strong></td><td><code>0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a</code></td><td class="num">6</td><td>Circle</td></tr>
+      <tr><td><strong>EURC</strong></td><td><code>0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1</code></td><td class="num">6</td><td>Circle</td></tr>
     </table>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">
+      USDC appears twice on purpose. The balance that pays gas is the L1 native ledger with 18 decimals;
+      <code>0x3600…0000</code> is its ERC-20 face, and CCTP moves it in 6-decimal units. Oneliq converts
+      between the two at every boundary rather than assuming one of them.
+    </p>
 
     <h3 class="docs-h3">Circle Gateway V1</h3>
-    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Same deterministic addresses on every Gateway-supported chain.</p>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Same deterministic addresses on every Gateway-supported mainnet.</p>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
-      <tr><td>GatewayWallet</td><td><code>0x0077777d7EBA4688BDeF3E311b846F25870A19B9</code></td></tr>
-      <tr><td>GatewayMinter</td><td><code>0x0022222ABE238Cc2C7Bb1f21003F0a260052475B</code></td></tr>
+      <tr><td>GatewayWallet</td><td><code>0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE</code></td></tr>
+      <tr><td>GatewayMinter</td><td><code>0x2222222d7164433c4C09B0b0D809a9b52C04C205</code></td></tr>
     </table>
 
     <h3 class="docs-h3">Circle CCTP V2</h3>
-    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Same addresses on every CCTP V2 chain.</p>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Same addresses on every CCTP V2 mainnet.</p>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
-      <tr><td>TokenMessengerV2</td><td><code>0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA</code></td></tr>
-      <tr><td>MessageTransmitterV2</td><td><code>0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275</code></td></tr>
+      <tr><td>TokenMessengerV2</td><td><code>0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d</code></td></tr>
+      <tr><td>MessageTransmitterV2</td><td><code>0x81D40F21F12A8F0E3252Bccb954D722d4c464B64</code></td></tr>
     </table>
 
-    <h3 class="docs-h3">OneliqRouterV2 (Oneliq swap router → Circle Curve pool)</h3>
-    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Used by Trade and the Agent for same-chain USDC ⇄ EURC swaps. Forwards into Circle's Curve StableSwap pool and takes a 0.30% on-chain protocol fee (capped at 1%). Source-verified on Arcscan, solc 0.8.24.</p>
-    <p class="docs-p" style="font-size:13px;color:var(--muted)">V2 supersedes V1. It measures the pool's actual output instead of trusting the number the pool reports, keeps a fee ledger that a withdrawal can never exceed, grants the pool an allowance for exactly one swap and revokes it in the same transaction, and adds a <code>deadline</code>, a reentrancy guard and a pause switch. V1 is left deployed so its swaps stay verifiable, but nothing routes to it.</p>
+    <h3 class="docs-h3">OneliqRouter (Oneliq swap router → Uniswap on Arc)</h3>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Used by Trade, Explore and the Agent for swaps that stay on Arc. It wraps Uniswap and takes a transparent 0.30% on-chain protocol fee, hard-capped at 1% in the bytecode. Verified at deploy: <code>feeBps()</code> reads <strong>30</strong> and <code>paused()</code> reads <strong>false</strong> on chain.</p>
+    <p class="docs-p" style="font-size:13px;color:var(--muted)">The live router carries two paths: <code>swap()</code> goes to Uniswap <strong>v4</strong> through the Universal Router and Permit2, and <code>swapV3()</code> goes to Uniswap <strong>v3</strong> through SwapRouter02 directly - Arc's Universal Router v3 handler reverts with SliceOutOfBounds on every input shape, so v3 pairs are routed around it. It measures the pool's actual output by balance delta instead of trusting the number the pool reports, keeps a fee ledger a withdrawal can never exceed, and carries a <code>deadline</code>, a reentrancy guard, a pause switch and two-step ownership. The earlier v4-only deployment stays on chain so its swaps remain verifiable, but nothing routes to it.</p>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
-      <tr><td>OneliqRouterV2 <em>(live)</em></td><td><code>0x607C2a739FCdEd84f0350AC43118d85F4398872b</code></td></tr>
-      <tr><td>OneliqRouter <em>(V1, superseded)</em></td><td><code>0xb508F475230E4Ab876258B7DCaFbc182d806e1F7</code></td></tr>
-      <tr><td>Curve StableSwap pool</td><td><code>0x2d84d79c852f6842abe0304b70bbaa1506add457</code></td></tr>
+      <tr><td>OneliqRouter <em>(live, v4 + v3)</em></td><td><code>0x3635F71daA996e22867647cC58358c5803133A69</code></td></tr>
+      <tr><td>OneliqRouter <em>(v4-only, superseded)</em></td><td><code>0xB1Ed79ee288C4631176440b7f4e624C6B4f078F0</code></td></tr>
+    </table>
+
+    <h3 class="docs-h3">Uniswap on Arc</h3>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Uniswap's official Arc deployment. Oneliq quotes against these and routes through them; it operates none of them.</p>
+    <table class="docs-table">
+      <tr><th>Contract</th><th>Address</th></tr>
+      <tr><td>v4 PoolManager</td><td><code>0x8366a39CC670B4001A1121B8F6A443A643e40951</code></td></tr>
+      <tr><td>v4 Quoter</td><td><code>0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94</code></td></tr>
+      <tr><td>v4 Universal Router</td><td><code>0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1</code></td></tr>
+      <tr><td>v4 PositionManager</td><td><code>0x6049c9a0e26405C0985f9E3685C87d0aE917f82B</code></td></tr>
+      <tr><td>v4 StateView</td><td><code>0xF3334192D15450CdD385c8B70e03f9A6bD9E673b</code></td></tr>
+      <tr><td>v3 SwapRouter02</td><td><code>0x53bf6b0684ec7ef91e1387da3d1a1769bc5a6f77</code></td></tr>
+      <tr><td>Permit2</td><td><code>0x000000000022D473030F116dDEE9F6B43aC78BA3</code></td></tr>
     </table>
 
     <h3 class="docs-h3">OneliqCheckIn (Portal daily check-in)</h3>
-    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Immutable, no owner and no upgrade path. Counts days in UTC. Sourcify-verified.</p>
+    <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Immutable, no owner and no upgrade path. Counts days in UTC, which is why the streak logic in the app does the same.</p>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
-      <tr><td>OneliqCheckIn</td><td><code>0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10</code></td></tr>
+      <tr><td>OneliqCheckIn</td><td><code>0x0cccbe2F3acEc01d71B38249a1d103117c8473Ac</code></td></tr>
     </table>
 
     <h3 class="docs-h3">Arc-native</h3>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
-      <tr><td>FxEscrow (StableFX - roadmap)</td><td><code>0x867650F5eAe8df91445971f14d89fd84F0C9a9f8</code></td></tr>
+      <tr><td>FxEscrow (StableFX - roadmap)</td><td><code>0xe2E5F173576B513d994073CCbDaCBE027d43DFe6</code></td></tr>
       <tr><td>Multicall3</td><td><code>0xcA11bde05977b3631167028862bE2a173976CA11</code></td></tr>
     </table>
 
@@ -1175,7 +1200,7 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
     <h3 class="docs-h3">Why is my CCTP bridge taking 13 minutes?</h3>
     <p class="docs-p">
       You're on <strong>Standard finality</strong>. Circle waits for source-chain finality before
-      issuing the attestation - sub-second on Arc, but ~13 min on Ethereum Sepolia (two beacon-chain
+      issuing the attestation - sub-second on Arc, but ~13 min on Ethereum (two beacon-chain
       epochs). Switch to <strong>Fast finality</strong> for supported pairs to bring this down to ~20s
       for a small fee.
     </p>
@@ -1223,8 +1248,12 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
 
     <!-- ─── CHANGELOG ─── -->
     <h2 class="docs-h2" id="changelog">Changelog</h2>
-    <p class="docs-p" style="font-family:var(--mono);font-size:13px;color:var(--muted)">v0.10.x - Public Beta on Arc Testnet</p>
+    <p class="docs-p" style="font-family:var(--mono);font-size:13px;color:var(--muted)">v0.11.x - Live on Arc Mainnet</p>
     <ul class="docs-ul">
+      <li><strong>2026-10-03</strong> - These docs move to mainnet. Network info, the supported-chain table and the whole contract registry now carry Arc Mainnet values; the faucet walkthrough is replaced by the three real ways to get USDC onto Arc. The swap section is rewritten for Uniswap: the mainnet OneliqRouter wraps v4 through the Universal Router and v3 through SwapRouter02, not the Curve pool the testnet build used.</li>
+      <li><strong>2026-10-02</strong> - <strong>Explore</strong> joins the sidebar above Trade, listing every Arc pool with live price, 1H/1D change, FDV and volume, and a per-token detail page with an on-chain chart and inline swap.</li>
+      <li><strong>2026-09-20</strong> - <strong>OneliqRouter</strong> redeployed on Arc Mainnet with a dedicated v3 path, so v3-only pairs collect the same 0.30% fee as v4 pairs. The v4-only deployment stays on chain and unused.</li>
+      <li><strong>2026-09-16</strong> - <strong>Arc Mainnet.</strong> Chain ID <code>5042</code> becomes the default network across the app; <strong>OneliqCheckIn</strong> deployed for Portal.</li>
       <li><strong>2026-08-10</strong> - Surfaces that talk to each other. <strong>Trade</strong> can park a swap output straight into the Unified Balance; <strong>Batch Pay</strong> gains bulk paste and a per-wallet recipient book, and splits past Circle's 16-intent cap instead of refusing; the agent now reads your unified balance in its pre-flight.</li>
       <li><strong>2026-08-10</strong> - <strong>Light theme</strong> across every page with a sun/moon switch, plus a new Oneliq wordmark for both themes.</li>
       <li><strong>2026-08-09</strong> - Balance power-ups. <strong>⇉ Batch Pay</strong> (pay N recipients, grouped by destination, one signature per chain) and <strong>⤵ Consolidate</strong> (sweep every chain onto one in a single signature). Spend gains a <strong>Manual</strong> mode alongside Auto and Single, plus estimate-before-sign and three explicit partial-liquidity states.</li>
@@ -1252,7 +1281,7 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
 
     <!-- ─── FOOTER ─── -->
     <div class="docs-foot">
-      <span>© 2026 Oneliq · Arc Testnet · v0.10.0</span>
+      <span>© 2026 Oneliq · Arc Mainnet · v0.11.0</span>
       <div>
         <a href="/">Home</a> &nbsp;·&nbsp;
         <a href="/blog">Blog</a> &nbsp;·&nbsp;
@@ -1271,7 +1300,7 @@ POST <span class="code-key">/api/agent/</span><span class="code-str">{id}</span>
     <a class="toc-link" href="#architecture">Architecture</a>
     <a class="toc-link" href="#quick-start">Quick start</a>
     <a class="toc-link" href="#wallet-setup">Wallet setup</a>
-    <a class="toc-link" href="#get-testnet-usdc">Testnet USDC</a>
+    <a class="toc-link" href="#get-usdc">Get USDC</a>
     <a class="toc-link" href="#trade">Trade</a>
     <a class="toc-link" href="#balance">Unified Balance</a>
     <a class="toc-link" href="#agent">Oneliq AI</a>
