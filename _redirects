@@ -66,8 +66,3 @@
 # reopen either surface.
 /agent      /    301
 /portal     /    301
-
-# Closed APIs: the Functions are deleted, so these paths otherwise fall through
-# to the SPA fallback and answer an API call with 200 + HTML.
-/api/agent/*   /404   404
-/api/ai/*      /404   404
