@@ -1047,6 +1047,6 @@ export async function onRequest(context) {
 // Re-export the hot-path helpers so the agent endpoint (which also
 // generates events server-side) can use them without duplicating logic.
 // NOTE: Pages Functions can't share modules across routes easily, so
-// `functions/api/agent/[[path]].js` reimplements the same write pattern
+// The closed agent API reimplemented the same write pattern
 // inline. Keep these two files in sync if you change the rollup shape.
 export { updateRollupCache, pushRecentRing, utcDate as _utcDate };

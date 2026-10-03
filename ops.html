@@ -21,7 +21,7 @@
 <style>
 /* ============================================================
    DASHBOARD - modern stablecoin infrastructure control center.
-   Visual language inherited from /trade, /balance, /agent so the
+   Visual language inherited from /trade and /balance so the
    four pages feel like one app. New tokens live under .dash-* so
    they don't collide with the shared primitives in arc-ui.css.
 ============================================================ */
@@ -99,30 +99,6 @@
 .ub-cta:hover{background:rgba(var(--tint),.12);border-color:rgba(var(--tint),.3);transform:translateY(-1px)}
 .ub-cta.primary{background:linear-gradient(135deg,var(--arc1),var(--arc2));border-color:transparent;color:var(--bg);font-weight:800}
 .ub-cta.primary:hover{box-shadow:0 6px 22px rgba(77,214,219,.32)}
-
-/* AGENT MODULE */
-.agent-list{display:flex;flex-direction:column;gap:8px}
-.agent-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:rgba(var(--tint),.025);border:1px solid var(--border);transition:all .15s;cursor:pointer;text-decoration:none;color:inherit}
-.agent-row:hover{border-color:var(--border2);background:rgba(var(--tint),.05);transform:translateX(2px)}
-.agent-state-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--arc4);box-shadow:0 0 8px var(--arc4)}
-.agent-state-dot.paused{background:#FFB454;box-shadow:0 0 8px #FFB454}
-.agent-state-dot.revoked{background:#FF8BA3;box-shadow:0 0 8px #FF8BA3}
-.agent-row-info{flex:1;min-width:0}
-.agent-row-name{font-size:13.5px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.005em}
-.agent-row-meta{font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
-.agent-row-meta b{color:var(--text);font-weight:500}
-.agent-row-amt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
-.agent-row-amt small{display:block;font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
-
-.agent-empty{padding:28px 14px;text-align:center;border:1px dashed var(--border);border-radius:14px;background:rgba(var(--tint),.015)}
-.agent-empty-ico{font-size:22px;opacity:.45;margin-bottom:8px}
-.agent-empty-t{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
-.agent-empty-s{font-size:11.5px;color:var(--muted);line-height:1.5;max-width:240px;margin:0 auto 12px}
-.agent-empty-cta{display:inline-block;padding:8px 16px;border-radius:10px;background:rgba(77,214,219,.12);border:1px solid rgba(77,214,219,.32);color:var(--arc1);font-size:12px;font-weight:700;text-decoration:none;transition:all .15s}
-.agent-empty-cta:hover{background:rgba(77,214,219,.2);border-color:rgba(77,214,219,.5)}
-
-.agent-create-cta{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px;margin-top:12px;border-radius:12px;font-size:12.5px;font-weight:700;color:var(--text);background:rgba(var(--tint),.04);border:1px dashed var(--border2);text-decoration:none;transition:all .15s}
-.agent-create-cta:hover{background:rgba(77,214,219,.08);border-color:var(--arc1);color:var(--arc1)}
 
 /* ANALYTICS MODULE */
 .analytics-top{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
@@ -233,7 +209,7 @@
     <div class="dash-hero-l">
       <span class="arc-label">Control Center</span>
       <h1>Dashboard</h1>
-      <p>One USDC. One Balance. Everywhere. Unified stablecoin operations, cross-chain finance, and agent management - in one place.</p>
+      <p>One USDC. One Balance. Everywhere. Unified stablecoin operations and cross-chain finance - in one place.</p>
     </div>
     <div class="dash-hero-r">
       <span class="live-pill"><span class="live-dot"></span>Live · Arc Testnet</span>
@@ -244,7 +220,7 @@
   <!-- CONNECT PROMPT - hidden when wallet is connected -->
   <div id="dash-connect" class="connect-prompt" style="display:none">
     <h3>Connect your wallet to see your dashboard</h3>
-    <p>Your unified balance, agents, recent activity, and portfolio analytics will appear here once your wallet is connected.</p>
+    <p>Your unified balance, recent activity, and portfolio analytics will appear here once your wallet is connected.</p>
     <button id="dash-connect-btn" type="button">Connect Wallet</button>
   </div>
 
@@ -266,11 +242,6 @@
       <div class="metric-label"><span class="mico">⌬</span>Active Chains</div>
       <div class="metric-val" id="m-chains">-<span class="unit">of 8</span></div>
       <div class="metric-sub" id="m-chains-sub">With non-zero USDC</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label"><span class="mico">∞</span>Active Agents</div>
-      <div class="metric-val" id="m-agents">-</div>
-      <div class="metric-sub" id="m-agents-sub">Running automations</div>
     </div>
     <div class="metric-card">
       <div class="metric-label"><span class="mico">↻</span>Settlement Vol · 24h</div>
@@ -376,10 +347,9 @@
             <span class="module-eyebrow">Activity</span>
             <h2>Recent Settlements</h2>
           </div>
-          <a class="module-link" href="/agent">View all in /agent ↗</a>
         </div>
         <div class="activity-list" id="activity-list">
-          <div class="activity-empty">Activity will appear here once your agents start running or you make a cross-chain spend.</div>
+          <div class="activity-empty">Activity will appear here once you make a cross-chain spend.</div>
         </div>
       </section>
 
@@ -388,25 +358,6 @@
     <!-- ───────── RIGHT COLUMN ───────── -->
     <div class="dash-col">
 
-      <!-- AGENT CONTROL CENTER MODULE -->
-      <section class="module">
-        <div class="module-h">
-          <div class="module-h-l">
-            <span class="module-eyebrow">Automation</span>
-            <h2>Agents</h2>
-          </div>
-          <a class="module-link" href="/agent">Manage ↗</a>
-        </div>
-        <div class="agent-list" id="agent-list">
-          <div class="agent-empty">
-            <div class="agent-empty-ico">◇</div>
-            <div class="agent-empty-t">No agents running</div>
-            <div class="agent-empty-s">Set up an auto top-up or scheduled send. One signature, no servers to manage.</div>
-            <a class="agent-empty-cta" href="/agent">+ Create your first agent</a>
-          </div>
-        </div>
-        <a class="agent-create-cta" id="agent-create-cta" href="/agent" style="display:none">+ Create new agent</a>
-      </section>
 
       <!-- QUICK ACTIONS MODULE -->
       <section class="module">
@@ -431,11 +382,6 @@
             <div class="qa-tile-ico t3">→</div>
             <div class="qa-tile-name">Spend</div>
             <div class="qa-tile-desc">Cross-chain transfer</div>
-          </a>
-          <a class="qa-tile" href="/agent">
-            <div class="qa-tile-ico t4">∞</div>
-            <div class="qa-tile-name">New Agent</div>
-            <div class="qa-tile-desc">Automate transfers</div>
           </a>
           <a class="qa-tile" href="https://faucet.circle.com" target="_blank" rel="noopener noreferrer">
             <div class="qa-tile-ico t2">💧</div>
@@ -466,7 +412,6 @@
        2. On wallet connect (or auto-connect from localStorage), load:
             - Per-chain wallet USDC balances (multicall via arc-core)
             - Circle Gateway unified balance (REST /v1/balances)
-            - Agent list + recent executions (/api/agent/list)
        3. Compute derived metrics (portfolio total = wallet + gateway,
           spendable, active chains, settlement volume) and paint.
        4. Re-render on wallet change.
@@ -478,7 +423,7 @@
   await ArcUI.boot('dashboard');
 
   // ── CHAIN REGISTRY ─────────────────────────────────────────────
-  // Use the chip-id ↔ arc-key mapping that /agent already established so
+  // Use the chip-id ↔ arc-key mapping the Balance page established so
   // the visual chip names stay consistent across pages.
   const CHIPS = [
     { id:'base',     arcKey:'baseSepolia',     short:'Base',  name:'Base Sepolia',     color:'#0052FF', explorer:a => `https://sepolia.basescan.org/address/${a}` },
@@ -582,48 +527,6 @@
     }
   }
 
-  // ── LOAD: Agents + executions ─────────────────────────────────
-  async function loadAgents() {
-    if (!state.addr) return;
-    try {
-      const res = await fetch(`/api/agent/list?owner=${state.addr}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.status === 503) {
-        // Backend not configured → fall back to localStorage so the dashboard
-        // is still useful in dev / preview environments.
-        const local = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
-        state.agents = local.filter(a => (a.owner || '').toLowerCase() === state.addr.toLowerCase());
-        state.executions = JSON.parse(localStorage.getItem('arcswap_execs') || '[]');
-        return;
-      }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        state.agents = list;
-        // Fetch executions for up to 5 most recent agents
-        const recent = list.slice(0, 5);
-        const all = [];
-        await Promise.all(recent.map(async a => {
-          try {
-            const r = await fetch(`/api/agent/${a.id}/executions`);
-            if (r.ok) {
-              const ex = await r.json();
-              if (Array.isArray(ex)) for (const e of ex) all.push({ ...e, agentId: a.id });
-            }
-          } catch { /* skip */ }
-        }));
-        all.sort((a, b) => (b.time || 0) - (a.time || 0));
-        state.executions = all;
-      }
-    } catch (e) {
-      console.warn('[dashboard] agent load failed:', e.message);
-      // Fallback to local storage
-      const local = JSON.parse(localStorage.getItem('arcswap_agents') || '[]');
-      state.agents = local.filter(a => (a.owner || '').toLowerCase() === (state.addr || '').toLowerCase());
-      state.executions = JSON.parse(localStorage.getItem('arcswap_execs') || '[]');
-    }
-  }
 
   // ── RENDER: Overview metrics ──────────────────────────────────
   function renderMetrics() {
@@ -656,12 +559,6 @@
     }
     document.getElementById('m-chains').innerHTML = `${active}<span class="unit">of 8</span>`;
     document.getElementById('m-chains-sub').textContent = active > 0 ? 'With non-zero USDC' : 'Connect & fund to begin';
-
-    // Active agents
-    const running = state.agents.filter(a => (a.state || 'active') === 'active').length;
-    const paused = state.agents.filter(a => a.state === 'paused').length;
-    document.getElementById('m-agents').textContent = running;
-    document.getElementById('m-agents-sub').textContent = paused > 0 ? `${running} active · ${paused} paused` : (running > 0 ? 'Running automations' : 'No agents yet');
 
     // Settlement volume 24h - from executions
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
@@ -770,62 +667,6 @@
     }).join('');
   }
 
-  // ── RENDER: Agent Control Center ──────────────────────────────
-  function renderAgents() {
-    const list = document.getElementById('agent-list');
-    const createCta = document.getElementById('agent-create-cta');
-    if (!state.agents.length) {
-      list.innerHTML = `
-        <div class="agent-empty">
-          <div class="agent-empty-ico">◇</div>
-          <div class="agent-empty-t">No agents running</div>
-          <div class="agent-empty-s">Set up an auto top-up or scheduled send. One signature, no servers to manage.</div>
-          <a class="agent-empty-cta" href="/agent">+ Create your first agent</a>
-        </div>`;
-      createCta.style.display = 'none';
-      return;
-    }
-
-    // Sort: active first, then by createdAt desc. Cap to 5 - anything beyond
-    // 5 belongs in the /agent page proper.
-    const sorted = [...state.agents].sort((a, b) => {
-      const sa = (a.state || 'active') === 'active' ? 0 : 1;
-      const sb = (b.state || 'active') === 'active' ? 0 : 1;
-      if (sa !== sb) return sa - sb;
-      return (b.created || 0) - (a.created || 0);
-    }).slice(0, 5);
-
-    list.innerHTML = sorted.map(a => {
-      const p = a.params || {};
-      const stateClass = a.state === 'paused' ? 'paused' : (a.state === 'revoked' ? 'revoked' : '');
-      const stateLabel = a.state === 'paused' ? 'Paused' : (a.state === 'revoked' ? 'Revoked' : 'Active');
-      const title = a.mode === 'topup' ? 'Auto Top-Up' : 'Scheduled Send';
-      const detail = a.mode === 'topup'
-        ? `floor $${Number(p.floor || 0).toFixed(2)} / refill $${Number(p.refillAmount || 0).toFixed(2)}`
-        : `$${Number(p.sendAmount || 0).toFixed(2)} ${p.cadence || ''}`.trim();
-      const total = Number(a.totalSent || 0);
-      const next = a.nextRun ? new Date(a.nextRun) : null;
-      const nextLabel = next ? `next ${next.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : '';
-      return `
-        <a class="agent-row" href="/agent" title="Manage in /agent">
-          <span class="agent-state-dot ${stateClass}"></span>
-          <div class="agent-row-info">
-            <div class="agent-row-name">${escapeHtml(a.name || title)}</div>
-            <div class="agent-row-meta">
-              <span><b>${escapeHtml(stateLabel)}</b></span>
-              <span>${escapeHtml(detail)}</span>
-              ${nextLabel ? `<span>${escapeHtml(nextLabel)}</span>` : ''}
-            </div>
-          </div>
-          <div class="agent-row-amt">
-            $${fmtMoney(total)}
-            <small>sent</small>
-          </div>
-        </a>
-      `;
-    }).join('');
-    createCta.style.display = '';
-  }
 
   // ── RENDER: Portfolio Analytics ───────────────────────────────
   function renderAnalytics() {
@@ -939,7 +780,7 @@
   function renderActivity() {
     const list = document.getElementById('activity-list');
     if (!state.executions.length) {
-      list.innerHTML = `<div class="activity-empty">No activity yet. <b>Set up an agent</b> or make a cross-chain spend and it'll show up here.</div>`;
+      list.innerHTML = `<div class="activity-empty">No activity yet. Make a cross-chain spend and it'll show up here.</div>`;
       return;
     }
     const items = state.executions.slice(0, 8);
@@ -1008,24 +849,23 @@
     if (!state.addr) {
       state.agents = [];
       state.executions = [];
+      // Agents/executions used to be loaded from /api/agent, which is closed.
+      // The readers below are left in place and simply see empty arrays.
       renderMetrics();
       renderUnifiedBalance();
-      renderAgents();
       renderAnalytics();
       renderActivity();
       return;
     }
 
-    // Fire all three loaders in parallel - they're independent and waiting
+    // Fire both loaders in parallel - they're independent and waiting
     // for the slowest one means a faster page-to-pixel time.
     await Promise.allSettled([
       loadWalletBalances(),
       loadGatewayBalances(),
-      loadAgents(),
     ]);
     renderMetrics();
     renderUnifiedBalance();
-    renderAgents();
     renderAnalytics();
     renderActivity();
   }

@@ -146,10 +146,8 @@
     { id: 'frontend', name: 'Oneliq Frontend',      probe: () => probeUrl((API_BASE || '') + '/', { method: 'HEAD', cache: 'no-store' }), uptime: 99.98, hint: 'Cloudflare Pages' },
     { id: 'balance',  name: 'Unified Balance API',   probe: () => probeUrl(API_BASE + '/api/gateway-proxy/health', { method: 'HEAD' }), uptime: 99.92, hint: 'Circle Gateway' },
     { id: 'trade',    name: 'Trade Engine',          probe: () => probeRpc('https://rpc.testnet.arc.network'), uptime: 99.85, hint: 'Arc L1 RPC' },
-    { id: 'agent',    name: 'Agent System',          probe: () => probeUrl(API_BASE + '/api/agent/health', { method: 'HEAD' }), uptime: 99.74, hint: 'Cloudflare KV' },
     { id: 'gw-proxy', name: 'Circle Gateway Proxy',  probe: () => probeUrl(API_BASE + '/api/gateway-proxy/health', { method: 'HEAD' }), uptime: 99.91, hint: 'gateway-api-testnet.circle.com' },
     { id: 'kit-proxy',name: 'Circle App Kit Proxy',  probe: () => probeUrl(API_BASE + '/api/circle-proxy/health', { method: 'HEAD' }), uptime: 99.88, hint: 'api.circle.com' },
-    { id: 'cron',     name: 'Automation Workers',    probe: () => probeUrl(API_BASE + '/api/agent/health-cron', { method: 'HEAD' }), uptime: 99.79, hint: 'Cron Trigger' },
     { id: 'settle',   name: 'Settlement Services',   probe: () => probeRpc('https://rpc.testnet.arc.network'), uptime: 99.83, hint: 'CCTP V2 + Arc' },
   ];
 
@@ -183,7 +181,6 @@
   const SUBNAV_PAGES = [
     { id: 'overview',  ix: '01', label: 'Overview',   href: '/' },
     { id: 'services',  ix: '02', label: 'Services',   href: '/services' },
-    { id: 'agents',    ix: '03', label: 'Agents',     href: '/agents' },
     { id: 'incidents', ix: '04', label: 'Incidents',  href: '/incidents' },
   ];
 

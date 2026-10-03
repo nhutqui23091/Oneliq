@@ -161,7 +161,6 @@ searchInput.addEventListener('keydown', (e) => {
   if (/^0x[0-9a-fA-F]{64}$/.test(q))      url = 'https://testnet.arcscan.app/tx/' + q;
   else if (/^0x[0-9a-fA-F]{40}$/.test(q)) url = 'https://testnet.arcscan.app/address/' + q;
   else if (/^\d+$/.test(q))               url = 'https://testnet.arcscan.app/block/' + q;
-  else if (/^ag_[a-z0-9_]+$/i.test(q))    url = 'https://oneliq.xyz/agent#' + q;
   else                                    url = 'https://testnet.arcscan.app/search?q=' + encodeURIComponent(q);
   window.open(url, '_blank', 'noopener,noreferrer');
 });
@@ -402,7 +401,7 @@ async function renderFeed() {
             Status page is wired to <span style="color:var(--green)">live telemetry</span>.<br/>
             Be the first to test a <a href="https://oneliq.xyz/trade" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">trade</a>,
             <a href="https://oneliq.xyz/balance" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">deposit</a>,
-            or <a href="https://oneliq.xyz/agent" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">agent</a>
+            or <a href="https://oneliq.xyz/explore" target="_blank" rel="noopener noreferrer" style="color:var(--arc1);text-decoration:underline">swap</a>
             to see it appear here within 30 seconds.
           </div>
         </div>`;

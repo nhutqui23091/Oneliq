@@ -1,5 +1,9 @@
 /**
- * EIP-712 signature verification for the Agent API.
+ * EIP-712 signature verification — shared primitives.
+ *
+ * Lived at api/agent/_verify.js until the Agent API was closed (2026-10-04);
+ * it moved here because wallet-session auth in _session.js needs the same
+ * keccak/recover pair and must not depend on a closed surface.
  *
  * Cloudflare Pages Functions run without npm dependencies here (no package.json
  * in the repo root), and Web Crypto exposes neither keccak256 nor secp256k1
@@ -12,7 +16,6 @@
  *   keccak256(bytes)                     → Uint8Array(32)
  *   recoverTypedDataAddress(domain, types, primaryType, value, sig) → 0x… | null
  *   canonicalJson(value)                 → deterministic JSON string
- *   AGENT_DOMAIN, AGENT_RULE_TYPE, AGENT_ACTION_TYPE
  */
 
 /* ────────────────────────────────────────────────────────────
@@ -365,35 +368,6 @@ export function recoverTypedDataAddress(domain, fields, primaryType, value, sigH
   }
   return recoverAddress(digest, sigHex);
 }
-
-/* ────────────────────────────────────────────────────────────
-   Agent-specific schema (must stay byte-identical to agent.html)
-   ──────────────────────────────────────────────────────────── */
-
-export const AGENT_DOMAIN = {
-  name: 'Oneliq Agent',
-  version: '1',
-  chainId: 5042002,          // Arc Testnet — namespace only, not a chain commitment
-};
-
-export const AGENT_RULE_TYPE = [
-  { name: 'owner',        type: 'address' },
-  { name: 'mode',         type: 'string'  },
-  { name: 'sources',      type: 'string'  }, // comma-joined chain keys
-  { name: 'targets',      type: 'string'  }, // comma-joined recipient addresses
-  { name: 'targetChains', type: 'string'  }, // comma-joined, parallel to targets
-  { name: 'params',       type: 'string'  }, // canonicalJson of the rule params
-  { name: 'nonce',        type: 'string'  },
-  { name: 'expiresAt',    type: 'uint256' },
-];
-
-export const AGENT_ACTION_TYPE = [
-  { name: 'owner',    type: 'address' },
-  { name: 'agentId',  type: 'string'  },
-  { name: 'action',   type: 'string'  },
-  { name: 'nonce',    type: 'string'  },
-  { name: 'issuedAt', type: 'uint256' },
-];
 
 /**
  * Deterministic JSON: object keys sorted, arrays left in order. Both the

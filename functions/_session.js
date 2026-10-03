@@ -21,7 +21,7 @@
  * shows the user a readable statement rather than an opaque hash.
  */
 
-import { recoverTypedDataAddress } from './api/agent/_verify.js';
+import { recoverTypedDataAddress } from './_eip712.js';
 
 export const SESSION_DOMAIN = {
   name: 'Oneliq',
