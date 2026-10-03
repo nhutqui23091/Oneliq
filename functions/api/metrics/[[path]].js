@@ -54,7 +54,7 @@
  */
 
 import { underRateLimit, sessionAddress, timingSafeEqual } from '../../_session.js';
-import { getRpcUrl } from '../agent/_balance.js';
+import { getRpcUrl } from '../../_rpc.js';
 
 /**
  * Decide whether a tracked event may be attributed to a wallet.
