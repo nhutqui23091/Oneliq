@@ -84,7 +84,26 @@ import { getRpcUrl } from '../../_rpc.js';
 // smaller opening than "any transaction", but it is why the authoritative user
 // count is the one rebuilt from router events by /api/metrics/reconcile-users,
 // not this endpoint.
+//
+// Mainnet and testnet both listed: the app runs on mainnet, but receipts
+// written before the 2026-09-16 cutover carry testnet chain keys and still
+// have to attribute. The two sets use different keys, so neither shadows the
+// other — `arc` is the exception, and its USDC lives at the same address on
+// both networks. Every mainnet entry below was confirmed by calling symbol()
+// on it, not copied from a table.
 const USDC_BY_CHAIN = {
+  // ── Mainnet ──
+  arc:             '0x3600000000000000000000000000000000000000',
+  ethereum:        '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  base:            '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+  arbitrum:        '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+  optimism:        '0x0b2c639c533813f4aa9d7837caf62653d097ff85',
+  polygon:         '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+  avalanche:       '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e',
+  unichain:        '0x078d782b760474a361dda0af3839290b0ef57ad6',
+
+  // ── Testnet (historical receipts) ──
+  arcTestnet:      '0x3600000000000000000000000000000000000000',
   sepolia:         '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
   baseSepolia:     '0x036cbd53842c5426634e7929541ec2318f3dcf7e',
   arbitrumSepolia: '0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d',
@@ -92,22 +111,41 @@ const USDC_BY_CHAIN = {
   polygonAmoy:     '0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582',
   avalancheFuji:   '0x5425890298aed601595a70ab815c96711a31bc65',
   unichainSepolia: '0x31d0220469e10c4e71834a79b1f276d740d3768f',
-  arc:             '0x3600000000000000000000000000000000000000',
 };
 
-// Addresses verified live on Arc (eth_getCode + selector probe) rather than
-// copied from notes — an earlier revision of this list carried a mistyped
-// router that has no contract at all, which silently rejected every real swap.
+// Addresses verified live (eth_getCode) rather than copied from notes — an
+// earlier revision of this list carried a mistyped router that has no contract
+// at all, which silently rejected every real swap. Every mainnet entry below
+// was re-checked on Arc mainnet and returned non-empty bytecode.
+//
+// Mainnet entries were missing entirely until 2026-10-04: this list was still
+// the testnet one after the cutover, so verifyTxSender() answered 'unrelated'
+// for every real mainnet transaction and the attribution it feeds went quiet.
+// Testnet rows stay so pre-cutover receipts still attribute.
 const ONELIQ_CONTRACTS = new Set([
-  '0x607c2a739fcded84f0350ac43118d85f4398872b', // OneliqRouterV2 — the live fee router (feeBps 30)
-  '0xb508f475230e4ab876258b7dcafbc182d806e1f7', // OneliqRouter V1, kept so historical swaps still attribute
-  '0x48a9bd1644ac67fbef4183261c466bea3eb333fc', // legacy router, kept so historical swaps still attribute
-  '0x368a0e854ec69ec10b50d20fcafc1baf8b7eff10', // OneliqCheckIn (portal)
-  '0x2d84d79c852f6842abe0304b70bbaa1506add457', // Curve USDC/EURC pool the router forwards to
-  '0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa', // CCTP TokenMessengerV2
-  '0xe737e5cebeeba77efe34d4aa090756590b1ce275', // CCTP MessageTransmitterV2
-  '0x0077777d7eba4688bdef3e311b846f25870a19b9', // Circle Gateway wallet
-  '0x0022222abe238cc2c7bb1f21003f0a260052475b', // Circle Gateway minter
+  // ── Arc mainnet ──
+  '0x3635f71daa996e22867647cc58358c5803133a69', // OneliqRouter — live fee router, v4 + v3 (feeBps 30)
+  '0xb1ed79ee288c4631176440b7f4e624c6b4f078f0', // OneliqRouter, v4-only predecessor
+  '0x0cccbe2f3acec01d71b38249a1d103117c8473ac', // OneliqCheckIn
+  '0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1', // Uniswap v4 Universal Router — what swap() calls through
+  '0x8366a39cc670b4001a1121b8f6a443a643e40951', // Uniswap v4 PoolManager
+  '0x53bf6b0684ec7ef91e1387da3d1a1769bc5a6f77', // Uniswap v3 SwapRouter02 — what swapV3() calls
+  '0x000000000022d473030f116ddee9f6b43ac78ba3', // Permit2
+  '0x28b5a0e9c621a5badaa536219b3a228c8168cf5d', // CCTP TokenMessengerV2 (mainnet)
+  '0x81d40f21f12a8f0e3252bccb954d722d4c464b64', // CCTP MessageTransmitterV2 (mainnet)
+  '0x77777777dcc4d5a8b6e418fd04d8997ef11000ee', // Circle Gateway wallet (mainnet)
+  '0x2222222d7164433c4c09b0b0d809a9b52c04c205', // Circle Gateway minter (mainnet)
+
+  // ── Testnet, kept so historical transactions still attribute ──
+  '0x607c2a739fcded84f0350ac43118d85f4398872b', // OneliqRouterV2 (testnet)
+  '0xb508f475230e4ab876258b7dcafbc182d806e1f7', // OneliqRouter V1 (testnet)
+  '0x48a9bd1644ac67fbef4183261c466bea3eb333fc', // legacy third-party router (testnet)
+  '0x368a0e854ec69ec10b50d20fcafc1baf8b7eff10', // OneliqCheckIn (testnet)
+  '0x2d84d79c852f6842abe0304b70bbaa1506add457', // Curve USDC/EURC pool the testnet router forwarded to
+  '0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa', // CCTP TokenMessengerV2 (testnet)
+  '0xe737e5cebeeba77efe34d4aa090756590b1ce275', // CCTP MessageTransmitterV2 (testnet)
+  '0x0077777d7eba4688bdef3e311b846f25870a19b9', // Circle Gateway wallet (testnet)
+  '0x0022222abe238cc2c7bb1f21003f0a260052475b', // Circle Gateway minter (testnet)
 ]);
 
 // How stale a transaction may be and still count as "this just happened".
@@ -183,9 +221,17 @@ const EVENT_TYPES = [
 ];
 const EVENT_ALLOWLIST = new Set(EVENT_TYPES);
 
-// Chain keys allowlist — matches assets/arc-core.js CHAINS keys
+// Chain keys allowlist — matches the CHAINS keys in assets/arc-core-v2.js.
+// BOTH registries, because /track rejects anything not listed here: the
+// mainnet keys were missing after the 2026-09-16 cutover, so every cross-chain
+// event on Base, Arbitrum, OP, Polygon, Avalanche, Unichain and Ethereum came
+// back `invalid_chain` and was dropped. Only `arc` survived, because that key
+// is spelled the same on both networks.
 const CHAIN_KEYS = [
-  'arc','sepolia','baseSepolia','arbitrumSepolia','optimismSepolia',
+  // mainnet
+  'arc','ethereum','base','arbitrum','optimism','polygon','avalanche','unichain',
+  // testnet
+  'arcTestnet','sepolia','baseSepolia','arbitrumSepolia','optimismSepolia',
   'avalancheFuji','polygonAmoy','unichainSepolia',
 ];
 const CHAIN_ALLOWLIST = new Set(CHAIN_KEYS);
@@ -872,16 +918,19 @@ export async function onRequest(context) {
     // swapped through it are real users and must not drop out of the count.
     // The selectors differ — V2's swap() carries a fifth argument, deadline.
     const ROUTERS = [
-      '0x607C2a739FCdEd84f0350AC43118d85F4398872b', // OneliqRouterV2 (live)
-      '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7', // OneliqRouter V1 (historical)
+      '0x3635F71daA996e22867647cC58358c5803133A69', // OneliqRouter — live, v4 + v3
+      '0xB1Ed79ee288C4631176440b7f4e624C6B4f078F0', // OneliqRouter — v4-only predecessor
     ];
+    // Selectors computed from contracts/OneliqRouterV2.sol, not copied:
+    //   swap(address,uint256,address,uint256,uint256,bytes,bytes[])     → 0x2a7616a9
+    //   swapV3(address,uint256,address,uint256,uint256,uint24,uint160)  → 0xf5a45560
     const SWAP_SELECTORS = [
-      '0x7a950f99', // swap(address,address,uint256,uint256,uint256)  V2
-      '0xfe029156', // swap(address,address,uint256,uint256)          V1
+      '0x2a7616a9', // swap()   — Uniswap v4 path
+      '0xf5a45560', // swapV3() — Uniswap v3 path
     ];
     const isSwap = (input) => typeof input === 'string'
       && SWAP_SELECTORS.some(sel => input.toLowerCase().startsWith(sel));
-    const ARCSCAN = 'https://testnet.arcscan.app/api';
+    const ARCSCAN = 'https://explorer.arc.io/api';
     const apply = request.method === 'POST';
 
     // 1. Page the router's tx list; collect distinct `from` of successful swap()s.
@@ -960,15 +1009,26 @@ export async function onRequest(context) {
       } catch {}
     }
 
-    const ARC_RPC = 'https://rpc.testnet.arc.network';
+    // Arc mainnet. Everything below was testnet until 2026-10-04, so this
+    // endpoint was reporting testnet activity under a mainnet-looking name.
+    //
+    // CAVEAT on the explorer: the router tx counts come from a Blockscout-style
+    // API, because they need transaction history and the public Arc RPC caps
+    // eth_getLogs at roughly 5k blocks and rate-limits — covering the ~2.2M
+    // blocks since the router was deployed would take hundreds of throttled
+    // calls. explorer.arc.io answers a browser but returns a Cloudflare
+    // challenge to a plain client, so whether a Worker reaches it is unproven;
+    // routerSwapsOk simply stays 0 if it does not. The check-in counters below
+    // are exact either way — they are eth_call, not scraping.
+    const ARC_RPC = 'https://rpc.mainnet.arc.io';
     const ROUTERS = [
-      { label: 'OneliqRouterV2', address: '0x607C2a739FCdEd84f0350AC43118d85F4398872b' },
-      { label: 'OneliqRouter',   address: '0xb508F475230E4Ab876258B7DCaFbc182d806e1F7' },
+      { label: 'OneliqRouter',      address: '0x3635F71daA996e22867647cC58358c5803133A69' },
+      { label: 'OneliqRouter (v4)', address: '0xB1Ed79ee288C4631176440b7f4e624C6B4f078F0' },
     ];
-    const CHECKIN = '0x368a0E854ec69EC10b50D20fCaFC1bAF8b7eff10';
-    // V2's swap() takes a deadline, so it hashes to a different selector than V1's.
-    const SWAP_SELECTORS = ['0x7a950f99', '0xfe029156'];
-    const ARCSCAN = 'https://testnet.arcscan.app/api';
+    const CHECKIN = '0x0cccbe2F3acEc01d71B38249a1d103117c8473Ac';
+    // From contracts/OneliqRouterV2.sol: swap() and swapV3().
+    const SWAP_SELECTORS = ['0x2a7616a9', '0xf5a45560'];
+    const ARCSCAN = 'https://explorer.arc.io/api';
 
     const ethCallUint = async (to, data) => {
       try {
@@ -1030,8 +1090,8 @@ export async function onRequest(context) {
         breakdown: perRouter,
       },
       checkin: { address: CHECKIN, total_checkins: checkinTotal, unique_users: checkinUsers },
-      network: 'Arc Testnet (chainId 5042002)',
-      explorer: 'https://testnet.arcscan.app',
+      network: 'Arc Mainnet (chainId 5042)',
+      explorer: 'https://explorer.arc.io',
     };
     try { await kv.put(ONCHAIN_KEY, JSON.stringify(payload)); } catch {}
 
