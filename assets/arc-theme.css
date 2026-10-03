@@ -25,14 +25,19 @@
      rail #8892A4 fell to 2.8:1, so it is a notch darker here. */
   --text:#0B1220; --muted:#5A6478; --muted-soft:#6E7889;
 
-  /* Accents darkened to hold contrast on white. Same hues, more ink. */
+  /* Accents darkened to hold contrast on white. Same hues, more ink.
+     The green pair carries gain/loss and "ok" labels as body-size text, so it
+     is set to clear 4.5:1 on every light surface the app paints — #FFFFFF,
+     --bg #F7F8FA, --surface2 #EFF1F5 and the docs code block #F3F5F9 — which
+     the old #12965A missed at 3.79/3.57/3.35/3.48. --arc4 and --green are the
+     same colour by design; keep them in step. */
   --arc1:#0E9AA7;
   --arc2:#2C5BE0;
   --arc3:#B0762E;
-  --arc4:#12965A;
+  --arc4:#0F7A4A;
 
   --peach:#B0762E; --sand:#8A7550; --deep:#0B1220;
-  --green:#12965A; --red:#D62B4E; --yellow:#9A6B10; --gold:#B4700A;
+  --green:#0F7A4A; --red:#D62B4E; --yellow:#9A6B10; --gold:#B4700A;
 
   --tint:15,23,42;
   --ink:15,23,42;
