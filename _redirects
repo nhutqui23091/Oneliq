@@ -58,3 +58,11 @@
 /workers/*             /404   404
 /.env                  /404   404
 /.env.*                /404   404
+
+# ─── Closed surfaces ────────────────────────────────────────────────────────
+# Oneliq AI (/agent) and Portal (/portal) are closed for now; the pages are
+# gone but blog posts and bookmarks still point at them, so send those to the
+# home page instead of a 404. Restore the pages and delete these two lines to
+# reopen either surface.
+/agent      /    301
+/portal     /    301

@@ -50,7 +50,7 @@
   // Two chrome variants:
   //   1. boot()    - classic top nav. Marketing/landing pages (/, /blog).
   //   2. bootApp() - left sidebar app shell. Operator surfaces (/trade,
-  //                  /balance, /agent, /history, /token, etc).
+  //                  /balance, /history, /token, etc).
   // The operator console lives at /ops (gated in functions/_middleware.js);
   // the sidebar "Dashboard" entry is the public user dashboard at /dashboard.
 
@@ -59,7 +59,6 @@
       { id: 'trade',     label: 'Trade',        href: '/trade'   },
       { id: 'explore',   label: 'Explore',      href: '/explore' },
       { id: 'balance',   label: 'Balance',      href: '/balance' },
-      { id: 'agent',     label: 'Oneliq AI',    href: '/agent'   },
       { id: 'history',   label: 'History',      href: '/history' },
       { id: 'docs',      label: 'Docs',         href: '/docs'    },
     ];
@@ -243,7 +242,6 @@
             </div>
             <div id="pm-qr" style="display:flex;justify-content:center;margin-top:12px"></div>
           </div>
-          <div id="pm-streak-row"></div>
           <div>
             <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Discord</div>
             <div id="pm-discord"><div style="font-size:13px;color:var(--muted)">Loading...</div></div>
@@ -320,19 +318,6 @@
             }
           };
         }
-        // Streak row (async, non-blocking)
-        fetch('/auth/gm?address=' + addr.toLowerCase())
-          .then(r => r.ok ? r.json() : null)
-          .then(gm => {
-            const el = document.getElementById('pm-streak-row');
-            if (!el) return;
-            if (gm && gm.streak > 0) {
-              el.innerHTML = '<a href="/portal" style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-decoration:none;margin-bottom:2px"><span style="font-size:18px">🔥</span><span style="font-size:14px;font-weight:600;color:var(--text)">' + gm.streak + ' day streak</span><span style="margin-left:auto;font-size:11px;color:var(--arc1)">Portal</span></a>';
-            } else {
-              el.innerHTML = '<a href="/portal" style="display:flex;align-items:center;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-decoration:none;font-size:13px;color:var(--muted);margin-bottom:2px">No streak yet. Check in daily →</a>';
-            }
-          })
-          .catch(() => {});
         sessionHeaders({ interactive: false, address: addr })
           .catch(() => ({}))
           .then(auth => fetch('/auth/profile/' + addr.toLowerCase(), { headers: auth || {} }))
@@ -513,7 +498,7 @@
 
 
   // ── SIDEBAR (app shell) ─────────────────────────────────
-  // Used by operator surfaces (/history, future /trade /balance /agent).
+  // Used by operator surfaces (/trade, /balance, /explore, /history).
   // Marketing pages keep the top nav via boot(). State persists via:
   //   localStorage 'arc.side.collapsed' = '1' | '0'   - desktop collapse
   //   body.arc-side-collapsed                          - applied class
@@ -525,10 +510,8 @@
         { id: 'explore',   label: 'Explore',   icon: '◉', href: '/explore' },
         { id: 'trade',     label: 'Trade',     icon: '⇄', href: '/trade'   },
         { id: 'balance',   label: 'Balance',   icon: '◈', href: '/balance' },
-        { id: 'agent',     label: 'Oneliq AI', icon: '✦', href: '/agent'   },
         // History lives inside the Dashboard now (Recent activity card, with a
         // "History →" deep-link to the full feed), so it's dropped from the nav.
-        { id: 'portal',    label: 'Portal',    icon: '◎', href: '/portal' },
         { id: 'payment',   label: 'Payment',   icon: '⇢',                    badge: 'SOON', soon: true },
         { id: 'dashboard', label: 'Dashboard', icon: '▦', href: '/dashboard' },
       ],
