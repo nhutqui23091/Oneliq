@@ -212,7 +212,7 @@
       <p>One USDC. One Balance. Everywhere. Unified stablecoin operations and cross-chain finance - in one place.</p>
     </div>
     <div class="dash-hero-r">
-      <span class="live-pill"><span class="live-dot"></span>Live · Arc Testnet</span>
+      <span class="live-pill"><span class="live-dot"></span>Live · Arc Mainnet</span>
       <span class="dash-clock" id="dash-clock">--:--:--</span>
     </div>
   </section>
@@ -426,14 +426,14 @@
   // Use the chip-id ↔ arc-key mapping the Balance page established so
   // the visual chip names stay consistent across pages.
   const CHIPS = [
-    { id:'base',     arcKey:'baseSepolia',     short:'Base',  name:'Base Sepolia',     color:'#0052FF', explorer:a => `https://sepolia.basescan.org/address/${a}` },
-    { id:'arc',      arcKey:'arc',             short:'Arc',   name:'Arc Testnet',      color:'#4DD6DB', explorer:a => `https://testnet.arcscan.app/address/${a}` },
-    { id:'sepolia',  arcKey:'sepolia',         short:'Sep',   name:'Ethereum Sepolia', color:'#627EEA', explorer:a => `https://sepolia.etherscan.io/address/${a}` },
-    { id:'arbitrum', arcKey:'arbitrumSepolia', short:'Arb',   name:'Arbitrum Sepolia', color:'#28A0F0', explorer:a => `https://sepolia.arbiscan.io/address/${a}` },
-    { id:'optimism', arcKey:'optimismSepolia', short:'OP',    name:'Optimism Sepolia', color:'#FF0420', explorer:a => `https://sepolia-optimism.etherscan.io/address/${a}` },
-    { id:'polygon',  arcKey:'polygonAmoy',     short:'Poly',  name:'Polygon Amoy',     color:'#8247E5', explorer:a => `https://amoy.polygonscan.com/address/${a}` },
-    { id:'unichain', arcKey:'unichainSepolia', short:'Uni',   name:'Unichain Sepolia', color:'#FF007A', explorer:a => `https://sepolia.uniscan.xyz/address/${a}` },
-    { id:'fuji',     arcKey:'avalancheFuji',   short:'Fuji',  name:'Avalanche Fuji',   color:'#E84142', explorer:a => `https://testnet.snowtrace.io/address/${a}` },
+    { id:'base',      arcKey:'base',      short:'Base', name:'Base',         color:'#0052FF', explorer:a => `https://basescan.org/address/${a}` },
+    { id:'arc',       arcKey:'arc',       short:'Arc',  name:'Arc Mainnet',  color:'#4DD6DB', explorer:a => `https://explorer.arc.io/address/${a}` },
+    { id:'ethereum',  arcKey:'ethereum',  short:'Eth',  name:'Ethereum',     color:'#627EEA', explorer:a => `https://etherscan.io/address/${a}` },
+    { id:'arbitrum',  arcKey:'arbitrum',  short:'Arb',  name:'Arbitrum One', color:'#28A0F0', explorer:a => `https://arbiscan.io/address/${a}` },
+    { id:'optimism',  arcKey:'optimism',  short:'OP',   name:'Optimism',     color:'#FF0420', explorer:a => `https://optimistic.etherscan.io/address/${a}` },
+    { id:'polygon',   arcKey:'polygon',   short:'Poly', name:'Polygon',      color:'#8247E5', explorer:a => `https://polygonscan.com/address/${a}` },
+    { id:'unichain',  arcKey:'unichain',  short:'Uni',  name:'Unichain',     color:'#FF007A', explorer:a => `https://uniscan.xyz/address/${a}` },
+    { id:'avalanche', arcKey:'avalanche', short:'Avax', name:'Avalanche',    color:'#E84142', explorer:a => `https://snowtrace.io/address/${a}` },
   ];
 
   // ── STATE ──────────────────────────────────────────────────────
