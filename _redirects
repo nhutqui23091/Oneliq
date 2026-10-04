@@ -27,6 +27,12 @@
 /point   /trade   302
 /points  /trade   302
 
+# Removed dev page (wallet-debug.html, deleted 2026-10-05). It had no
+# no-store header, so CF edge-cached it with s-maxage=604800 — this 301
+# supersedes the stale cached copy so the clean URL stops resolving to it.
+/wallet-debug      /  301
+/wallet-debug.html /  301
+
 # Dropped blog post — redirect to blog index
 /blog/usyc-explained   /blog   301
 /blog-usyc             /blog   301
