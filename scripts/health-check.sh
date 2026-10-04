@@ -115,11 +115,12 @@ else
 fi
 
 # ─── 6. Build hash matches latest pinned release ─────────────────────────────
-# Compares served arc-core.js against the version string in latest release manifest
+# Compares served arc-core-v2.js against the version string in latest release manifest.
+# Note: there is no releases/ directory today, so this check is skipped in practice.
 LATEST_RELEASE=$(ls -t releases/RELEASE-*.json 2>/dev/null | head -1 || echo "")
 if [[ -n "$LATEST_RELEASE" ]]; then
   EXPECTED_VER=$(grep -oP '"version":\s*"\K[^"]+' "$LATEST_RELEASE")
-  SERVED_VER=$(curl -s --max-time 10 "$APP_URL/assets/arc-core.js" | grep -oP "version: '\K[^']+" | head -1 || echo "unknown")
+  SERVED_VER=$(curl -s --max-time 10 "$APP_URL/assets/arc-core-v2.js" | grep -oP "version: '\K[^']+" | head -1 || echo "unknown")
   if [[ "$EXPECTED_VER" == "$SERVED_VER" ]]; then
     check "Build version" "✓" "$SERVED_VER"
   else

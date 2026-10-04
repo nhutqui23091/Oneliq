@@ -11,7 +11,7 @@
  *   - Writes (deposit/withdraw/mint) are direct contract calls via signer.
  *   - Burn intent is signed EIP-712 by user's wallet.
  *
- * Requires: arc-core.js (window.ARC) loaded first.
+ * Requires: arc-core-v2.js (window.ARC) loaded first.
  */
 (function (global) {
   'use strict';

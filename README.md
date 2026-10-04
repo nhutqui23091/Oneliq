@@ -33,8 +33,7 @@ Both a light and a dark theme ship on every page, and the choice is remembered.
 
 | When | What |
 |---|---|
-| **2026 Q4** | **Agent General Availability** - Auto-Replenish Agent goes GA, with mobile-friendly signing and execution notifications. |
-| **2027 Q1** | **Multi-Asset Automation** - EURC support, cross-stable automation rules, and the first public Operations Dashboard. |
+| **2027 Q1** | **Operations Dashboard** - first public release (Beta) of the shared view over balances, settlement, and activity across every chain. |
 | **2027 Q2** | **Treasury Operations** - treasury workflows, payroll templates, portfolio analytics, reporting, and CSV export. |
 | **2027 Q3** | **Production & Ecosystem** - independent security audit + bug bounty, deeper developer integrations, and early enterprise pilots. |
 
@@ -56,9 +55,9 @@ Every Circle product we use is integrated **natively** - no third-party bridges,
 
 | Circle product | Status | Where in code |
 |---|---|---|
-| **USDC** | Live | Native unit of account across every surface. Per-chain addresses in [`assets/arc-core.js`](assets/arc-core.js). |
+| **USDC** | Live | Native unit of account across every surface. Per-chain addresses in [`assets/arc-core-v2.js`](assets/arc-core-v2.js). |
 | **Circle Gateway** | Live (mainnet) | EIP-712 `BurnIntent` / `BurnIntentSet` signing + 8-chain `/v1/balances` aggregation, cross-chain spend, Consolidate, and gasless forwarder mint. See [`assets/arc-gateway.js`](assets/arc-gateway.js) and [`functions/api/gateway-proxy/`](functions/api/gateway-proxy/). |
-| **CCTP V2** | Live (mainnet) | `TokenMessengerV2.depositForBurn` + `MessageTransmitterV2.receiveMessage`, Fast and Standard modes. Arc is CCTP domain 26. See [`assets/arc-core.js`](assets/arc-core.js) and [`trade.html`](trade.html). |
+| **CCTP V2** | Live (mainnet) | `TokenMessengerV2.depositForBurn` + `MessageTransmitterV2.receiveMessage`, Fast and Standard modes. Arc is CCTP domain 26. See [`assets/arc-core-v2.js`](assets/arc-core-v2.js) and [`trade.html`](trade.html). |
 | **App Kit (Stablecoin Kit)** | Live (mainnet) | Swap quoting (`GET /quote`) and the `swap()` / `bridge()` calls, proxied via [`functions/api/circle-proxy/`](functions/api/circle-proxy/) so `KIT_KEY` never reaches the browser. Loaded from a self-hosted bundle, see [`assets/arc-appkit.js`](assets/arc-appkit.js). |
 | **Nanopayments** | Planned (2027+) | Streaming USDC primitives. |
 
@@ -168,8 +167,7 @@ oneliq/
 ├── blog/                   ← One HTML file per post
 │
 ├── assets/
-│   ├── arc-core.js         ← Shared on-chain helpers (RPC, ABIs, USDC addresses, EIP-6963)
-│   ├── arc-core-v2.js      ← Newer chain helpers (deposit gas overrides, OP-Stack quirks)
+│   ├── arc-core-v2.js      ← Chain + token registries, RPC, ABIs, EIP-6963, gas overrides
 │   ├── arc-gateway.js      ← Circle Gateway client (BurnIntent, spend, Consolidate, forwarder)
 │   ├── arc-appkit.js       ← Circle App Kit swap client (config is generated at build time)
 │   ├── arc-theme.js/.css   ← Light/dark theme switch, shared tokens
@@ -227,10 +225,9 @@ Contact: `security@oneliq.xyz` (no PGP key published - assume plaintext).
 
 | Quarter | Milestone |
 |---|---|
-| **2026 Q3** _(Now)_ | **Platform Optimization** - continue improving Trade execution and liquidity routing, enhance Unified Balance and cross-chain settlement, strengthen Auto-Replenish Agent reliability, and refine overall platform performance and user experience. |
-| **2026 Q4** | **Agent General Availability** - release the Auto-Replenish Agent as General Availability. Introduce mobile-friendly signing, execution notifications, and improved automation reliability. |
-| **2027 Q1** | **Multi-Asset Automation** - expand automation beyond USDC with EURC support, introduce cross-stable automation rules, and launch the first public version of the Operations Dashboard. |
-| **2027 Q2** | **Treasury Operations** - launch the Operations Dashboard with treasury workflows, payroll templates, portfolio analytics, reporting, and CSV export. |
+| **2026 Q3** _(Now)_ | **Platform Optimization** - continue improving Trade execution and liquidity routing, enhance Unified Balance and cross-chain settlement, and refine overall platform performance and user experience. |
+| **2027 Q1** | **Operations Dashboard** - launch the first public version (Beta) of the Operations Dashboard: balances, settlement, and activity across every chain in one view. |
+| **2027 Q2** | **Treasury Operations** - take the Operations Dashboard to GA with treasury workflows, payroll templates, portfolio analytics, reporting, and CSV export. |
 | **2027 Q3** | **Production & Ecosystem** - strengthen platform security with an independent security audit and bug bounty, expand developer integrations, improve platform reliability, and run early enterprise pilots for stablecoin automation. |
 
 See the live roadmap on the [homepage](https://oneliq.xyz/#roadmap).

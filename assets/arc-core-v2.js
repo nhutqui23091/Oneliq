@@ -6,7 +6,7 @@
   'use strict';
 
   if (!global.ethers) {
-    console.error('[arc-core] ethers UMD not found. Load ethers before arc-core.js');
+    console.error('[arc-core] ethers UMD not found. Load ethers before arc-core-v2.js');
     return;
   }
   const { BrowserProvider, JsonRpcProvider, Contract, Interface, getAddress, isAddress,
@@ -1454,7 +1454,7 @@
   }
 
   // ── REOWN APPKIT INIT ────────────────────────────────────────────────────
-  // appkit.bundle.js is loaded via <script> before arc-core.js, so
+  // appkit.bundle.js is loaded via <script> before arc-core-v2.js, so
   // window.ReownAppKit is synchronously available when this code runs.
   try {
     const { createAppKit, defineChain, EthersAdapter } = global.ReownAppKit || {};

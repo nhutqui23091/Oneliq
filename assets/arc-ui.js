@@ -1,4 +1,4 @@
-/* Oneliq shared UI widgets - navbar, toast, modal, cursor. Requires arc-core.js */
+/* Oneliq shared UI widgets - navbar, toast, modal, cursor. Requires arc-core-v2.js */
 (function (global) {
   'use strict';
   if (!global.ARC) { console.error('[arc-ui] ARC core not loaded'); return; }

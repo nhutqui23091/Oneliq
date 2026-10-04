@@ -101,8 +101,5 @@
 /assets/arc-ui.js
   Cache-Control: no-store, must-revalidate
 
-/assets/arc-core.js
-  Cache-Control: no-store, must-revalidate
-
 /assets/arc-appkit.js
   Cache-Control: no-store, must-revalidate
