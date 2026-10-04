@@ -223,12 +223,15 @@
 
      Five modules, all wallet-reactive:
        1. Profile hero  — deterministic avatar, address, total USD, 24h Δ
-       2. Holdings      — Arc token balances (USDC/EURC/cirBTC) × price
+       2. Holdings      — Arc token balances × price, read from ARC.TOKENS.arc
        3. Allocation    — donut of holdings by USD weight
        4. Cross-chain   — unified USDC across Gateway chains (arc-gateway)
        5. Activity      — latest receipts (same feed as /history)
 
-     Prices come from CoinGecko (BTC → cirBTC, EUR → EURC; USDC pinned $1),
+     The token list is whatever the ACTIVE network registers, not a fixed list:
+     mainnet Arc has USDC + EURC, testnet Arc also has cirBTC.
+
+     Prices come from CoinGecko (EUR → EURC, BTC → cirBTC; USDC pinned $1),
      cached in localStorage so a failed/rate-limited fetch degrades to the
      last good numbers instead of blanking the portfolio.
   ============================================================ */
@@ -288,11 +291,19 @@
     });
   })();
 
-  const ARC_TOKENS = ARC.TOKENS.arc;           // { USDC, EURC, cirBTC }
-  const ORDER = ['USDC', 'EURC', 'cirBTC'];
+  const ARC_TOKENS = ARC.TOKENS.arc;   // mainnet: { USDC, EURC } · testnet adds cirBTC
+  // Preferred display order, filtered down to what this network actually has.
+  // cirBTC is a testnet-only entry; on mainnet ARC.TOKENS.arc has no cirBTC, so
+  // a fixed ['USDC','EURC','cirBTC'] made loadHoldings() read `.decimals` off
+  // undefined, which rejected refresh() and left the hero, holdings and
+  // allocation painted in their disconnected state forever.
+  const ORDER = ['USDC', 'EURC', 'cirBTC'].filter(sym => ARC_TOKENS[sym]);
   const TOK_COLOR = { USDC: '#4DD6DB', EURC: '#4A7BEC', cirBTC: '#F4A93A' };
-  // CoinGecko id per symbol (USDC pinned to $1, no lookup needed).
-  const CG_ID = { EURC: 'euro-coin', cirBTC: 'bitcoin' };
+  // CoinGecko id per symbol (USDC pinned to $1, no lookup needed). Narrowed to
+  // ORDER so mainnet doesn't fetch a bitcoin price it has nothing to price.
+  const CG_ID = Object.fromEntries(
+    Object.entries({ EURC: 'euro-coin', cirBTC: 'bitcoin' }).filter(([sym]) => ORDER.includes(sym))
+  );
   const PRICE_KEY = 'arc.dash.prices.v1';
 
   // addr starts `undefined` (not null) so the first wallet event — even a
@@ -340,9 +351,13 @@
     try { return JSON.parse(localStorage.getItem(PRICE_KEY) || 'null'); } catch { return null; }
   }
   async function fetchPrices(){
-    const base = { USDC: { usd: 1, change: 0 }, EURC: { usd: null, change: 0 }, cirBTC: { usd: null, change: 0 } };
+    // One slot per token this network registers. USDC is pinned, the rest start
+    // null so an incomplete response falls through to cache instead of lying.
+    const base = {};
+    for (const sym of ORDER) base[sym] = { usd: sym === 'USDC' ? 1 : null, change: 0 };
     try {
       const ids = [...new Set(Object.values(CG_ID))].join(',');
+      if (!ids) return base;
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
       const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -411,7 +426,10 @@
     const parts = state.holdings.filter(r => (r.value || 0) > 0);
     const total = parts.reduce((a, r) => a + r.value, 0);
     if (!total){
-      el.innerHTML = `<div class="db-empty"><div class="db-empty-ico">◔</div><div class="db-empty-t">No holdings yet</div><div class="db-empty-s">Your asset mix will appear here once you hold USDC, EURC, or cirBTC.</div></div>`;
+      const names = ORDER.length > 1
+        ? `${ORDER.slice(0, -1).join(', ')} or ${ORDER[ORDER.length - 1]}`
+        : (ORDER[0] || 'an Arc asset');
+      el.innerHTML = `<div class="db-empty"><div class="db-empty-ico">◔</div><div class="db-empty-t">No holdings yet</div><div class="db-empty-s">Your asset mix will appear here once you hold ${escapeHtml(names)}.</div></div>`;
       return;
     }
     const SZ = 190, MID = SZ / 2, R = 76, C = 2 * Math.PI * R, W = 22;
