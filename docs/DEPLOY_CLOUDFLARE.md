@@ -3,8 +3,9 @@
 This is the **primary deployment path** for Oneliq. You bought `oneliq.xyz` on Cloudflare,
 which means DNS, CDN, SSL, and hosting all live under one account — zero glue code.
 
-> Looking for the decentralized path (IPFS + ENS)? See `DEPLOYMENT.md`. That's an optional
-> backup we'll add later.
+> It is also the **only** deployment path. An IPFS + ENS mirror was documented for
+> months but never set up; that runbook was removed on 2026-10-04 rather than left
+> implying a backup exists.
 
 ---
 
@@ -274,9 +275,12 @@ For each release:
 - You want users to verify the served build matches a published hash
 - You want a host that can't be subpoena'd or rate-limited
 
-→ Run both in parallel: Cloudflare Pages as the daily-driver, IPFS+ENS as the immutable
-audit trail. See `DEPLOYMENT.md` for that path.
+An IPFS + ENS mirror would address those, and it is a reasonable thing to add. It
+is **not** set up today, and the old runbook for it was removed because it had
+gone stale (it still referenced the pre-rebrand `arcswap.eth`). Treat this section
+as a note on what Cloudflare-only does not give us, not as a pointer to something
+that exists.
 
 ---
 
-_Last updated: 2026-04-26_
+_Last updated: 2026-10-04_

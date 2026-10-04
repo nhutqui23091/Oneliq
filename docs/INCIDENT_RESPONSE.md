@@ -1,8 +1,7 @@
 # Incident Response Policy — Oneliq
 
 This document is the **public summary** of how Oneliq classifies, contains, and
-communicates security incidents. The internal playbook (with on-call contacts,
-specific tooling, and rotation schedules) is maintained privately.
+communicates security incidents.
 
 For vulnerability reporting, see [`SECURITY.md`](../SECURITY.md).
 
@@ -12,8 +11,8 @@ For vulnerability reporting, see [`SECURITY.md`](../SECURITY.md).
 
 | Severity | Definition | Response time |
 |---|---|---|
-| **SEV-1** | User funds at risk right now (frontend serving malicious code, domain hijack, signer-key compromise) | Acknowledge ≤ 15 min, mitigate ≤ 1 hour |
-| **SEV-2** | App degraded but funds safe (RPC outage, vault values stale, CCTP route failing) | Acknowledge ≤ 1 hour, mitigate ≤ 4 hours |
+| **SEV-1** | User funds at risk right now (frontend serving malicious code, domain hijack, router admin key compromise) | Acknowledge ≤ 15 min, mitigate ≤ 1 hour |
+| **SEV-2** | App degraded but funds safe (RPC outage, quotes stale, CCTP route failing, swaps reverting) | Acknowledge ≤ 1 hour, mitigate ≤ 4 hours |
 | **SEV-3** | Single feature broken (one wallet provider, one chain, one link) | Acknowledge ≤ 4 hours, mitigate ≤ 24 hours |
 | **SEV-4** | Cosmetic / non-blocking (typo, layout glitch, slow load) | Acknowledge ≤ 24 hours, fix in next release |
 
@@ -34,24 +33,26 @@ person wears multiple hats:
 
 ## Containment principles
 
-Oneliq is a frontend over third-party contracts. Containment options follow
-that architecture:
+Oneliq is a frontend plus a thin edge backend over mostly third-party contracts,
+with two contracts of our own. Containment follows that architecture. These are
+the levers that **actually exist**:
 
-- **Configuration-level**: edge headers and redirects can be reverted in
-  seconds without a code push.
-- **Build-level**: every deploy is atomically rollback-able to any prior green
-  build.
-- **Surface-level**: a frontend feature-flag manifest can disable individual
-  products (vault deposit / redeem, swap, bridge, pool actions) on demand
-  while users keep custody and direct on-chain access.
-- **Identity-level**: domain (DNS) and decentralized identity (ENS contenthash)
-  are governed by multi-signature wallets — see
-  [`docs/GOVERNANCE.md`](GOVERNANCE.md).
+- **Configuration-level**: edge headers and redirects revert in seconds without a
+  code push.
+- **Build-level**: every Cloudflare Pages deploy is atomically rollback-able to
+  any prior green build.
+- **Contract-level**: `OneliqRouter.pause()` stops routing through our router.
+  `OneliqCheckIn` has no owner and no pause - it cannot be stopped by us, by
+  design, and does not move funds.
+- **Surface-level**: disabling one product surface means a deploy or a redirect.
+  There is **no** runtime feature-flag manifest. Earlier versions of this
+  document described a frontend kill-switch; no such mechanism exists in the
+  code, so it is not part of the plan.
 
 **User funds are never under our custody.** If the frontend is paused or
-withdrawn entirely, users retain direct on-chain access to their positions
-(USYC redeem on Hashnote, USDC withdraw on Circle Gateway, swaps on the
-underlying Uniswap V2 contracts, liquidity removal on the same).
+withdrawn entirely, users keep direct on-chain access: USDC withdraw on Circle
+Gateway, and swaps directly against the underlying Uniswap v4 and v3 contracts
+on Arc without passing through anything of ours.
 
 ---
 
@@ -73,30 +74,43 @@ message asking for those, even one that appears to come from us, is fraudulent.
 
 ## Vendor incidents
 
-If the incident originates in a third-party contract (Hashnote USYC, Circle
-CCTP / Gateway, Uniswap V2, Arc L1 itself):
+If the incident originates in a third-party contract (Circle CCTP / Gateway,
+Uniswap v4 / v3 / Permit2, Arc L1 itself):
 
-1. We disable the affected surface in the frontend via the kill-switch.
+1. We pause our router if the affected path routes through it, and ship a deploy
+   that removes the affected surface otherwise.
 2. We display an advisory banner pointing users to the vendor's official
    communication.
 3. We do not duplicate or paraphrase vendor advisories — users are sent to the
    source.
 
 The vendors and their disclosure channels are listed in
-[`SECURITY.md`](../SECURITY.md#out-of-scope-third-party--report-to-vendor).
+[`SECURITY.md`](../SECURITY.md#out-of-scope-third-party---report-to-vendor).
+
+---
+
+## Incidents in our own contracts
+
+New since mainnet: a bug can now be ours rather than a vendor's.
+
+1. `pause()` the router. This is the one lever that works without a deploy.
+2. Assess whether funds are at risk or only fee accounting is affected.
+3. If a fix requires new code, deploy a replacement router and point the frontend
+   at it - the contracts are not behind a proxy, so there is no in-place upgrade.
+4. Post-mortem per the cadence above, including the replacement address.
 
 ---
 
 ## Drills and review
 
-Oneliq runs internal incident-response drills on a recurring cadence. Each
-drill covers one of the threat scenarios in
-[`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md#threat-model)
-and updates the internal playbook based on what is learned.
+We do **not** currently run scheduled incident-response drills, and this policy
+has not been on a quarterly review cadence - an earlier version claimed both.
+Both are listed as open items in
+[`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md#open-items).
 
-This public policy is reviewed at least once per quarter and after every real
-incident.
+What we do commit to: this document is reviewed after every real incident, and
+updated when the architecture it describes changes.
 
 ---
 
-_Last updated: 2026-05-10_
+_Last updated: 2026-10-04_
