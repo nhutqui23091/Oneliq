@@ -240,7 +240,7 @@ table.t{width:100%;border-collapse:collapse;margin:24px 0;font-size:14.5px;borde
 
     <h2>Agent: automated USDC transfers (preview)</h2>
 
-    <p><a href="/agent">Agent</a> is in public preview. It exposes two automation modes built on Circle Programmable Wallets. Auto top-up monitors a wallet balance on a selected chain and issues a USDC transfer when the balance drops below a configured threshold. Scheduled send issues recurring transfers on a fixed interval: once, daily, weekly, or monthly. Both modes store the policy parameters on-chain via the Programmable Wallets contract. A daily safety cap limits total outflow. Policies can be paused or revoked at any time from the same interface.</p>
+    <p>Agent is in public preview. It exposes two automation modes built on Circle Programmable Wallets. Auto top-up monitors a wallet balance on a selected chain and issues a USDC transfer when the balance drops below a configured threshold. Scheduled send issues recurring transfers on a fixed interval: once, daily, weekly, or monthly. Both modes store the policy parameters on-chain via the Programmable Wallets contract. A daily safety cap limits total outflow. Policies can be paused or revoked at any time from the same interface.</p>
 
     <p>The key design constraint is that Agent can only automate flows between wallets you control. The recipient address for both modes is set at policy creation time and cannot be changed without revoking and recreating the policy. This is not a limitation of Oneliq's interface; it reflects the access model of Circle Programmable Wallets, which requires explicit ownership proof before modifying any policy.</p>
 

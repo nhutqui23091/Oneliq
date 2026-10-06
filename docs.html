@@ -411,7 +411,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     <p class="docs-p">
       Oneliq is a thin frontend over Circle's stablecoin stack and the Arc Layer&nbsp;1. We deploy
       exactly two small contracts on Arc - <strong>OneliqRouter</strong> (the swap fee router) and
-      <strong>OneliqCheckIn</strong> (Portal check-ins) - and neither can hold your balance. Everything
+      <strong>OneliqCheckIn</strong> (the daily check-in contract) - and neither can hold your balance. Everything
       that moves value is Circle's. What lives on our origin is static HTML, a few KB of shared
       JavaScript, a handful of stateless proxy routes, and two Cloudflare Workers.
     </p>
@@ -836,7 +836,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
     </p>
     <table class="docs-table">
       <tr><th>Chain</th><th>Chain ID</th><th>CCTP domain</th><th>USDC</th><th>Role</th></tr>
-      <tr><td><strong>Arc Mainnet</strong></td><td class="num"><code>5042</code></td><td class="num"><code>26</code></td><td><code>native gas</code></td><td>Home - Trade, Mint destination, Portal check-in</td></tr>
+      <tr><td><strong>Arc Mainnet</strong></td><td class="num"><code>5042</code></td><td class="num"><code>26</code></td><td><code>native gas</code></td><td>Home - Trade, Mint destination</td></tr>
       <tr><td>Ethereum</td><td class="num"><code>1</code></td><td class="num"><code>0</code></td><td><code>0xA0b8…eB48</code></td><td>Gateway · CCTP · Agent</td></tr>
       <tr><td>Base</td><td class="num"><code>8453</code></td><td class="num"><code>6</code></td><td><code>0x8335…2913</code></td><td>Gateway · CCTP · Agent · Uniswap v3</td></tr>
       <tr><td>Avalanche C-Chain</td><td class="num"><code>43114</code></td><td class="num"><code>1</code></td><td><code>0xB97E…8a6E</code></td><td>Gateway · CCTP · Agent</td></tr>
@@ -901,7 +901,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
       <tr><td>Permit2</td><td><code>0x000000000022D473030F116dDEE9F6B43aC78BA3</code></td></tr>
     </table>
 
-    <h3 class="docs-h3">OneliqCheckIn (Portal daily check-in)</h3>
+    <h3 class="docs-h3">OneliqCheckIn (check-in contract)</h3>
     <p class="docs-p" style="font-size:13px;color:var(--muted);margin-top:-4px">Immutable, no owner and no upgrade path. Counts days in UTC, which is why the streak logic in the app does the same.</p>
     <table class="docs-table">
       <tr><th>Contract</th><th>Address</th></tr>
