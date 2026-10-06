@@ -211,7 +211,13 @@
   function loadQrCode(cb) {
     if (typeof QRCode !== 'undefined') { cb(); return; }
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
+    // qrcode 1.5.x dropped the browser UMD (there is no build/qrcode.min.js),
+    // so the old 1.5.4 URL 404'd and the QR never rendered. 1.4.4 ships
+    // build/qrcode.min.js as a real published file — identical bytes on jsdelivr
+    // and unpkg — so its SHA-384 is stable and pinnable. SRI makes CDN tampering
+    // fail closed, matching the ethers tag on every page.
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js';
+    s.integrity = 'sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk';
     s.crossOrigin = 'anonymous';
     s.referrerPolicy = 'no-referrer';
     s.onload = cb;
