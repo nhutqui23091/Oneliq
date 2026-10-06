@@ -435,7 +435,7 @@ pre code{background:none;border:none;padding:0;color:var(--c-body);font-size:13p
 <span class="item">│  /api/history/*        </span><span class="meta">→ per-wallet Trade / Balance receipts          </span><span class="item">│</span>
 <span class="item">│  /api/recipients/*     </span><span class="meta">→ saved payees for Batch Pay                   </span><span class="item">│</span>
 <span class="item">│  /api/metrics/*        </span><span class="meta">→ aggregated read-only telemetry rollup        </span><span class="item">│</span>
-<span class="item">│  /auth/*               </span><span class="meta">→ Portal check-in, points, streaks             </span><span class="item">│</span>
+<span class="item">│  /auth/*               </span><span class="meta">→ Discord linking + wallet profile             </span><span class="item">│</span>
 <span class="layer-name">└────────────────────────────────────────────────────────────────────────┘</span>
                                   <span class="arrow">↓</span>
 <span class="layer-name">┌─ Cloudflare Workers (scheduled) ──────────────────────────────────────┐</span>
@@ -962,9 +962,9 @@ POST <span class="code-key">/api/gateway-proxy/v1/transfer</span>
 
     <h3 class="docs-h3">/auth/*</h3>
     <p class="docs-p">
-      The Portal backend (surface closed): check-in recording, Star Points, streaks, badges,
-      and referrals. A check-in is only credited after the on-chain transaction is
-      verified against the OneliqCheckIn contract, so points cannot be minted by calling the API.
+      Discord account linking for the wallet profile - the Connect Discord option in the
+      Profile menu and the profile record it writes. Identity only: it holds no funds and
+      has no signing authority.
     </p>
 
     <h3 class="docs-h3">/api/metrics/*</h3>
